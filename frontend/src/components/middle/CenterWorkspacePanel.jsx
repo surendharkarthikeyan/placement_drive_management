@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Loader2, CheckCircle2, AlertCircle, Trophy, Sparkles, Building2, SlidersHorizontal, PlusCircle, AlertTriangle } from 'lucide-react'
-import { getDriveById, updateDriveDetails, getPlacementOfficers } from '../../services/api'
+import { Save, Loader2, CheckCircle2, AlertCircle, Trophy, Sparkles, Building2, SlidersHorizontal, PlusCircle, AlertTriangle, Pencil, User } from 'lucide-react'
+import { getDriveById, updateDriveDetails, getPlacementOfficers, getBatches } from '../../services/api'
 import EditEligibilityModal from '../modals/EditEligibilityModal'
+import EditDriveModal from '../modals/EditDriveModal'
+import SearchableSelect from '../common/SearchableSelect'
+import CustomSelect from '../common/CustomSelect'
+import MultiSelectDropdown from '../common/MultiSelectDropdown'
 
 /**
  * CenterWorkspacePanel (Middle Panel)
  * - Directly connected to MySQL via GET /api/drives/:id & PUT /api/drives/:id
  * - Duplicate button removed as requested
- * - Top Row: Title, Subtitle, Save Changes button
+ * - Top Row: Title, Subtitle, Status Badge, Edit Drive button, Save Changes button
  * - KPI Summary Cards: Initially eligible, Included in drive, Reached final stage, Awaiting final result, Not cleared/absent
  * - Workflow navigation: 1. Drive Setup, 2. Student List, 3. Stages & Outcomes, 4. Final Selection
- * - Live Form fields for Company & Drive Information
+ * - Live Form fields for Company & Drive Information with Custom & Searchable Selects
  * - Eligibility Conditions tag view
  */
 export default function CenterWorkspacePanel({
@@ -27,7 +31,9 @@ export default function CenterWorkspacePanel({
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [activeTab, setActiveTab] = useState('setup')
   const [officers, setOfficers] = useState([])
+  const [batches, setBatches] = useState([])
   const [isEligibilityModalOpen, setIsEligibilityModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const driveCacheRef = React.useRef({})
 
   const extractFormData = (data) => ({
@@ -36,7 +42,9 @@ export default function CenterWorkspacePanel({
     placement_type: data?.placement_type || 'Full-time Placement',
     package_lpa: data?.package_lpa ? `${data.package_lpa} LPA` : '',
     drive_start_date: data?.drive_start_date ? data.drive_start_date.substring(0, 10) : '',
+    drive_end_date: data?.drive_end_date ? data.drive_end_date.substring(0, 10) : '',
     drive_owner_user_id: data?.drive_owner_user_id ? String(data.drive_owner_user_id) : '',
+    batch_ids: data?.batch_ids ? Array.from(data.batch_ids) : [],
     job_description: data?.job_description || ''
   })
 
@@ -48,7 +56,9 @@ export default function CenterWorkspacePanel({
     placement_type: 'Full-time Placement',
     package_lpa: '',
     drive_start_date: '',
+    drive_end_date: '',
     drive_owner_user_id: '',
+    batch_ids: [],
     job_description: ''
   })
 
@@ -63,23 +73,29 @@ export default function CenterWorkspacePanel({
       formData.placement_type !== initialData.placement_type ||
       formData.package_lpa !== initialData.package_lpa ||
       formData.drive_start_date !== initialData.drive_start_date ||
+      formData.drive_end_date !== initialData.drive_end_date ||
       formData.drive_owner_user_id !== initialData.drive_owner_user_id ||
-      formData.job_description !== initialData.job_description
+      formData.job_description !== initialData.job_description ||
+      JSON.stringify(formData.batch_ids || []) !== JSON.stringify(initialData.batch_ids || [])
 
     onDirtyChange(isDirty)
   }, [formData, initialData])
 
-  // Fetch placement officers for Drive Owner dropdown
+  // Fetch placement officers and batches for dropdowns
   useEffect(() => {
-    const loadOfficers = async () => {
+    const loadMetadata = async () => {
       try {
-        const data = await getPlacementOfficers()
-        setOfficers(data)
+        const [officersData, batchesData] = await Promise.all([
+          getPlacementOfficers(),
+          getBatches()
+        ])
+        setOfficers(officersData)
+        setBatches(batchesData)
       } catch (err) {
-        console.error('Failed to load placement officers:', err)
+        console.error('Failed to load placement metadata:', err)
       }
     }
-    loadOfficers()
+    loadMetadata()
   }, [])
 
   // Fetch selected drive from backend with instant cache swap (no blinking)
@@ -138,7 +154,9 @@ export default function CenterWorkspacePanel({
         placement_type: formData.placement_type,
         package_lpa: numPackage,
         drive_start_date: formData.drive_start_date,
+        drive_end_date: formData.drive_end_date,
         drive_owner_user_id: formData.drive_owner_user_id ? Number(formData.drive_owner_user_id) : null,
+        batch_ids: formData.batch_ids && formData.batch_ids.length > 0 ? formData.batch_ids : batches.map(b => b.id),
         job_description: formData.job_description
       }
 
@@ -193,14 +211,56 @@ export default function CenterWorkspacePanel({
   const stats = drive.stats || {}
   const eligibility = drive.eligibility
 
+  // Helper for status badge presentation
+  const getBadgeDetails = (status) => {
+    switch (status) {
+      case 'draft':
+        return { label: 'Draft', bg: 'bg-[#f1f5f9]', text: 'text-[#475569]', border: 'border-[#cbd5e1]' }
+      case 'registration_open':
+        return { label: 'Registration Open', bg: 'bg-[#ecfdf5]', text: 'text-[#059669]', border: 'border-[#a7f3d0]' }
+      case 'scheduled':
+        return { label: 'Scheduled', bg: 'bg-[#eff6ff]', text: 'text-[#2563eb]', border: 'border-[#bfdbfe]' }
+      case 'in_progress':
+        return { label: 'In Progress', bg: 'bg-[#eff6ff]', text: 'text-[#1d4ed8]', border: 'border-[#bfdbfe]' }
+      case 'awaiting_next_round':
+        return { label: 'Awaiting Next Round', bg: 'bg-[#fefce8]', text: 'text-[#ca8a04]', border: 'border-[#fef08a]' }
+      case 'awaiting_final_result':
+        return { label: 'Awaiting Final Result', bg: 'bg-[#fffbeb]', text: 'text-[#d97706]', border: 'border-[#fde68a]' }
+      case 'completed':
+        return { label: 'Completed', bg: 'bg-[#f0fdf4]', text: 'text-[#16a34a]', border: 'border-[#bbf7d0]' }
+      case 'on_hold':
+        return { label: 'On Hold', bg: 'bg-[#fef2f2]', text: 'text-[#b91c1c]', border: 'border-[#fecaca]' }
+      case 'cancelled':
+        return { label: 'Cancelled', bg: 'bg-[#f8fafc]', text: 'text-[#64748b]', border: 'border-[#cbd5e1]' }
+      default:
+        return { label: status || 'Draft', bg: 'bg-[#f1f5f9]', text: 'text-[#475569]', border: 'border-[#cbd5e1]' }
+    }
+  }
+
+  const statusBadge = getBadgeDetails(drive.overall_status)
+
   return (
     <section className="flex-1 h-full overflow-y-auto p-[22px] bg-[#f5f8fc] text-[#1e293b] select-none flex flex-col gap-[18px]">
-      {/* 1. Top Row: Title, Subtitle, and Save Changes button (Duplicate button omitted as requested) */}
+      {/* 1. Top Row: Title, Subtitle, Status Badge, Edit Drive button, and Save Changes button */}
       <div className="flex items-start justify-between gap-[16px]">
         <div>
-          <h1 className="text-[23px] font-[850] text-[#172554] m-0 leading-tight">
-            {companyName} Placement Drive
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[23px] font-[850] text-[#172554] m-0 leading-tight">
+              {companyName} Placement Drive
+            </h1>
+            <span className={`py-[3px] px-[10px] rounded-full text-[12px] font-[750] border shadow-2xs ${statusBadge.bg} ${statusBadge.text} ${statusBadge.border}`}>
+              {statusBadge.label}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="py-[4px] px-[10px] bg-white hover:bg-[#f8fafc] text-[#2563eb] border border-[#bfdbfe] hover:border-[#93c5fd] rounded-[8px] text-[12px] font-[700] shadow-2xs hover:shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-98"
+              title="Edit full drive details in modal"
+            >
+              <Pencil size={13} className="text-[#2563eb]" />
+              <span>Edit Drive</span>
+            </button>
+          </div>
           <p className="text-[13px] text-[#64748b] mt-[4px] mb-0">
             {drive.job_role} · {drive.package_lpa ? `${drive.package_lpa} LPA` : 'Competitive'} · Placement Drive Record
           </p>
@@ -347,22 +407,22 @@ export default function CenterWorkspacePanel({
                 />
               </div>
 
-              {/* Placement Type */}
+              {/* Placement Type (Custom Dropdown) */}
               <div>
                 <label className="text-[14px] font-[800] text-[#334155] block mb-[8px]">
                   Placement Type
                 </label>
-                <select
-                  name="placement_type"
+                <CustomSelect
+                  options={[
+                    { value: 'Full-time Placement', label: 'Full-time Placement' },
+                    { value: 'Internship + PPO', label: 'Internship + PPO' },
+                    { value: 'Internship', label: 'Internship' },
+                    { value: 'Apprenticeship', label: 'Apprenticeship' }
+                  ]}
                   value={formData.placement_type}
-                  onChange={handleInputChange}
-                  className="w-full h-[48px] px-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[15px] font-[600] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition cursor-pointer shadow-xs"
-                >
-                  <option value="Full-time Placement">Full-time Placement</option>
-                  <option value="Internship + PPO">Internship + PPO</option>
-                  <option value="Internship">Internship</option>
-                  <option value="Apprenticeship">Apprenticeship</option>
-                </select>
+                  onChange={(val) => setFormData((prev) => ({ ...prev, placement_type: val }))}
+                  placeholder="Select type"
+                />
               </div>
 
               {/* Package */}
@@ -396,24 +456,52 @@ export default function CenterWorkspacePanel({
                 />
               </div>
 
-              {/* Drive Owner */}
+              {/* Drive End Date */}
+              <div>
+                <label className="text-[14px] font-[800] text-[#334155] block mb-[8px]">
+                  Drive End Date
+                </label>
+                <input
+                  type="date"
+                  name="drive_end_date"
+                  min="2000-01-01"
+                  max="2099-12-31"
+                  value={formData.drive_end_date}
+                  onChange={handleInputChange}
+                  className="w-full h-[48px] px-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[15px] font-[600] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition cursor-pointer shadow-xs"
+                />
+              </div>
+
+              {/* Drive Owner (Searchable Dropdown) */}
               <div>
                 <label className="text-[14px] font-[800] text-[#334155] block mb-[8px]">
                   Drive Owner
                 </label>
-                <select
-                  name="drive_owner_user_id"
+                <SearchableSelect
+                  options={officers.map((officer) => ({
+                    value: String(officer.id),
+                    label: officer.name,
+                    subtext: officer.email || 'Placement Team'
+                  }))}
                   value={formData.drive_owner_user_id}
-                  onChange={handleInputChange}
-                  className="w-full h-[48px] px-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[15px] font-[600] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition cursor-pointer shadow-xs"
-                >
-                  <option value="">Select placement officer</option>
-                  {officers.map((officer) => (
-                    <option key={officer.id} value={officer.id}>
-                      {officer.name} — Placement Team
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData((prev) => ({ ...prev, drive_owner_user_id: val }))}
+                  placeholder="Select placement officer"
+                  searchPlaceholder="Search officer..."
+                  icon={User}
+                />
+              </div>
+
+              {/* Target Academic Batch (Multi-select Dropdown) */}
+              <div className="col-span-2">
+                <label className="text-[14px] font-[800] text-[#334155] block mb-[8px]">
+                  Target Academic Batch
+                </label>
+                <MultiSelectDropdown
+                  batches={batches}
+                  selectedBatchIds={formData.batch_ids}
+                  onChange={(ids) => setFormData((prev) => ({ ...prev, batch_ids: ids }))}
+                  placeholder="Choose batch(es)..."
+                />
               </div>
 
               {/* Job Description / Notes - Full Width */}
@@ -605,6 +693,25 @@ export default function CenterWorkspacePanel({
             if (selectedDriveId) driveCacheRef.current[selectedDriveId] = next
             return next
           })
+          onDriveUpdated()
+        }}
+      />
+
+      {/* Modal to Edit Complete Drive Details */}
+      <EditDriveModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        drive={drive}
+        onDriveUpdated={(updatedDrive) => {
+          if (updatedDrive) {
+            const merged = { ...drive, ...updatedDrive }
+            if (selectedDriveId) driveCacheRef.current[selectedDriveId] = merged
+            setDrive(merged)
+            const freshForm = extractFormData(merged)
+            setFormData(freshForm)
+            setInitialData(freshForm)
+            onDirtyChange(false)
+          }
           onDriveUpdated()
         }}
       />
