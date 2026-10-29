@@ -52,6 +52,11 @@ export const updateDriveEligibility = async (id, eligibilityData) => {
   return response.data?.data
 }
 
+export const getDriveStudents = async (id) => {
+  const response = await api.get(`/drives/${id}/students`)
+  return response.data?.data || []
+}
+
 export const getCompanies = async () => {
   const response = await api.get('/companies')
   return response.data?.data || []

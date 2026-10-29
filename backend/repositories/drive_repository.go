@@ -158,7 +158,133 @@ func (r *DriveRepository) GetActivities(driveID string) ([]models.PlacementDrive
 	return logs, err
 }
 
-// GetEligibility gets or creates eligibility criteria for a drive
+// GetDriveStudentsList returns eligible and included students for a drive
+func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.StudentEligibilityView, error) {
+	drive, err := r.GetDriveByID(fmt.Sprintf("%d", driveID))
+	if err != nil {
+		return nil, err
+	}
+
+	// 1. Fetch all students belonging to the drive's target batches (or all students if no batch specified)
+	type studentRow struct {
+		UserID             uint64   `gorm:"column:user_id"`
+		Name               string   `gorm:"column:name"`
+		Email              string   `gorm:"column:email"`
+		DepartmentName     string   `gorm:"column:dept_name"`
+		BatchName          string   `gorm:"column:batch_name"`
+		BatchID            uint64   `gorm:"column:batch_id"`
+		CGPA               *float64 `gorm:"column:cgpa"`
+		TenthMark          *float64 `gorm:"column:tenth_mark"`
+		TwelfthMark        *float64 `gorm:"column:twelth_mark"`
+		CurrentArrearCount int      `gorm:"column:current_arrear_count"`
+		HistoryArrearCount int      `gorm:"column:history_arrear_count"`
+	}
+
+	query := r.db.Table("master_users u").
+		Select("u.id as user_id, u.name, u.email, d.name as dept_name, b.name as batch_name, u.batch_id, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count").
+		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
+		Joins("LEFT JOIN departments d ON u.department_id = d.id").
+		Joins("LEFT JOIN batches b ON u.batch_id = b.id").
+		Where("u.role_id = 1")
+
+	if len(drive.BatchIDs) > 0 {
+		query = query.Where("u.batch_id IN ?", []uint64(drive.BatchIDs))
+	}
+
+	var rows []studentRow
+	if err := query.Order("u.name asc").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	// 2. Fetch students currently included in this drive
+	var includedUserIDs []uint64
+	r.db.Table("placement_drive_students").
+		Where("drive_id = ?", driveID).
+		Pluck("user_id", &includedUserIDs)
+
+	includedMap := make(map[uint64]bool)
+	for _, uid := range includedUserIDs {
+		includedMap[uid] = true
+	}
+
+	// 3. Fetch max existing offers per student from placement_drive_offers
+	type offerRow struct {
+		UserID     uint64  `gorm:"column:user_id"`
+		MaxPackage float64 `gorm:"column:max_package"`
+	}
+	var offers []offerRow
+	r.db.Table("placement_drive_offers o").
+		Select("pds.user_id, MAX(o.package_lpa) as max_package").
+		Joins("JOIN placement_drive_students pds ON o.drive_student_id = pds.id").
+		Group("pds.user_id").
+		Scan(&offers)
+
+	offersMap := make(map[uint64]float64)
+	for _, o := range offers {
+		offersMap[o.UserID] = o.MaxPackage
+	}
+
+	// 4. Evaluate eligibility criteria
+	elig := drive.Eligibility
+	var result []models.StudentEligibilityView
+
+	for _, s := range rows {
+		isEligible := true
+		var reasons []string
+
+		var maxOffer *float64
+		if pkg, ok := offersMap[s.UserID]; ok {
+			maxOffer = &pkg
+		}
+
+		if elig != nil {
+			if elig.MinCGPA != nil && (s.CGPA == nil || *s.CGPA < *elig.MinCGPA) {
+				isEligible = false
+				reasons = append(reasons, fmt.Sprintf("CGPA below %.2f", *elig.MinCGPA))
+			}
+			if elig.MinTenthMark != nil && (s.TenthMark == nil || *s.TenthMark < *elig.MinTenthMark) {
+				isEligible = false
+				reasons = append(reasons, fmt.Sprintf("10th mark below %.1f%%", *elig.MinTenthMark))
+			}
+			if elig.MinTwelfthMark != nil && (s.TwelfthMark == nil || *s.TwelfthMark < *elig.MinTwelfthMark) {
+				isEligible = false
+				reasons = append(reasons, fmt.Sprintf("12th mark below %.1f%%", *elig.MinTwelfthMark))
+			}
+			if elig.MaxCurrentArrears != nil && s.CurrentArrearCount > *elig.MaxCurrentArrears {
+				isEligible = false
+				reasons = append(reasons, fmt.Sprintf("Current arrears exceed %d", *elig.MaxCurrentArrears))
+			}
+			if elig.MaxHistoryArrears != nil && s.HistoryArrearCount > *elig.MaxHistoryArrears {
+				isEligible = false
+				reasons = append(reasons, fmt.Sprintf("History arrears exceed %d", *elig.MaxHistoryArrears))
+			}
+			if elig.MaxExistingOfferLPA != nil && maxOffer != nil && *maxOffer > *elig.MaxExistingOfferLPA {
+				isEligible = false
+				reasons = append(reasons, fmt.Sprintf("Existing offer (%.2f LPA) exceeds cap of %.2f LPA", *maxOffer, *elig.MaxExistingOfferLPA))
+			}
+		}
+
+		result = append(result, models.StudentEligibilityView{
+			UserID:             s.UserID,
+			Name:               s.Name,
+			Email:              s.Email,
+			DepartmentName:     s.DepartmentName,
+			BatchName:          s.BatchName,
+			CGPA:               s.CGPA,
+			TenthMark:          s.TenthMark,
+			TwelfthMark:        s.TwelfthMark,
+			CurrentArrearCount: s.CurrentArrearCount,
+			HistoryArrearCount: s.HistoryArrearCount,
+			MaxExistingOffer:   maxOffer,
+			IsEligible:         isEligible,
+			IneligibleReasons:  reasons,
+			IsIncludedInDrive:  includedMap[s.UserID],
+		})
+	}
+
+	return result, nil
+}
+
 func (r *DriveRepository) GetEligibility(driveID uint64) (*models.PlacementDriveEligibility, error) {
 	var eligibility models.PlacementDriveEligibility
 	err := r.db.Where("drive_id = ?", driveID).First(&eligibility).Error

@@ -234,3 +234,8 @@ func (s *DriveService) UpdateDriveEligibility(driveID uint64, minCGPA, minTenth,
 	return eligibility, nil
 }
 
+// GetDriveEligibleStudents returns evaluated student roster for drive
+func (s *DriveService) GetDriveEligibleStudents(driveID uint64) ([]models.StudentEligibilityView, error) {
+	return s.repo.GetDriveStudentsList(driveID)
+}
+

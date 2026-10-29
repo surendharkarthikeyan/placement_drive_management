@@ -6,6 +6,7 @@ import EditDriveModal from '../modals/EditDriveModal'
 import SearchableSelect from '../common/SearchableSelect'
 import CustomSelect from '../common/CustomSelect'
 import MultiSelectDropdown from '../common/MultiSelectDropdown'
+import DriveStudentsRoster from './DriveStudentsRoster'
 
 /**
  * CenterWorkspacePanel (Middle Panel)
@@ -658,10 +659,11 @@ export default function CenterWorkspacePanel({
               </button>
             </div>
           ) : (
-            <div className="p-8 bg-white border border-[#dbe5f1] rounded-[14px] text-center text-[#64748b]">
-              <h3 className="text-base font-bold text-[#172554]">Student List</h3>
-              <p className="text-xs mt-1">Eligibility criteria verified. Student roster loading...</p>
-            </div>
+            <DriveStudentsRoster
+              driveId={selectedDriveId}
+              eligibility={eligibility}
+              onConfigureCriteria={() => setIsEligibilityModalOpen(true)}
+            />
           )}
         </div>
       )}

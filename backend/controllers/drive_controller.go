@@ -251,3 +251,29 @@ func (ctrl *DriveController) UpdateDriveEligibility(c *gin.Context) {
 		"data":    eligibility,
 	})
 }
+
+// GetDriveEligibleStudents handles fetching student list evaluated against drive eligibility
+func (ctrl *DriveController) GetDriveEligibleStudents(c *gin.Context) {
+	if config.DB == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Database not connected"})
+		return
+	}
+
+	driveID := c.Param("id")
+	driveIDUint, err := strconv.ParseUint(driveID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid drive id"})
+		return
+	}
+
+	students, err := ctrl.service.GetDriveEligibleStudents(driveIDUint)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  students,
+		"total": len(students),
+	})
+}
