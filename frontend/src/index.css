@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --navy: #172554;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #dbe5f1;
+  --background: #f5f8fc;
+  --panel: #ffffff;
+  --success: #16a34a;
+  --success-soft: #ecfdf3;
+  --warning: #d97706;
+  --warning-soft: #fff7ed;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --purple: #7c3aed;
+  --purple-soft: #f5f3ff;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--background);
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Custom subtle scrollbars for dropdowns */
+.custom-dropdown-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-dropdown-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.custom-dropdown-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.custom-dropdown-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

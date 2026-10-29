@@ -5,9 +5,9 @@ import (
 )
 
 type MasterUser struct {
-	ID           uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
-	Name         string `gorm:"size:150;not null" json:"name"`
-	Email        string `gorm:"size:255;not null;unique" json:"email"`
+	ID           uint64  `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name         string  `gorm:"size:150;not null" json:"name"`
+	Email        string  `gorm:"size:255;not null;unique" json:"email"`
 	DepartmentID *uint64 `json:"department_id"`
 	RoleID       uint64  `gorm:"not null" json:"role_id"`
 	BatchID      *uint64 `json:"batch_id"`
@@ -42,25 +42,58 @@ func (PlacementCompany) TableName() string {
 	return "placement_company"
 }
 
-type PlacementDrive struct {
-	ID                    uint64            `gorm:"primaryKey;autoIncrement" json:"id"`
-	CompanyID             int64             `gorm:"not null" json:"company_id"`
-	Company               *PlacementCompany `gorm:"foreignKey:CompanyID" json:"company,omitempty"`
-	JobRole               string            `gorm:"size:200;not null" json:"job_role"`
-	PlacementType         string            `gorm:"type:enum('on_campus','off_campus','pooled')" json:"placement_type"`
-	PackageLPA            float64           `gorm:"type:decimal(8,2)" json:"package_lpa"`
-	DriveStartDate        *time.Time        `json:"drive_start_date"`
-	DriveEndDate          *time.Time        `json:"drive_end_date"`
-	DriveOwnerUserID      *uint64           `json:"drive_owner_user_id"`
-	JobDescription        string            `gorm:"type:text" json:"job_description"`
-	OverallStatus         string            `gorm:"type:enum('draft','registration_open','scheduled','in_progress','awaiting_next_round','awaiting_final_result','completed','on_hold','cancelled');default:'draft'" json:"overall_status"`
-	ResultPublicationDate *time.Time        `json:"result_publication_date"`
-	ResultReference       string            `gorm:"size:255" json:"result_reference"`
-	ResultNotes           string            `gorm:"type:text" json:"result_notes"`
-	CreatedAt             time.Time         `json:"created_at"`
-	UpdatedAt             time.Time         `json:"updated_at"`
+type PlacementDriveEligibility struct {
+	ID                  uint64   `gorm:"primaryKey;autoIncrement" json:"id"`
+	DriveID             uint64   `gorm:"not null;uniqueIndex" json:"drive_id"`
+	MinCGPA             *float64 `gorm:"type:decimal(4,2)" json:"min_cgpa"`
+	MinTenthMark        *float64 `gorm:"type:decimal(5,2)" json:"min_tenth_mark"`
+	MinTwelfthMark      *float64 `gorm:"type:decimal(5,2)" json:"min_twelfth_mark"`
+	MaxCurrentArrears   *int     `json:"max_current_arrears"`
+	MaxHistoryArrears   *int     `json:"max_history_arrears"`
+	MaxExistingOfferLPA *float64 `gorm:"type:decimal(8,2)" json:"max_existing_offer_lpa"`
+}
 
-	Stages []PlacementDriveStage `gorm:"foreignKey:DriveID" json:"stages,omitempty"`
+func (PlacementDriveEligibility) TableName() string {
+	return "placement_drive_eligibility"
+}
+
+type PlacementDriveStats struct {
+	InitiallyEligible  int64 `json:"initially_eligible"`
+	IncludedInDrive    int64 `json:"included_in_drive"`
+	ReachedFinalStage  int64 `json:"reached_final_stage"`
+	AwaitingFinalResult int64 `json:"awaiting_final_result"`
+	NotClearedAbsent   int64 `json:"not_cleared_absent"`
+}
+
+type PlacementDrive struct {
+	ID                    uint64                     `gorm:"primaryKey;autoIncrement" json:"id"`
+	CompanyID             int64                      `gorm:"not null" json:"company_id"`
+	Company               *PlacementCompany          `gorm:"foreignKey:CompanyID" json:"company,omitempty"`
+	JobRole               string                     `gorm:"size:200;not null" json:"job_role"`
+	PlacementType         string                     `gorm:"size:100;not null" json:"placement_type"`
+	PackageLPA            float64                    `gorm:"type:decimal(8,2)" json:"package_lpa"`
+	DriveStartDate        *time.Time                 `json:"drive_start_date"`
+	DriveEndDate          *time.Time                 `json:"drive_end_date"`
+	DriveOwnerUserID      *uint64                    `json:"drive_owner_user_id"`
+	DriveOwnerUser        *MasterUser                `gorm:"foreignKey:DriveOwnerUserID" json:"drive_owner_user,omitempty"`
+	JobDescription        string                     `gorm:"type:text" json:"job_description"`
+	OverallStatus         string                     `gorm:"type:enum('draft','registration_open','scheduled','in_progress','awaiting_next_round','awaiting_final_result','completed','on_hold','cancelled');default:'draft'" json:"overall_status"`
+	ResultPublicationDate *time.Time                 `json:"result_publication_date"`
+	ResultReference       string                     `gorm:"size:255" json:"result_reference"`
+	ResultNotes           string                     `gorm:"type:text" json:"result_notes"`
+	CreatedAt             time.Time                  `json:"created_at"`
+	UpdatedAt             time.Time                  `json:"updated_at"`
+	BatchID               *uint64                    `json:"batch_id"`
+	Batch                 *Batch                     `gorm:"foreignKey:BatchID" json:"batch,omitempty"`
+
+	Stages      []PlacementDriveStage      `gorm:"foreignKey:DriveID" json:"stages,omitempty"`
+	Eligibility *PlacementDriveEligibility `gorm:"foreignKey:DriveID" json:"eligibility,omitempty"`
+	Stats       PlacementDriveStats        `gorm:"-" json:"stats"`
+
+	TotalStudents   int64  `gorm:"-" json:"total_students"`
+	PendingOutcomes int64  `gorm:"-" json:"pending_outcomes"`
+	SubtitleMeta    string `gorm:"-" json:"subtitle_meta"`
+	StatusGroup     string `gorm:"-" json:"status_group"`
 }
 
 func (PlacementDrive) TableName() string {
