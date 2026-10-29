@@ -28,6 +28,17 @@ export default function CenterWorkspacePanel({
   const [activeTab, setActiveTab] = useState('setup')
   const [officers, setOfficers] = useState([])
   const [isEligibilityModalOpen, setIsEligibilityModalOpen] = useState(false)
+  const driveCacheRef = React.useRef({})
+
+  const extractFormData = (data) => ({
+    company_name: data?.company?.company_name || '',
+    job_role: data?.job_role || '',
+    placement_type: data?.placement_type || 'Full-time Placement',
+    package_lpa: data?.package_lpa ? `${data.package_lpa} LPA` : '',
+    drive_start_date: data?.drive_start_date ? data.drive_start_date.substring(0, 10) : '',
+    drive_owner_user_id: data?.drive_owner_user_id ? String(data.drive_owner_user_id) : '',
+    job_description: data?.job_description || ''
+  })
 
   // Initial and Editable Form State
   const [initialData, setInitialData] = useState(null)
@@ -71,27 +82,32 @@ export default function CenterWorkspacePanel({
     loadOfficers()
   }, [])
 
-  // Fetch selected drive from backend
+  // Fetch selected drive from backend with instant cache swap (no blinking)
   useEffect(() => {
     if (!selectedDriveId) return
 
+    // 1. Instant swap from in-memory cache if available (eliminates blink completely)
+    const cached = driveCacheRef.current[selectedDriveId]
+    if (cached) {
+      setDrive(cached)
+      onDriveLoaded(cached)
+      const cachedForm = extractFormData(cached)
+      setFormData(cachedForm)
+      setInitialData(cachedForm)
+      onDirtyChange(false)
+    } else if (!drive) {
+      setIsLoading(true)
+    }
+
+    // 2. Fetch fresh details from backend
     const fetchDriveDetails = async () => {
       try {
-        setIsLoading(true)
         const data = await getDriveById(selectedDriveId)
+        driveCacheRef.current[selectedDriveId] = data
         setDrive(data)
         onDriveLoaded(data)
 
-        // Populate form data
-        const loadedForm = {
-          company_name: data.company?.company_name || '',
-          job_role: data.job_role || '',
-          placement_type: data.placement_type || 'Full-time Placement',
-          package_lpa: data.package_lpa ? `${data.package_lpa} LPA` : '',
-          drive_start_date: data.drive_start_date ? data.drive_start_date.substring(0, 10) : '',
-          drive_owner_user_id: data.drive_owner_user_id ? String(data.drive_owner_user_id) : '',
-          job_description: data.job_description || ''
-        }
+        const loadedForm = extractFormData(data)
         setFormData(loadedForm)
         setInitialData(loadedForm)
         onDirtyChange(false)
@@ -127,7 +143,9 @@ export default function CenterWorkspacePanel({
       }
 
       const updated = await updateDriveDetails(selectedDriveId, payload)
-      setDrive((prev) => ({ ...prev, ...updated }))
+      const merged = { ...drive, ...updated }
+      if (selectedDriveId) driveCacheRef.current[selectedDriveId] = merged
+      setDrive(merged)
       setInitialData({ ...formData })
       onDirtyChange(false)
       setSaveSuccess(true)
@@ -150,7 +168,7 @@ export default function CenterWorkspacePanel({
     }
   }, [saveTrigger])
 
-  if (isLoading) {
+  if (isLoading && !drive) {
     return (
       <section className="flex-1 h-full overflow-y-auto p-[22px] bg-[#f5f8fc] flex items-center justify-center">
         <div className="flex items-center gap-2 text-[#64748b] text-[14px]">
@@ -477,9 +495,9 @@ export default function CenterWorkspacePanel({
             ) : (
               /* Eligibility Condition Tags */
               <div className="flex flex-wrap gap-[8px]">
-                {drive?.batch?.name && (
+                {drive?.batches && drive.batches.length > 0 && (
                   <span className="py-[6px] px-[12px] rounded-full text-[12px] font-semibold text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
-                    Batch: {drive.batch.name}
+                    Batches: {drive.batches.map((b) => b.name).join(', ')}
                   </span>
                 )}
                 {eligibility.min_cgpa !== null && eligibility.min_cgpa !== undefined && (
@@ -582,7 +600,11 @@ export default function CenterWorkspacePanel({
         driveId={selectedDriveId}
         currentEligibility={eligibility}
         onEligibilitySaved={(newEligibility) => {
-          setDrive((prev) => ({ ...prev, eligibility: newEligibility }))
+          setDrive((prev) => {
+            const next = { ...prev, eligibility: newEligibility }
+            if (selectedDriveId) driveCacheRef.current[selectedDriveId] = next
+            return next
+          })
           onDriveUpdated()
         }}
       />

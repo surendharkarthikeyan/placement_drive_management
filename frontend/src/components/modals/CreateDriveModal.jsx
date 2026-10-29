@@ -3,12 +3,13 @@ import { X, Loader2, AlertCircle, Building2, User, GraduationCap } from 'lucide-
 import { createDrive, getPlacementOfficers, getCompanies, getBatches } from '../../services/api'
 import SearchableSelect from '../common/SearchableSelect'
 import CustomSelect from '../common/CustomSelect'
+import MultiSelectDropdown from '../common/MultiSelectDropdown'
 
 /**
  * CreateDriveModal
  * Scaled up modal with larger, clearer fonts, labels, and input fields:
  * - Company Name: Dropdown listing only companies from `placement_company` table
- * - Target Batch: Dropdown listing available academic batches
+ * - Target Batch: Custom multi-select dropdown for assigning one, multiple, or all batches
  * - Title: 24px font
  * - Subtitle: 15px font
  * - Labels: 15px font (font weight 750)
@@ -36,7 +37,7 @@ export default function CreateDriveModal({
     drive_end_date: '',
     drive_owner_user_id: '',
     placement_type: 'Full-time Placement',
-    batch_id: '',
+    batch_ids: [],
     job_description: ''
   })
 
@@ -58,10 +59,14 @@ export default function CreateDriveModal({
           setCompanies(companiesData)
           setBatches(batchesData)
 
+          // Default batch selection: all batches selected by default
+          const allBatchIds = batchesData.map((b) => b.id)
+
           setFormData((prev) => ({
             ...prev,
             company_name: prev.company_name || (companiesData.length > 0 ? companiesData[0].company_name : ''),
-            drive_owner_user_id: prev.drive_owner_user_id || (officersData.length > 0 ? officersData[0].id : '')
+            drive_owner_user_id: prev.drive_owner_user_id || (officersData.length > 0 ? officersData[0].id : ''),
+            batch_ids: prev.batch_ids && prev.batch_ids.length > 0 ? prev.batch_ids : allBatchIds
           }))
         } catch (err) {
           console.error('Failed to load initial modal data:', err)
@@ -94,6 +99,12 @@ export default function CreateDriveModal({
       setIsSubmitting(true)
       const numPackage = parseFloat(formData.package_lpa.replace(/[^0-9.]/g, '')) || 0
 
+      // If open to all batches or none selected, explicitly write all existing batch IDs (never null)
+      const finalBatchIds =
+        formData.batch_ids && formData.batch_ids.length > 0
+          ? formData.batch_ids
+          : batches.map((b) => b.id)
+
       const payload = {
         company_name: formData.company_name.trim(),
         job_role: formData.job_role.trim(),
@@ -102,7 +113,7 @@ export default function CreateDriveModal({
         drive_start_date: formData.drive_start_date || '',
         drive_end_date: formData.drive_end_date || '',
         drive_owner_user_id: formData.drive_owner_user_id ? Number(formData.drive_owner_user_id) : null,
-        batch_id: formData.batch_id ? Number(formData.batch_id) : null,
+        batch_ids: finalBatchIds,
         job_description: formData.job_description.trim()
       }
 
@@ -268,22 +279,17 @@ export default function CreateDriveModal({
             </div>
 
             <div>
-              <label className="text-[15px] font-[750] text-[#334155] block mb-[7px]">
-                Target Academic Batch
-              </label>
-              <select
-                name="batch_id"
-                value={formData.batch_id}
-                onChange={handleChange}
-                className="w-full h-[50px] px-[15px] bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[11px] text-[15.5px] font-[600] text-[#1e293b] focus:outline-none focus:ring-3 focus:ring-[#2563eb]/15 transition cursor-pointer shadow-xs"
-              >
-                <option value="">Open to All Batches</option>
-                {batches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    Batch {b.name}
-                  </option>
-                ))}
-              </select>
+              <MultiSelectDropdown
+                label="Target Academic Batch"
+                options={batches.map((b) => ({
+                  value: b.id,
+                  label: `Batch ${b.name}`
+                }))}
+                selectedValues={formData.batch_ids}
+                onChange={(vals) => setFormData((prev) => ({ ...prev, batch_ids: vals }))}
+                placeholder="Select target batches..."
+                allOptionLabel="Open to All Batches"
+              />
             </div>
           </div>
 

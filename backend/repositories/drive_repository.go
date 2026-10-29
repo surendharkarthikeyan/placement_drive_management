@@ -20,7 +20,7 @@ func NewDriveRepository(db *gorm.DB) *DriveRepository {
 // FetchDrives retrieves drives with company preload and filtering
 func (r *DriveRepository) FetchDrives(statusFilter, searchQuery, batchName string) ([]models.PlacementDrive, error) {
 	var drives []models.PlacementDrive
-	query := r.db.Preload("Company").Preload("Batch")
+	query := r.db.Preload("Company")
 
 	if statusFilter == "active" {
 		query = query.Where("overall_status NOT IN ('completed', 'cancelled')")
@@ -37,12 +37,32 @@ func (r *DriveRepository) FetchDrives(statusFilter, searchQuery, batchName strin
 	}
 
 	if batchName != "" && !strings.EqualFold(batchName, "all") {
-		query = query.Joins("LEFT JOIN batches ON batches.id = placement_drive.batch_id").
-			Where("batches.name = ? OR placement_drive.batch_id IS NULL", batchName)
+		query = query.Where("JSON_CONTAINS(placement_drive.batch_id, CAST((SELECT id FROM batches WHERE name = ?) AS JSON))", batchName)
 	}
 
 	err := query.Order("placement_drive.created_at DESC").Find(&drives).Error
-	return drives, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate batch details
+	var allBatches []models.Batch
+	r.db.Find(&allBatches)
+	batchMap := make(map[uint64]models.Batch)
+	for _, b := range allBatches {
+		batchMap[b.ID] = b
+	}
+
+	for i := range drives {
+		drives[i].Batches = make([]models.Batch, 0)
+		for _, bID := range drives[i].BatchIDs {
+			if b, exists := batchMap[bID]; exists {
+				drives[i].Batches = append(drives[i].Batches, b)
+			}
+		}
+	}
+
+	return drives, nil
 }
 
 // CountDriveStudents counts students attached to a drive
@@ -59,9 +79,25 @@ func (r *DriveRepository) GetDriveByID(id string) (*models.PlacementDrive, error
 		Preload("DriveOwnerUser").
 		Preload("Eligibility").
 		Preload("Stages.Substages").
-		Preload("Batch").
 		First(&drive, id).Error
-	return &drive, err
+	if err != nil {
+		return nil, err
+	}
+
+	if len(drive.BatchIDs) > 0 {
+		var batches []models.Batch
+		r.db.Where("id IN ?", []uint64(drive.BatchIDs)).Find(&batches)
+		drive.Batches = batches
+	}
+
+	return &drive, nil
+}
+
+// GetAllBatchIDs returns all batch IDs from batches table
+func (r *DriveRepository) GetAllBatchIDs() ([]uint64, error) {
+	var ids []uint64
+	err := r.db.Model(&models.Batch{}).Pluck("id", &ids).Error
+	return ids, err
 }
 
 // ComputeDriveStats computes KPI metrics for a drive

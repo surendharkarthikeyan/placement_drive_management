@@ -81,7 +81,7 @@ func (s *DriveService) GetDriveByID(id string) (*models.PlacementDrive, error) {
 }
 
 // CreateDrive creates a new drive adhering to MySQL schema constraints
-func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, packageLPA float64, startDate, endDate string, ownerID *uint64, jobDescription string, batchID *uint64) (*models.PlacementDrive, error) {
+func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, packageLPA float64, startDate, endDate string, ownerID *uint64, jobDescription string, batchIDs []uint64) (*models.PlacementDrive, error) {
 	company, err := s.repo.FindOrCreateCompany(companyName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create or find company: %v", err)
@@ -113,6 +113,13 @@ func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, p
 		}
 	}
 
+	// If no batch was selected ("Open to All"), explicitly write all existing batch IDs (never null)
+	if len(batchIDs) == 0 {
+		if allIDs, err := s.repo.GetAllBatchIDs(); err == nil && len(allIDs) > 0 {
+			batchIDs = allIDs
+		}
+	}
+
 	newDrive := models.PlacementDrive{
 		CompanyID:        company.ID,
 		JobRole:          jobRole,
@@ -122,7 +129,7 @@ func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, p
 		DriveEndDate:     parsedEnd,
 		DriveOwnerUserID: ownerID,
 		JobDescription:   jobDescription,
-		BatchID:          batchID,
+		BatchIDs:         models.Uint64Array(batchIDs),
 		OverallStatus:    "draft",
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
@@ -144,7 +151,7 @@ func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, p
 }
 
 // UpdateDriveDetails updates drive fields and logs changes
-func (s *DriveService) UpdateDriveDetails(id string, jobRole, placementType string, packageLPA float64, startDate, endDate string, ownerID *uint64, jobDescription string, batchID *uint64) (*models.PlacementDrive, error) {
+func (s *DriveService) UpdateDriveDetails(id string, jobRole, placementType string, packageLPA float64, startDate, endDate string, ownerID *uint64, jobDescription string, batchIDs []uint64) (*models.PlacementDrive, error) {
 	drive, err := s.repo.GetDriveByID(id)
 	if err != nil {
 		return nil, err
@@ -161,8 +168,8 @@ func (s *DriveService) UpdateDriveDetails(id string, jobRole, placementType stri
 		drive.PackageLPA = packageLPA
 	}
 	drive.JobDescription = jobDescription
-	if batchID != nil {
-		drive.BatchID = batchID
+	if len(batchIDs) > 0 {
+		drive.BatchIDs = models.Uint64Array(batchIDs)
 	}
 
 	if startDate != "" {
@@ -182,7 +189,7 @@ func (s *DriveService) UpdateDriveDetails(id string, jobRole, placementType stri
 	}
 
 	drive.UpdatedAt = time.Now()
-	err = s.repo.SaveDriveFields(drive, "JobRole", "PlacementType", "PackageLPA", "JobDescription", "DriveOwnerUserID", "DriveStartDate", "DriveEndDate", "BatchID", "UpdatedAt")
+	err = s.repo.SaveDriveFields(drive, "JobRole", "PlacementType", "PackageLPA", "JobDescription", "DriveOwnerUserID", "DriveStartDate", "DriveEndDate", "BatchIDs", "UpdatedAt")
 	if err != nil {
 		return nil, err
 	}

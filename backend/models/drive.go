@@ -1,8 +1,37 @@
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"time"
 )
+
+type Uint64Array []uint64
+
+func (a Uint64Array) Value() (driver.Value, error) {
+	if a == nil {
+		return "[]", nil
+	}
+	return json.Marshal(a)
+}
+
+func (a *Uint64Array) Scan(value interface{}) error {
+	if value == nil {
+		*a = []uint64{}
+		return nil
+	}
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return errors.New("cannot scan type into Uint64Array")
+	}
+	return json.Unmarshal(bytes, a)
+}
 
 type MasterUser struct {
 	ID           uint64  `gorm:"primaryKey;autoIncrement" json:"id"`
@@ -83,8 +112,8 @@ type PlacementDrive struct {
 	ResultNotes           string                     `gorm:"type:text" json:"result_notes"`
 	CreatedAt             time.Time                  `json:"created_at"`
 	UpdatedAt             time.Time                  `json:"updated_at"`
-	BatchID               *uint64                    `json:"batch_id"`
-	Batch                 *Batch                     `gorm:"foreignKey:BatchID" json:"batch,omitempty"`
+	BatchIDs              Uint64Array                `gorm:"column:batch_id;type:json" json:"batch_ids"`
+	Batches               []Batch                    `gorm:"-" json:"batches,omitempty"`
 
 	Stages      []PlacementDriveStage      `gorm:"foreignKey:DriveID" json:"stages,omitempty"`
 	Eligibility *PlacementDriveEligibility `gorm:"foreignKey:DriveID" json:"eligibility,omitempty"`

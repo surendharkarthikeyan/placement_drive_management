@@ -74,12 +74,18 @@ func (ctrl *DriveController) CreateDrive(c *gin.Context) {
 		DriveEndDate     string   `json:"drive_end_date"`
 		DriveOwnerUserID *uint64  `json:"drive_owner_user_id"`
 		JobDescription   string   `json:"job_description"`
+		BatchIDs         []uint64 `json:"batch_ids"`
 		BatchID          *uint64  `json:"batch_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	batchIDs := req.BatchIDs
+	if len(batchIDs) == 0 && req.BatchID != nil {
+		batchIDs = []uint64{*req.BatchID}
 	}
 
 	drive, err := ctrl.service.CreateDrive(
@@ -91,7 +97,7 @@ func (ctrl *DriveController) CreateDrive(c *gin.Context) {
 		req.DriveEndDate,
 		req.DriveOwnerUserID,
 		req.JobDescription,
-		req.BatchID,
+		batchIDs,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -113,19 +119,25 @@ func (ctrl *DriveController) UpdateDriveDetails(c *gin.Context) {
 
 	id := c.Param("id")
 	var req struct {
-		JobRole          string  `json:"job_role"`
-		PlacementType    string  `json:"placement_type"`
-		PackageLPA       float64 `json:"package_lpa"`
-		DriveStartDate   string  `json:"drive_start_date"`
-		DriveEndDate     string  `json:"drive_end_date"`
-		DriveOwnerUserID *uint64 `json:"drive_owner_user_id"`
-		JobDescription   string  `json:"job_description"`
-		BatchID          *uint64 `json:"batch_id"`
+		JobRole          string   `json:"job_role"`
+		PlacementType    string   `json:"placement_type"`
+		PackageLPA       float64  `json:"package_lpa"`
+		DriveStartDate   string   `json:"drive_start_date"`
+		DriveEndDate     string   `json:"drive_end_date"`
+		DriveOwnerUserID *uint64  `json:"drive_owner_user_id"`
+		JobDescription   string   `json:"job_description"`
+		BatchIDs         []uint64 `json:"batch_ids"`
+		BatchID          *uint64  `json:"batch_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	batchIDs := req.BatchIDs
+	if len(batchIDs) == 0 && req.BatchID != nil {
+		batchIDs = []uint64{*req.BatchID}
 	}
 
 	drive, err := ctrl.service.UpdateDriveDetails(
@@ -137,7 +149,7 @@ func (ctrl *DriveController) UpdateDriveDetails(c *gin.Context) {
 		req.DriveEndDate,
 		req.DriveOwnerUserID,
 		req.JobDescription,
-		req.BatchID,
+		batchIDs,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
