@@ -132,7 +132,7 @@ export default function EditDriveModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0f172a]/45 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-[700px] max-h-[92vh] bg-white rounded-[20px] shadow-[0_24px_64px_-12px_rgba(15,23,42,0.30)] border border-[#dbe5f1] overflow-y-auto flex flex-col">
+      <div className="w-full max-w-[720px] bg-white rounded-[20px] shadow-[0_24px_64px_-12px_rgba(15,23,42,0.30)] border border-[#dbe5f1] flex flex-col">
         {/* Header */}
         <div className="p-[26px_30px_20px] flex items-start justify-between border-b border-[#f1f5f9]">
           <div className="flex items-center gap-3.5">
