@@ -59,14 +59,11 @@ export default function CreateDriveModal({
           setCompanies(companiesData)
           setBatches(batchesData)
 
-          // Default batch selection: all batches selected by default
-          const allBatchIds = batchesData.map((b) => b.id)
-
           setFormData((prev) => ({
             ...prev,
             company_name: prev.company_name || (companiesData.length > 0 ? companiesData[0].company_name : ''),
             drive_owner_user_id: prev.drive_owner_user_id || (officersData.length > 0 ? officersData[0].id : ''),
-            batch_ids: prev.batch_ids && prev.batch_ids.length > 0 ? prev.batch_ids : allBatchIds
+            batch_ids: prev.batch_ids || []
           }))
         } catch (err) {
           console.error('Failed to load initial modal data:', err)
@@ -288,7 +285,6 @@ export default function CreateDriveModal({
                 selectedValues={formData.batch_ids}
                 onChange={(vals) => setFormData((prev) => ({ ...prev, batch_ids: vals }))}
                 placeholder="Select target batches..."
-                allOptionLabel="Open to All Batches"
               />
             </div>
           </div>

@@ -287,7 +287,6 @@ export default function EditDriveModal({
                 selectedValues={formData.batch_ids}
                 onChange={(vals) => setFormData((prev) => ({ ...prev, batch_ids: vals }))}
                 placeholder="Select target batches..."
-                allOptionLabel="Open to All Batches"
               />
             </div>
           </div>
