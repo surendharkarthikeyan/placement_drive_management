@@ -493,12 +493,13 @@ export default function CenterWorkspacePanel({
 
               {/* Target Academic Batch (Multi-select Dropdown) */}
               <div className="col-span-2">
-                <label className="text-[14px] font-[800] text-[#334155] block mb-[8px]">
-                  Target Academic Batch
-                </label>
                 <MultiSelectDropdown
-                  batches={batches}
-                  selectedBatchIds={formData.batch_ids}
+                  label="Target Academic Batch"
+                  options={batches.map((b) => ({
+                    value: b.id,
+                    label: `Batch ${b.name}`
+                  }))}
+                  selectedValues={formData.batch_ids}
                   onChange={(ids) => setFormData((prev) => ({ ...prev, batch_ids: ids }))}
                   placeholder="Choose batch(es)..."
                 />

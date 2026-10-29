@@ -64,9 +64,9 @@ export default function CustomSelect({
         />
       </button>
 
-      {/* Styled Popup List (Open upwards if near bottom, with scrolling) */}
+      {/* Styled Popup List (Open downwards with high z-index and scrolling) */}
       {isOpen && (
-        <div className="absolute bottom-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-[#dbe5f1] rounded-[13px] shadow-[0_-10px_25px_-5px_rgba(15,23,42,0.12),0_-8px_10px_-6px_rgba(15,23,42,0.06)] p-1.5 flex flex-col gap-1 max-h-[175px] overflow-y-auto overscroll-contain pr-1 custom-dropdown-scroll animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-[#dbe5f1] rounded-[13px] shadow-[0_10px_25px_-5px_rgba(15,23,42,0.12),0_8px_10px_-6px_rgba(15,23,42,0.06)] p-1.5 flex flex-col gap-1 max-h-[175px] overflow-y-auto overscroll-contain pr-1 custom-dropdown-scroll animate-in fade-in zoom-in-95 duration-150">
           {options.map((opt) => {
             const isSelected = String(opt.value) === String(value)
             return (

@@ -38,8 +38,7 @@ export default function MultiSelectDropdown({
 
   const handleToggleAll = () => {
     if (isAllSelected) {
-      // If already all selected, keep at least all or empty
-      onChange(allOptionValues)
+      onChange([])
     } else {
       onChange(allOptionValues)
     }
@@ -53,12 +52,7 @@ export default function MultiSelectDropdown({
       current.add(val)
     }
     const result = Array.from(current)
-    // If user unselects everything, default back to all batches
-    if (result.length === 0) {
-      onChange(allOptionValues)
-    } else {
-      onChange(result)
-    }
+    onChange(result)
   }
 
   // Label text to display on trigger button
@@ -103,9 +97,9 @@ export default function MultiSelectDropdown({
         />
       </button>
 
-      {/* Custom Dropdown List (Opens upwards if near modal bottom) */}
+      {/* Custom Dropdown List */}
       {isOpen && (
-        <div className="absolute bottom-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-[#dbe5f1] rounded-[13px] shadow-[0_-10px_25px_-5px_rgba(15,23,42,0.12),0_-8px_10px_-6px_rgba(15,23,42,0.06)] p-2 flex flex-col gap-1 max-h-[220px] overflow-y-auto overscroll-contain pr-1 custom-dropdown-scroll animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-[#dbe5f1] rounded-[13px] shadow-[0_10px_25px_-5px_rgba(15,23,42,0.12),0_8px_10px_-6px_rgba(15,23,42,0.06)] p-2 flex flex-col gap-1 max-h-[220px] overflow-y-auto overscroll-contain pr-1 custom-dropdown-scroll animate-in fade-in zoom-in-95 duration-150">
           {/* Option: Open to All Batches */}
           <button
             type="button"
