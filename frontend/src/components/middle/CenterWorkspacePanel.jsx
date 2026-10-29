@@ -347,10 +347,7 @@ export default function CenterWorkspacePanel({
       {activeTab === 'setup' && (
         <div className="flex flex-col gap-[18px]">
           {/* Card: Company and Drive Information with Premium Styling */}
-          <div className="p-[24px] bg-white border border-[#dbe5f1] rounded-[16px] shadow-[0_2px_8px_rgba(15,23,42,0.04)] relative">
-            {/* Subtle Top Accent Gradient Line */}
-            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#2563eb] via-[#3b82f6] to-[#60a5fa] rounded-t-[16px]" />
-
+          <div className="p-[24px] bg-white border border-[#dbe5f1] border-t-4 border-t-[#2563eb] rounded-[16px] shadow-[0_2px_8px_rgba(15,23,42,0.04)] relative">
             <div className="flex items-center justify-between mb-[22px]">
               <div className="flex items-center gap-3">
                 <div className="w-[42px] h-[42px] rounded-[12px] bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border border-[#bfdbfe] flex items-center justify-center text-[#2563eb] shadow-xs">
