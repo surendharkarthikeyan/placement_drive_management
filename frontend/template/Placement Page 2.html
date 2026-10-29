@@ -1,0 +1,2761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Placement Drive Data Capture</title>
+
+<style>
+:root{
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --primary-soft:#eff6ff;
+  --navy:#172554;
+  --text:#1e293b;
+  --muted:#64748b;
+  --border:#dbe5f1;
+  --background:#f5f8fc;
+  --panel:#ffffff;
+  --success:#16a34a;
+  --success-soft:#ecfdf3;
+  --warning:#d97706;
+  --warning-soft:#fff7ed;
+  --danger:#dc2626;
+  --danger-soft:#fef2f2;
+  --purple:#7c3aed;
+  --purple-soft:#f5f3ff;
+  --shadow:0 8px 28px rgba(15,23,42,.08);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  color:var(--text);
+  background:var(--background);
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  font-size:14px;
+}
+
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+
+.app-header{
+  height:66px;
+  padding:0 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:white;
+  background:linear-gradient(115deg,#172554,#1d4ed8);
+  box-shadow:0 3px 14px rgba(30,64,175,.18);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand-logo{
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:rgba(255,255,255,.17);
+  border:1px solid rgba(255,255,255,.25);
+  font-weight:850;
+}
+
+.brand-title{
+  font-size:18px;
+  font-weight:800;
+}
+
+.brand-subtitle{
+  margin-top:2px;
+  font-size:11px;
+  opacity:.76;
+}
+
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.header-button{
+  padding:9px 13px;
+  color:white;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:9px;
+  background:rgba(255,255,255,.11);
+}
+
+.user-avatar{
+  width:37px;
+  height:37px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  color:var(--primary);
+  background:white;
+  font-weight:850;
+}
+
+.mode-bar{
+  min-height:58px;
+  padding:9px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  background:white;
+  border-bottom:1px solid var(--border);
+}
+
+.mode-tabs{
+  padding:4px;
+  display:flex;
+  gap:4px;
+  border-radius:10px;
+  background:#f1f5f9;
+}
+
+.mode-tab{
+  padding:8px 14px;
+  border:0;
+  border-radius:8px;
+  color:var(--muted);
+  background:transparent;
+  font-weight:700;
+}
+
+.mode-tab.active{
+  color:var(--primary);
+  background:white;
+  box-shadow:0 2px 7px rgba(15,23,42,.09);
+}
+
+.page-context{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.layout{
+  height:calc(100vh - 124px);
+  display:grid;
+  grid-template-columns:285px minmax(620px,1fr) 365px;
+  overflow:hidden;
+}
+
+.left-panel,
+.middle-panel,
+.right-panel{
+  overflow-y:auto;
+}
+
+.left-panel{
+  padding:16px;
+  background:#fbfdff;
+  border-right:1px solid var(--border);
+}
+
+.middle-panel{
+  padding:18px;
+}
+
+.right-panel{
+  padding:17px;
+  background:white;
+  border-left:1px solid var(--border);
+}
+
+.panel-title{
+  margin:0;
+  color:var(--navy);
+  font-size:16px;
+}
+
+.panel-description{
+  margin:5px 0 14px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+
+.search-box{
+  position:relative;
+}
+
+.search-box span{
+  position:absolute;
+  top:10px;
+  left:11px;
+  color:#94a3b8;
+}
+
+.search-box input{
+  width:100%;
+  padding:10px 10px 10px 34px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  outline:none;
+  background:white;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:#93c5fd!important;
+  box-shadow:0 0 0 3px #dbeafe;
+  outline:none;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button{
+  padding:9px 13px;
+  border-radius:9px;
+  font-weight:750;
+}
+
+.primary-button{
+  color:white;
+  border:1px solid var(--primary);
+  background:var(--primary);
+}
+
+.primary-button:hover{background:var(--primary-dark)}
+
+.secondary-button{
+  color:#475569;
+  border:1px solid var(--border);
+  background:white;
+}
+
+.danger-button{
+  color:white;
+  border:1px solid var(--danger);
+  background:var(--danger);
+}
+
+.full-button{
+  width:100%;
+}
+
+.create-drive{
+  margin-bottom:14px;
+}
+
+.filter-tabs{
+  margin:12px 0;
+  padding:4px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:3px;
+  border-radius:9px;
+  background:#eef2f7;
+}
+
+.filter-tab{
+  padding:7px 3px;
+  color:#64748b;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  font-size:10px;
+  font-weight:750;
+}
+
+.filter-tab.active{
+  color:var(--primary);
+  background:white;
+  box-shadow:0 2px 6px rgba(15,23,42,.07);
+}
+
+.group-label{
+  margin:15px 0 7px;
+  color:#64748b;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+
+.drive-card{
+  margin-bottom:8px;
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:white;
+  cursor:pointer;
+  transition:.16s;
+}
+
+.drive-card:hover{
+  border-color:#93c5fd;
+  transform:translateY(-1px);
+}
+
+.drive-card.active{
+  border-color:#60a5fa;
+  background:var(--primary-soft);
+  box-shadow:inset 3px 0 var(--primary);
+}
+
+.drive-card-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:6px;
+}
+
+.drive-name{
+  color:#25344a;
+  font-size:12px;
+  font-weight:800;
+}
+
+.drive-role{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.drive-meta{
+  margin-top:9px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:#64748b;
+  font-size:9px;
+}
+
+.status-badge{
+  padding:5px 7px;
+  display:inline-block;
+  border-radius:20px;
+  white-space:nowrap;
+  font-size:9px;
+  font-weight:850;
+}
+
+.badge-progress{
+  color:#1d4ed8;
+  background:#dbeafe;
+}
+
+.badge-awaiting{
+  color:#b45309;
+  background:#fef3c7;
+}
+
+.badge-completed{
+  color:#15803d;
+  background:#dcfce7;
+}
+
+.badge-scheduled{
+  color:#6d28d9;
+  background:#ede9fe;
+}
+
+.badge-draft{
+  color:#475569;
+  background:#e2e8f0;
+}
+
+.top-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.drive-title h1{
+  margin:0;
+  color:var(--navy);
+  font-size:21px;
+}
+
+.drive-title p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.top-actions{
+  display:flex;
+  gap:7px;
+}
+
+.drive-summary{
+  margin:15px 0;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
+
+.summary-card{
+  min-width:0;
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:white;
+}
+
+.summary-card strong{
+  display:block;
+  color:var(--navy);
+  font-size:19px;
+}
+
+.summary-card span{
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.3;
+}
+
+.summary-card.blue{border-top:3px solid var(--primary)}
+.summary-card.green{border-top:3px solid var(--success)}
+.summary-card.orange{border-top:3px solid var(--warning)}
+.summary-card.red{border-top:3px solid var(--danger)}
+.summary-card.purple{border-top:3px solid var(--purple)}
+
+.workspace-tabs{
+  margin-bottom:14px;
+  display:flex;
+  gap:4px;
+  border-bottom:1px solid var(--border);
+}
+
+.workspace-tab{
+  padding:10px 13px;
+  color:#64748b;
+  border:0;
+  border-bottom:2px solid transparent;
+  background:transparent;
+  font-size:11px;
+  font-weight:750;
+}
+
+.workspace-tab.active{
+  color:var(--primary);
+  border-bottom-color:var(--primary);
+}
+
+.workspace-section{
+  display:none;
+}
+
+.workspace-section.active{
+  display:block;
+}
+
+.card{
+  margin-bottom:12px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  background:white;
+}
+
+.card-header{
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.card-title{
+  color:#334155;
+  font-size:13px;
+  font-weight:850;
+}
+
+.card-subtitle{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+
+.form-grid.three{
+  grid-template-columns:repeat(3,1fr);
+}
+
+.field label{
+  margin-bottom:6px;
+  display:block;
+  color:#475569;
+  font-size:10px;
+  font-weight:800;
+}
+
+.control{
+  width:100%;
+  padding:9px 10px;
+  color:#334155;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:white;
+}
+
+textarea.control{
+  min-height:78px;
+  resize:vertical;
+}
+
+.full-width{
+  grid-column:1/-1;
+}
+
+.info-banner{
+  margin-bottom:12px;
+  padding:11px 12px;
+  display:flex;
+  gap:9px;
+  color:#1e40af;
+  border:1px solid #bfdbfe;
+  border-radius:9px;
+  background:var(--primary-soft);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.pipeline-header{
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.pipeline{
+  margin-bottom:13px;
+  padding:4px 0 10px;
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+}
+
+.stage-node{
+  min-width:142px;
+  position:relative;
+}
+
+.stage-node:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  top:23px;
+  right:-9px;
+  width:10px;
+  height:2px;
+  background:#cbd5e1;
+}
+
+.stage-button{
+  width:100%;
+  min-height:78px;
+  padding:9px;
+  text-align:left;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:white;
+}
+
+.stage-button:hover{
+  border-color:#93c5fd;
+}
+
+.stage-button.active{
+  border-color:var(--primary);
+  background:var(--primary-soft);
+  box-shadow:inset 0 0 0 1px #93c5fd;
+}
+
+.stage-number{
+  width:22px;
+  height:22px;
+  margin-bottom:6px;
+  display:grid;
+  place-items:center;
+  color:#64748b;
+  border-radius:50%;
+  background:#e2e8f0;
+  font-size:9px;
+  font-weight:850;
+}
+
+.stage-button.active .stage-number{
+  color:white;
+  background:var(--primary);
+}
+
+.stage-name{
+  color:#334155;
+  font-size:10px;
+  font-weight:800;
+}
+
+.stage-state{
+  margin-top:4px;
+  color:#64748b;
+  font-size:8px;
+}
+
+.add-stage-button{
+  min-width:105px;
+  min-height:78px;
+  color:var(--primary);
+  border:1px dashed #93c5fd;
+  border-radius:10px;
+  background:#f8fbff;
+  font-size:10px;
+  font-weight:750;
+}
+
+.stage-editor{
+  border:1px solid var(--border);
+  border-radius:11px;
+  overflow:hidden;
+  background:white;
+}
+
+.stage-editor-header{
+  padding:13px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  border-bottom:1px solid var(--border);
+  background:#fbfdff;
+}
+
+.stage-editor-title{
+  color:#263449;
+  font-size:14px;
+  font-weight:850;
+}
+
+.stage-editor-meta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.stage-actions{
+  display:flex;
+  gap:6px;
+}
+
+.small-button{
+  padding:7px 9px;
+  color:#475569;
+  border:1px solid var(--border);
+  border-radius:7px;
+  background:white;
+  font-size:10px;
+  font-weight:700;
+}
+
+.small-button.blue{
+  color:var(--primary);
+  border-color:#bfdbfe;
+  background:var(--primary-soft);
+}
+
+.small-button.green{
+  color:#15803d;
+  border-color:#bbf7d0;
+  background:#f0fdf4;
+}
+
+.small-button.red{
+  color:#b91c1c;
+  border-color:#fecaca;
+  background:#fff7f7;
+}
+
+.substage-tabs{
+  padding:9px 12px;
+  display:flex;
+  gap:6px;
+  border-bottom:1px solid var(--border);
+  background:#f8fafc;
+}
+
+.substage-tab{
+  padding:7px 10px;
+  color:#64748b;
+  border:1px solid var(--border);
+  border-radius:7px;
+  background:white;
+  font-size:10px;
+  font-weight:750;
+}
+
+.substage-tab.active{
+  color:var(--primary);
+  border-color:#93c5fd;
+  background:var(--primary-soft);
+}
+
+.table-toolbar{
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border-bottom:1px solid var(--border);
+}
+
+.table-toolbar-left,
+.table-toolbar-right{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.table-search{
+  width:220px;
+  padding:8px 9px;
+  border:1px solid var(--border);
+  border-radius:8px;
+}
+
+.selection-text{
+  color:var(--muted);
+  font-size:10px;
+}
+
+.student-table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.student-table th{
+  padding:9px 10px;
+  color:#64748b;
+  background:#f8fafc;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+  font-size:9px;
+  letter-spacing:.35px;
+  text-transform:uppercase;
+}
+
+.student-table td{
+  padding:10px;
+  border-bottom:1px solid #edf2f7;
+  color:#475569;
+  font-size:10px;
+}
+
+.student-table tr:last-child td{
+  border-bottom:0;
+}
+
+.student-table tr:hover td{
+  background:#fbfdff;
+}
+
+.student-identity{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.mini-avatar{
+  width:30px;
+  height:30px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  color:var(--primary);
+  border-radius:8px;
+  background:#dbeafe;
+  font-size:9px;
+  font-weight:850;
+}
+
+.student-name{
+  color:#27364a;
+  font-weight:800;
+}
+
+.student-meta{
+  margin-top:2px;
+  color:#94a3b8;
+  font-size:8px;
+}
+
+.outcome-select{
+  padding:7px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  color:#475569;
+  background:white;
+  font-size:10px;
+}
+
+.outcome-cleared{
+  color:#15803d;
+  background:#f0fdf4;
+}
+
+.outcome-not-cleared{
+  color:#b91c1c;
+  background:#fef2f2;
+}
+
+.outcome-pending{
+  color:#b45309;
+  background:#fffbeb;
+}
+
+.outcome-absent{
+  color:#64748b;
+  background:#f1f5f9;
+}
+
+.note-input{
+  width:100%;
+  min-width:100px;
+  padding:7px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  font-size:9px;
+}
+
+.pagination{
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:#64748b;
+  border-top:1px solid var(--border);
+  font-size:9px;
+}
+
+.student-filter-bar{
+  margin-bottom:12px;
+  padding:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:white;
+}
+
+.filter-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+.filter-tag{
+  padding:5px 8px;
+  color:#1d4ed8;
+  border:1px solid #bfdbfe;
+  border-radius:20px;
+  background:var(--primary-soft);
+  font-size:9px;
+}
+
+.roster-summary{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+
+.roster-box{
+  padding:11px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:#fbfdff;
+}
+
+.roster-box strong{
+  display:block;
+  color:var(--navy);
+  font-size:18px;
+}
+
+.roster-box span{
+  color:var(--muted);
+  font-size:9px;
+}
+
+.final-grid{
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:12px;
+}
+
+.final-student{
+  margin-bottom:7px;
+  padding:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border:1px solid var(--border);
+  border-radius:9px;
+}
+
+.offer-fields{
+  margin-top:8px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+
+.warning-box,
+.success-box{
+  padding:11px;
+  border-radius:9px;
+  font-size:10px;
+  line-height:1.5;
+}
+
+.warning-box{
+  color:#92400e;
+  border:1px solid #fed7aa;
+  background:var(--warning-soft);
+}
+
+.success-box{
+  color:#166534;
+  border:1px solid #bbf7d0;
+  background:var(--success-soft);
+}
+
+.right-section{
+  margin-bottom:16px;
+}
+
+.right-heading{
+  margin-bottom:8px;
+  color:#334155;
+  font-size:11px;
+  font-weight:850;
+}
+
+.status-control{
+  width:100%;
+  padding:10px;
+  color:#334155;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:white;
+}
+
+.completion-card{
+  padding:13px;
+  border:1px solid #bfdbfe;
+  border-radius:11px;
+  background:linear-gradient(135deg,#eff6ff,#f5f3ff);
+}
+
+.completion-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.completion-score{
+  color:var(--navy);
+  font-size:26px;
+  font-weight:850;
+}
+
+.progress-track{
+  height:7px;
+  margin-top:9px;
+  overflow:hidden;
+  border-radius:20px;
+  background:#dbe5f1;
+}
+
+.progress-fill{
+  height:100%;
+  border-radius:20px;
+  background:linear-gradient(90deg,#2563eb,#60a5fa);
+}
+
+.checklist{
+  margin-top:12px;
+}
+
+.check-item{
+  margin-bottom:8px;
+  display:flex;
+  align-items:flex-start;
+  gap:7px;
+  color:#475569;
+  font-size:10px;
+  line-height:1.4;
+}
+
+.check-icon{
+  width:17px;
+  height:17px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-size:9px;
+  font-weight:850;
+}
+
+.check-done{
+  color:#15803d;
+  background:#dcfce7;
+}
+
+.check-pending{
+  color:#b45309;
+  background:#fef3c7;
+}
+
+.activity-item{
+  position:relative;
+  margin-left:7px;
+  padding:0 0 15px 17px;
+  border-left:2px solid #dbeafe;
+}
+
+.activity-item:last-child{
+  border-left-color:transparent;
+}
+
+.activity-dot{
+  position:absolute;
+  top:0;
+  left:-7px;
+  width:12px;
+  height:12px;
+  border:2px solid white;
+  border-radius:50%;
+  background:var(--primary);
+  box-shadow:0 0 0 1px #93c5fd;
+}
+
+.activity-title{
+  color:#334155;
+  font-size:10px;
+  font-weight:800;
+}
+
+.activity-meta{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.4;
+}
+
+.action-stack{
+  display:grid;
+  gap:7px;
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  padding:25px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(15,23,42,.55);
+}
+
+.modal-overlay.open{
+  display:flex;
+}
+
+.modal{
+  width:min(900px,96vw);
+  max-height:90vh;
+  overflow:auto;
+  border-radius:15px;
+  background:white;
+  box-shadow:0 25px 70px rgba(15,23,42,.3);
+}
+
+.modal.small{
+  width:min(540px,96vw);
+}
+
+.modal-header{
+  padding:17px 19px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+
+.modal-header h2{
+  margin:0;
+  color:var(--navy);
+  font-size:17px;
+}
+
+.modal-header p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.close-button{
+  width:32px;
+  height:32px;
+  color:#64748b;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:white;
+  font-size:18px;
+}
+
+.modal-body{
+  padding:18px 19px;
+}
+
+.modal-footer{
+  padding:13px 19px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  border-top:1px solid var(--border);
+}
+
+.modal-filter-grid{
+  margin-bottom:12px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+
+.candidate-list{
+  max-height:350px;
+  overflow:auto;
+  border:1px solid var(--border);
+  border-radius:9px;
+}
+
+.candidate-row{
+  padding:10px;
+  display:grid;
+  grid-template-columns:24px 1.4fr .6fr .6fr .8fr;
+  align-items:center;
+  gap:8px;
+  border-bottom:1px solid #edf2f7;
+}
+
+.candidate-row:last-child{border-bottom:0}
+
+.candidate-head{
+  color:#64748b;
+  background:#f8fafc;
+  font-size:9px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.stage-type-options{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+
+.stage-type{
+  padding:11px;
+  text-align:center;
+  color:#475569;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:white;
+  font-size:10px;
+}
+
+.stage-type.active{
+  color:var(--primary);
+  border-color:#93c5fd;
+  background:var(--primary-soft);
+  font-weight:800;
+}
+
+.substage-builder{
+  margin-top:10px;
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:#f8fafc;
+}
+
+.substage-row{
+  margin-bottom:7px;
+  display:grid;
+  grid-template-columns:1fr 115px 30px;
+  gap:7px;
+}
+
+.substage-row:last-child{margin-bottom:0}
+
+.icon-remove{
+  color:var(--danger);
+  border:1px solid #fecaca;
+  border-radius:7px;
+  background:#fff;
+}
+
+.toast{
+  position:fixed;
+  right:22px;
+  bottom:22px;
+  z-index:200;
+  padding:12px 16px;
+  color:white;
+  border-radius:10px;
+  background:#172554;
+  box-shadow:var(--shadow);
+  opacity:0;
+  transform:translateY(12px);
+  pointer-events:none;
+  transition:.25s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+@media(max-width:1150px){
+  .layout{
+    grid-template-columns:250px 1fr 330px;
+  }
+
+  .drive-summary{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(max-width:900px){
+  .layout{
+    height:auto;
+    display:block;
+    overflow:visible;
+  }
+
+  .left-panel,.middle-panel,.right-panel{
+    overflow:visible;
+    border:0;
+  }
+
+  .form-grid,.form-grid.three,.final-grid{
+    grid-template-columns:1fr;
+  }
+
+  .modal-filter-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-logo">IP</div>
+    <div>
+      <div class="brand-title">InstiPortal</div>
+      <div class="brand-subtitle">Placement Drive Management</div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="header-button">Placement Year 2025–26</button>
+    <button class="header-button">Notifications 6</button>
+    <div class="user-avatar">PO</div>
+  </div>
+</header>
+
+<div class="mode-bar">
+  <div class="mode-tabs">
+    <button class="mode-tab">Today & Communications</button>
+    <button class="mode-tab">Students</button>
+    <button class="mode-tab">Industries</button>
+    <button class="mode-tab active">Drive Data Capture</button>
+  </div>
+
+  <div class="page-context">
+    Placement Team Workspace · Last saved 10:42 AM
+  </div>
+</div>
+
+<main class="layout">
+
+  <!-- LEFT PANEL -->
+  <aside class="left-panel">
+    <button class="primary-button full-button create-drive" id="createDriveButton">
+      + Create New Drive
+    </button>
+
+    <div class="search-box">
+      <span>⌕</span>
+      <input id="driveSearch" type="text" placeholder="Search company or role">
+    </div>
+
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="all">All</button>
+      <button class="filter-tab" data-filter="active">Active</button>
+      <button class="filter-tab" data-filter="completed">Completed</button>
+    </div>
+
+    <div class="group-label">Requires Attention</div>
+
+    <div class="drive-card active" data-drive="amazon" data-group="active">
+      <div class="drive-card-top">
+        <div>
+          <div class="drive-name">Amazon</div>
+          <div class="drive-role">Software Development Engineer</div>
+        </div>
+        <span class="status-badge badge-awaiting">Awaiting Result</span>
+      </div>
+      <div class="drive-meta">
+        <span>92 students</span>
+        <span>Final result pending</span>
+      </div>
+    </div>
+
+    <div class="drive-card" data-drive="qualcomm" data-group="active">
+      <div class="drive-card-top">
+        <div>
+          <div class="drive-name">Qualcomm</div>
+          <div class="drive-role">Embedded Software Engineer</div>
+        </div>
+        <span class="status-badge badge-progress">In Progress</span>
+      </div>
+      <div class="drive-meta">
+        <span>64 students</span>
+        <span>Round 3 active</span>
+      </div>
+    </div>
+
+    <div class="drive-card" data-drive="bosch" data-group="active">
+      <div class="drive-card-top">
+        <div>
+          <div class="drive-name">Bosch</div>
+          <div class="drive-role">Graduate Engineer Trainee</div>
+        </div>
+        <span class="status-badge badge-awaiting">Date Pending</span>
+      </div>
+      <div class="drive-meta">
+        <span>118 students</span>
+        <span>Next round not announced</span>
+      </div>
+    </div>
+
+    <div class="group-label">Upcoming</div>
+
+    <div class="drive-card" data-drive="zoho" data-group="active">
+      <div class="drive-card-top">
+        <div>
+          <div class="drive-name">Zoho</div>
+          <div class="drive-role">Member Technical Staff</div>
+        </div>
+        <span class="status-badge badge-scheduled">Scheduled</span>
+      </div>
+      <div class="drive-meta">
+        <span>156 students</span>
+        <span>28 Sep 2026</span>
+      </div>
+    </div>
+
+    <div class="drive-card" data-drive="siemens" data-group="active">
+      <div class="drive-card-top">
+        <div>
+          <div class="drive-name">Siemens</div>
+          <div class="drive-role">Digital Industries Trainee</div>
+        </div>
+        <span class="status-badge badge-draft">Draft</span>
+      </div>
+      <div class="drive-meta">
+        <span>Students not added</span>
+        <span>4 Oct 2026</span>
+      </div>
+    </div>
+
+    <div class="group-label">Recently Completed</div>
+
+    <div class="drive-card" data-drive="paypal" data-group="completed">
+      <div class="drive-card-top">
+        <div>
+          <div class="drive-name">PayPal</div>
+          <div class="drive-role">Software Engineer</div>
+        </div>
+        <span class="status-badge badge-completed">Completed</span>
+      </div>
+      <div class="drive-meta">
+        <span>3 selected</span>
+        <span>21 Sep 2026</span>
+      </div>
+    </div>
+
+    <div class="drive-card" data-drive="tcs" data-group="completed">
+      <div class="drive-card-top">
+        <div>
+          <div class="drive-name">TCS Digital</div>
+          <div class="drive-role">Digital Engineer</div>
+        </div>
+        <span class="status-badge badge-completed">Completed</span>
+      </div>
+      <div class="drive-meta">
+        <span>26 selected</span>
+        <span>18 Sep 2026</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MIDDLE PANEL -->
+  <section class="middle-panel">
+
+    <div class="top-row">
+      <div class="drive-title">
+        <h1 id="currentDriveTitle">Amazon Placement Drive</h1>
+        <p id="currentDriveSubtitle">
+          Software Development Engineer · 18.5 LPA · Campus Recruitment
+        </p>
+      </div>
+
+      <div class="top-actions">
+        <button class="secondary-button" onclick="showToast('Drive duplicated as a new draft')">
+          Duplicate
+        </button>
+        <button class="primary-button" onclick="saveDrive()">
+          Save Changes
+        </button>
+      </div>
+    </div>
+
+    <div class="drive-summary">
+      <div class="summary-card blue">
+        <strong>182</strong>
+        <span>Initially eligible</span>
+      </div>
+      <div class="summary-card purple">
+        <strong>148</strong>
+        <span>Included in drive</span>
+      </div>
+      <div class="summary-card green">
+        <strong>24</strong>
+        <span>Reached final stage</span>
+      </div>
+      <div class="summary-card orange">
+        <strong>24</strong>
+        <span>Awaiting final result</span>
+      </div>
+      <div class="summary-card red">
+        <strong>124</strong>
+        <span>Not cleared / absent</span>
+      </div>
+    </div>
+
+    <div class="workspace-tabs">
+      <button class="workspace-tab" data-section="setup">1. Drive Setup</button>
+      <button class="workspace-tab" data-section="students">2. Student List</button>
+      <button class="workspace-tab active" data-section="stages">3. Stages & Outcomes</button>
+      <button class="workspace-tab" data-section="final">4. Final Selection</button>
+    </div>
+
+    <!-- DRIVE SETUP -->
+    <div class="workspace-section" id="setup">
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Company and Drive Information</div>
+            <div class="card-subtitle">Enter the basic details received from the company.</div>
+          </div>
+          <span class="status-badge badge-progress">Active Drive</span>
+        </div>
+
+        <div class="form-grid three">
+          <div class="field">
+            <label>Company Name</label>
+            <input class="control" value="Amazon">
+          </div>
+
+          <div class="field">
+            <label>Job Role</label>
+            <input class="control" value="Software Development Engineer">
+          </div>
+
+          <div class="field">
+            <label>Placement Type</label>
+            <select class="control">
+              <option>Full-time Placement</option>
+              <option>Internship + PPO</option>
+              <option>Internship</option>
+              <option>Apprenticeship</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Package</label>
+            <input class="control" value="18.5 LPA">
+          </div>
+
+          <div class="field">
+            <label>Drive Start Date</label>
+            <input class="control" type="date" value="2026-09-10">
+          </div>
+
+          <div class="field">
+            <label>Drive Owner</label>
+            <select class="control">
+              <option>Dr. Priya — Placement Officer</option>
+              <option>Mr. Arun — Placement Coordinator</option>
+              <option>Ms. Deepa — Corporate Relations</option>
+            </select>
+          </div>
+
+          <div class="field full-width">
+            <label>Job Description / Drive Notes</label>
+            <textarea class="control">Software development role requiring strong DSA, Java, problem-solving and communication skills.</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Eligibility Conditions</div>
+            <div class="card-subtitle">These conditions will be used while filtering students.</div>
+          </div>
+          <button class="small-button blue" onclick="showToast('Eligibility editor opened')">
+            Edit Conditions
+          </button>
+        </div>
+
+        <div class="filter-tags">
+          <span class="filter-tag">Final Year</span>
+          <span class="filter-tag">CSE, IT, ECE</span>
+          <span class="filter-tag">CGPA ≥ 7.5</span>
+          <span class="filter-tag">10th ≥ 70%</span>
+          <span class="filter-tag">12th ≥ 70%</span>
+          <span class="filter-tag">No Standing Arrears</span>
+          <span class="filter-tag">Java or Python</span>
+          <span class="filter-tag">Placement Interested</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDENT LIST -->
+    <div class="workspace-section" id="students">
+
+      <div class="student-filter-bar">
+        <div>
+          <div class="card-title">Students Included in this Drive</div>
+          <div class="card-subtitle">148 students currently included</div>
+        </div>
+
+        <button class="primary-button" id="openStudentModal">
+          + Filter and Add Students
+        </button>
+      </div>
+
+      <div class="filter-tags" style="margin-bottom:12px">
+        <span class="filter-tag">Final Year</span>
+        <span class="filter-tag">CSE + IT + ECE</span>
+        <span class="filter-tag">CGPA ≥ 7.5</span>
+        <span class="filter-tag">No Arrears</span>
+        <span class="filter-tag">Not holding &gt; 15 LPA offer</span>
+      </div>
+
+      <div class="roster-summary">
+        <div class="roster-box">
+          <strong>148</strong>
+          <span>Total included</span>
+        </div>
+        <div class="roster-box">
+          <strong>61</strong>
+          <span>CSE students</span>
+        </div>
+        <div class="roster-box">
+          <strong>49</strong>
+          <span>IT students</span>
+        </div>
+        <div class="roster-box">
+          <strong>38</strong>
+          <span>ECE students</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;padding:0;overflow:hidden">
+        <table class="student-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox"></th>
+              <th>Student</th>
+              <th>Department</th>
+              <th>CGPA</th>
+              <th>Current Offer</th>
+              <th>Drive Status</th>
+            </tr>
+          </thead>
+          <tbody id="rosterTable"></tbody>
+        </table>
+
+        <div class="pagination">
+          <span>Showing 1–8 of 148 students</span>
+          <span>‹ Previous &nbsp;&nbsp; 1 2 3 … 19 &nbsp;&nbsp; Next ›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGES -->
+    <div class="workspace-section active" id="stages">
+
+      <div class="info-banner">
+        <strong>ⓘ</strong>
+        <span>
+          Enter the outcome after every stage. A stage may contain multiple
+          substages when the company divides one recruitment stage into separate activities.
+        </span>
+      </div>
+
+      <div class="pipeline-header">
+        <div>
+          <div class="card-title">Recruitment Process</div>
+          <div class="card-subtitle">Select a stage to enter student outcomes.</div>
+        </div>
+
+        <button class="small-button blue" id="openStageModal">
+          + Add Stage
+        </button>
+      </div>
+
+      <div class="pipeline" id="pipeline"></div>
+
+      <div class="stage-editor">
+
+        <div class="stage-editor-header">
+          <div>
+            <div class="stage-editor-title" id="stageEditorTitle">
+              Technical Process
+            </div>
+            <div class="stage-editor-meta" id="stageEditorMeta">
+              Stage 3 · Contains 2 substages · 58 students
+            </div>
+          </div>
+
+          <div class="stage-actions">
+            <button class="small-button" onclick="showToast('Stage editing enabled')">
+              Edit Stage
+            </button>
+            <button class="small-button blue" id="addSubstageButton">
+              + Substage
+            </button>
+          </div>
+        </div>
+
+        <div class="substage-tabs" id="substageTabs"></div>
+
+        <div class="table-toolbar">
+          <div class="table-toolbar-left">
+            <input type="checkbox" id="selectStageStudents">
+            <span class="selection-text" id="stageSelectionText">Select students</span>
+          </div>
+
+          <div class="table-toolbar-right">
+            <input class="table-search" id="stageStudentSearch" placeholder="Search student">
+            <button class="small-button green" onclick="bulkOutcome('Cleared')">
+              Mark Cleared
+            </button>
+            <button class="small-button red" onclick="bulkOutcome('Not Cleared')">
+              Mark Not Cleared
+            </button>
+            <button class="small-button" onclick="bulkOutcome('Pending')">
+              Mark Pending
+            </button>
+          </div>
+        </div>
+
+        <table class="student-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="headerStageCheck"></th>
+              <th>Student</th>
+              <th>Previous Stage</th>
+              <th>Outcome</th>
+              <th>Score / Remark</th>
+              <th>Updated By</th>
+            </tr>
+          </thead>
+          <tbody id="stageStudentTable"></tbody>
+        </table>
+
+        <div class="pagination">
+          <span>Showing sample students from this stage</span>
+          <span>‹ Previous &nbsp;&nbsp; 1 2 3 … 8 &nbsp;&nbsp; Next ›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINAL SELECTION -->
+    <div class="workspace-section" id="final">
+
+      <div class="info-banner">
+        <strong>ⓘ</strong>
+        <span>
+          Enter the finally selected students only after receiving official
+          confirmation from the company. Completing the drive will update each
+          student’s placement record.
+        </span>
+      </div>
+
+      <div class="final-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Final-Stage Students</div>
+              <div class="card-subtitle">Select students confirmed by the company.</div>
+            </div>
+            <span class="status-badge badge-awaiting">Result Pending</span>
+          </div>
+
+          <div id="finalStudentList"></div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-title">Final Result Information</div>
+
+            <div class="field" style="margin-top:12px">
+              <label>Result Publication Date</label>
+              <input class="control" type="date">
+            </div>
+
+            <div class="field" style="margin-top:10px">
+              <label>Official Result Reference</label>
+              <input class="control" placeholder="Email reference / document number">
+            </div>
+
+            <div class="field" style="margin-top:10px">
+              <label>Result Notes</label>
+              <textarea class="control" placeholder="Enter company confirmation details"></textarea>
+            </div>
+          </div>
+
+          <div class="warning-box">
+            The drive cannot be moved to Completed until all stages are closed
+            and the final selected-student list is confirmed.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+
+    <div class="right-section">
+      <h2 class="panel-title">Drive Control</h2>
+      <p class="panel-description">
+        Monitor completion and update the current recruitment status.
+      </p>
+    </div>
+
+    <div class="right-section">
+      <div class="right-heading">Overall Recruitment Status</div>
+      <select class="status-control" id="overallStatus">
+        <option>Draft</option>
+        <option>Registration Open</option>
+        <option>Scheduled</option>
+        <option>In Progress</option>
+        <option>Awaiting Next Round Date</option>
+        <option selected>Awaiting Final Result</option>
+        <option>Completed</option>
+        <option>On Hold</option>
+        <option>Cancelled</option>
+      </select>
+    </div>
+
+    <div class="right-section">
+      <div class="completion-card">
+        <div class="completion-top">
+          <div>
+            <div class="right-heading" style="margin:0">Data Completion</div>
+            <div style="color:#64748b;font-size:9px;margin-top:3px">
+              Required information captured
+            </div>
+          </div>
+          <div class="completion-score">82%</div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" style="width:82%"></div>
+        </div>
+
+        <div class="checklist">
+          <div class="check-item">
+            <span class="check-icon check-done">✓</span>
+            <span>Company and job details completed</span>
+          </div>
+
+          <div class="check-item">
+            <span class="check-icon check-done">✓</span>
+            <span>Student eligibility and drive list confirmed</span>
+          </div>
+
+          <div class="check-item">
+            <span class="check-icon check-done">✓</span>
+            <span>Completed round outcomes entered</span>
+          </div>
+
+          <div class="check-item">
+            <span class="check-icon check-pending">!</span>
+            <span>Final result is still awaited from the company</span>
+          </div>
+
+          <div class="check-item">
+            <span class="check-icon check-pending">!</span>
+            <span>Final selected-student list not confirmed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-section">
+      <div class="right-heading">Present Process Position</div>
+
+      <div class="warning-box" id="processPosition">
+        All announced rounds have been completed. The final company result is
+        awaited. No additional round is presently scheduled.
+      </div>
+    </div>
+
+    <div class="right-section">
+      <div class="right-heading">Recent Drive Activity</div>
+
+      <div class="activity-item">
+        <span class="activity-dot"></span>
+        <div class="activity-title">Technical interview results updated</div>
+        <div class="activity-meta">24 students moved to final stage · Today, 10:20 AM</div>
+      </div>
+
+      <div class="activity-item">
+        <span class="activity-dot"></span>
+        <div class="activity-title">Technical interview completed</div>
+        <div class="activity-meta">Updated by Mr. Arun · 23 Sep, 4:40 PM</div>
+      </div>
+
+      <div class="activity-item">
+        <span class="activity-dot"></span>
+        <div class="activity-title">Coding round outcomes imported</div>
+        <div class="activity-meta">58 cleared, 34 not cleared · 21 Sep</div>
+      </div>
+
+      <div class="activity-item">
+        <span class="activity-dot"></span>
+        <div class="activity-title">148 students included</div>
+        <div class="activity-meta">Eligibility filter applied · 10 Sep</div>
+      </div>
+    </div>
+
+    <div class="right-section action-stack">
+      <button class="primary-button full-button" onclick="saveDrive()">
+        Save Current Data
+      </button>
+
+      <button class="secondary-button full-button" onclick="showToast('Drive update message prepared')">
+        Notify Placement Team
+      </button>
+
+      <button class="secondary-button full-button" onclick="showToast('Drive audit log opened')">
+        View Full Audit Log
+      </button>
+
+      <button class="danger-button full-button" id="completeDriveButton">
+        Complete & Update Database
+      </button>
+    </div>
+
+  </aside>
+</main>
+
+<!-- ADD STUDENTS MODAL -->
+<div class="modal-overlay" id="studentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Filter and Include Students</h2>
+        <p>Apply company eligibility conditions and select students for this drive.</p>
+      </div>
+      <button class="close-button" onclick="closeModal('studentModal')">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-filter-grid">
+        <select class="control">
+          <option>Final Year</option>
+          <option>Third Year</option>
+          <option>All Years</option>
+        </select>
+
+        <select class="control">
+          <option>All Eligible Departments</option>
+          <option>CSE</option>
+          <option>IT</option>
+          <option>ECE</option>
+        </select>
+
+        <input class="control" placeholder="Minimum CGPA" value="7.5">
+
+        <select class="control">
+          <option>No Standing Arrears</option>
+          <option>Maximum 1 Arrear</option>
+          <option>Any Arrear Status</option>
+        </select>
+
+        <input class="control" placeholder="Minimum 10th %" value="70">
+
+        <input class="control" placeholder="Minimum 12th %" value="70">
+
+        <select class="control">
+          <option>All Placement Statuses</option>
+          <option>Not Placed</option>
+          <option>Placed</option>
+          <option>Single Offer</option>
+        </select>
+
+        <select class="control">
+          <option>All Internal Batches</option>
+          <option>Batch 1</option>
+          <option>Batch 2</option>
+          <option>Batch 3</option>
+        </select>
+      </div>
+
+      <div class="filter-tags" style="margin-bottom:12px">
+        <span class="filter-tag">Final Year</span>
+        <span class="filter-tag">CSE + IT + ECE</span>
+        <span class="filter-tag">CGPA ≥ 7.5</span>
+        <span class="filter-tag">10th & 12th ≥ 70%</span>
+        <span class="filter-tag">No Standing Arrears</span>
+      </div>
+
+      <div class="candidate-list">
+        <div class="candidate-row candidate-head">
+          <span></span>
+          <span>Student</span>
+          <span>Department</span>
+          <span>CGPA</span>
+          <span>Placement Status</span>
+        </div>
+
+        <div id="candidateRows"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div style="margin-right:auto;color:#64748b;font-size:11px" id="candidateCount">
+        0 students selected
+      </div>
+      <button class="secondary-button" onclick="closeModal('studentModal')">Cancel</button>
+      <button class="primary-button" onclick="addSelectedStudents()">Add Selected Students</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STAGE MODAL -->
+<div class="modal-overlay" id="stageModal">
+  <div class="modal small">
+    <div class="modal-header">
+      <div>
+        <h2>Add Recruitment Stage</h2>
+        <p>Create a new main stage or a stage containing multiple substages.</p>
+      </div>
+      <button class="close-button" onclick="closeModal('stageModal')">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="field">
+        <label>Stage Name</label>
+        <input class="control" id="newStageName" placeholder="Example: Managerial Interview">
+      </div>
+
+      <div class="field" style="margin-top:13px">
+        <label>Stage Structure</label>
+
+        <div class="stage-type-options">
+          <button class="stage-type active" data-type="single">
+            Single Stage
+          </button>
+          <button class="stage-type" data-type="substage">
+            Multiple Substages
+          </button>
+          <button class="stage-type" data-type="document">
+            Document / Verification
+          </button>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top:13px">
+        <div class="field">
+          <label>Scheduled Date</label>
+          <input class="control" type="date">
+        </div>
+
+        <div class="field">
+          <label>Initial Status</label>
+          <select class="control" id="newStageStatus">
+            <option>Pending — Date Not Announced</option>
+            <option>Scheduled</option>
+            <option>In Progress</option>
+            <option>Awaiting Result</option>
+            <option>Completed</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="substage-builder" id="substageBuilder" style="display:none">
+        <div class="card-title" style="margin-bottom:9px">Substages</div>
+
+        <div id="substageRows">
+          <div class="substage-row">
+            <input class="control" placeholder="Substage name">
+            <select class="control">
+              <option>Pending</option>
+              <option>Scheduled</option>
+              <option>Completed</option>
+            </select>
+            <button class="icon-remove">×</button>
+          </div>
+        </div>
+
+        <button class="small-button blue" style="margin-top:4px" onclick="addSubstageRow()">
+          + Add Another Substage
+        </button>
+      </div>
+
+      <div class="field" style="margin-top:13px">
+        <label>Internal Notes</label>
+        <textarea class="control" placeholder="Instructions or company information about this stage"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="secondary-button" onclick="closeModal('stageModal')">Cancel</button>
+      <button class="primary-button" onclick="createNewStage()">Add Stage</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE DRIVE MODAL -->
+<div class="modal-overlay" id="createDriveModal">
+  <div class="modal small">
+    <div class="modal-header">
+      <div>
+        <h2>Create Placement Drive</h2>
+        <p>Create the drive first; students and recruitment stages can be added next.</p>
+      </div>
+      <button class="close-button" onclick="closeModal('createDriveModal')">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>Company Name</label>
+          <input class="control" id="createCompany" placeholder="Company name">
+        </div>
+
+        <div class="field">
+          <label>Job Role</label>
+          <input class="control" id="createRole" placeholder="Job role">
+        </div>
+
+        <div class="field">
+          <label>Package</label>
+          <input class="control" placeholder="Example: 10 LPA">
+        </div>
+
+        <div class="field">
+          <label>Expected Drive Date</label>
+          <input class="control" type="date">
+        </div>
+
+        <div class="field full-width">
+          <label>Placement Type</label>
+          <select class="control">
+            <option>Full-time Placement</option>
+            <option>Internship + PPO</option>
+            <option>Internship</option>
+            <option>Apprenticeship</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="secondary-button" onclick="closeModal('createDriveModal')">Cancel</button>
+      <button class="primary-button" onclick="createDrive()">Create Drive</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETE DRIVE MODAL -->
+<div class="modal-overlay" id="completeModal">
+  <div class="modal small">
+    <div class="modal-header">
+      <div>
+        <h2>Complete Placement Drive</h2>
+        <p>This action will update the selected students’ placement records.</p>
+      </div>
+      <button class="close-button" onclick="closeModal('completeModal')">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="warning-box">
+        Before completing, confirm that all rounds are closed, the official
+        result has been received and the final selected-student list is correct.
+      </div>
+
+      <label class="check-item" style="margin-top:14px">
+        <input type="checkbox" id="confirmStages">
+        <span>All completed round outcomes have been entered.</span>
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" id="confirmResult">
+        <span>The final result has been officially received from the company.</span>
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" id="confirmStudents">
+        <span>The final selected-student list has been verified.</span>
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" id="confirmDatabase">
+        <span>I understand that student placement records will be updated.</span>
+      </label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="secondary-button" onclick="closeModal('completeModal')">Cancel</button>
+      <button class="danger-button" onclick="completeDrive()">Confirm & Complete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const students = [
+  {id:1,name:"Aarav Krishnan",reg:"21CSE1042",dept:"CSE",cgpa:8.74,offer:"No Offer",previous:"Cleared",outcome:"Cleared",remark:"86 / 100"},
+  {id:2,name:"Nithya Raman",reg:"21ECE1088",dept:"ECE",cgpa:9.12,offer:"12.8 LPA",previous:"Cleared",outcome:"Cleared",remark:"Strong technical"},
+  {id:3,name:"Kavin Prakash",reg:"21IT1021",dept:"IT",cgpa:8.31,offer:"No Offer",previous:"Cleared",outcome:"Pending",remark:"Result awaited"},
+  {id:4,name:"Meera S",reg:"21CSE1095",dept:"CSE",cgpa:8.92,offer:"14 LPA",previous:"Cleared",outcome:"Cleared",remark:"Recommended"},
+  {id:5,name:"Divya Narayanan",reg:"21IT1076",dept:"IT",cgpa:8.56,offer:"9.5 LPA",previous:"Cleared",outcome:"Not Cleared",remark:"Technical gap"},
+  {id:6,name:"Harini V",reg:"21ECE1102",dept:"ECE",cgpa:8.66,offer:"No Offer",previous:"Cleared",outcome:"Pending",remark:"Result awaited"},
+  {id:7,name:"Vishal Raj",reg:"21CSE1124",dept:"CSE",cgpa:8.18,offer:"No Offer",previous:"Cleared",outcome:"Cleared",remark:"Good coding"},
+  {id:8,name:"Lakshmi P",reg:"21IT1117",dept:"IT",cgpa:9.01,offer:"No Offer",previous:"Cleared",outcome:"Absent",remark:"Medical leave"}
+];
+
+const candidates = [
+  {id:101,name:"Arun Kumar",reg:"21CSE1034",dept:"CSE",cgpa:8.12,status:"Not Placed"},
+  {id:102,name:"Janani R",reg:"21IT1056",dept:"IT",cgpa:8.44,status:"Not Placed"},
+  {id:103,name:"Mohamed Irfan",reg:"21CSE1078",dept:"CSE",cgpa:7.92,status:"Single Offer"},
+  {id:104,name:"Priyadharshini K",reg:"21ECE1091",dept:"ECE",cgpa:9.03,status:"Not Placed"},
+  {id:105,name:"Sanjay M",reg:"21IT1132",dept:"IT",cgpa:8.06,status:"Not Placed"},
+  {id:106,name:"Keerthana S",reg:"21CSE1146",dept:"CSE",cgpa:8.72,status:"Not Placed"}
+];
+
+let stages = [
+  {
+    id:1,
+    name:"Application & Shortlist",
+    state:"Completed",
+    info:"148 included",
+    substages:[]
+  },
+  {
+    id:2,
+    name:"Online Assessment",
+    state:"Completed",
+    info:"92 cleared",
+    substages:[]
+  },
+  {
+    id:3,
+    name:"Technical Process",
+    state:"Completed",
+    info:"2 substages",
+    substages:["Coding Round","Technical Interview"]
+  },
+  {
+    id:4,
+    name:"HR & Final Discussion",
+    state:"Awaiting Result",
+    info:"24 students",
+    substages:[]
+  },
+  {
+    id:5,
+    name:"Final Selection",
+    state:"Pending",
+    info:"Result awaited",
+    substages:[]
+  }
+];
+
+let selectedStageId = 3;
+let selectedSubstage = 0;
+let selectedStageStudents = new Set();
+let selectedCandidates = new Set();
+
+function initials(name){
+  return name.split(" ").map(x=>x[0]).slice(0,2).join("");
+}
+
+function outcomeClass(outcome){
+  if(outcome==="Cleared") return "outcome-cleared";
+  if(outcome==="Not Cleared") return "outcome-not-cleared";
+  if(outcome==="Pending") return "outcome-pending";
+  return "outcome-absent";
+}
+
+function stateBadgeClass(state){
+  if(state==="Completed") return "badge-completed";
+  if(state==="Awaiting Result") return "badge-awaiting";
+  if(state==="In Progress") return "badge-progress";
+  if(state==="Scheduled") return "badge-scheduled";
+  return "badge-draft";
+}
+
+function renderPipeline(){
+  const pipeline=document.getElementById("pipeline");
+
+  pipeline.innerHTML=stages.map((stage,index)=>`
+    <div class="stage-node">
+      <button class="stage-button ${stage.id===selectedStageId?"active":""}"
+              onclick="selectStage(${stage.id})">
+        <div class="stage-number">${index+1}</div>
+        <div class="stage-name">${stage.name}</div>
+        <div class="stage-state">${stage.state} · ${stage.info}</div>
+      </button>
+    </div>
+  `).join("")+`
+    <button class="add-stage-button" onclick="openModal('stageModal')">
+      + Add Stage
+    </button>
+  `;
+
+  renderStageEditor();
+}
+
+function selectStage(id){
+  selectedStageId=id;
+  selectedSubstage=0;
+  selectedStageStudents.clear();
+  renderPipeline();
+}
+
+function renderStageEditor(){
+  const stage=stages.find(s=>s.id===selectedStageId);
+  const index=stages.findIndex(s=>s.id===selectedStageId);
+
+  document.getElementById("stageEditorTitle").textContent=stage.name;
+  document.getElementById("stageEditorMeta").textContent=
+    `Stage ${index+1} · ${stage.state} · ${stage.info}`;
+
+  const substageTabs=document.getElementById("substageTabs");
+
+  if(stage.substages.length){
+    substageTabs.style.display="flex";
+    substageTabs.innerHTML=stage.substages.map((name,i)=>`
+      <button class="substage-tab ${selectedSubstage===i?"active":""}"
+              onclick="selectSubstage(${i})">
+        ${i+1}. ${name}
+      </button>
+    `).join("");
+  }else{
+    substageTabs.style.display="none";
+    substageTabs.innerHTML="";
+  }
+
+  renderStageStudents();
+}
+
+function selectSubstage(index){
+  selectedSubstage=index;
+  renderStageEditor();
+}
+
+function renderStageStudents(){
+  const query=document.getElementById("stageStudentSearch").value.toLowerCase();
+
+  const filtered=students.filter(student=>
+    student.name.toLowerCase().includes(query) ||
+    student.reg.toLowerCase().includes(query)
+  );
+
+  document.getElementById("stageStudentTable").innerHTML=filtered.map(student=>`
+    <tr>
+      <td>
+        <input type="checkbox"
+          class="stage-student-check"
+          data-id="${student.id}"
+          ${selectedStageStudents.has(student.id)?"checked":""}>
+      </td>
+
+      <td>
+        <div class="student-identity">
+          <div class="mini-avatar">${initials(student.name)}</div>
+          <div>
+            <div class="student-name">${student.name}</div>
+            <div class="student-meta">${student.reg} · ${student.dept}</div>
+          </div>
+        </div>
+      </td>
+
+      <td>
+        <span class="status-badge badge-completed">${student.previous}</span>
+      </td>
+
+      <td>
+        <select class="outcome-select ${outcomeClass(student.outcome)}"
+                onchange="changeOutcome(${student.id},this)">
+          <option ${student.outcome==="Cleared"?"selected":""}>Cleared</option>
+          <option ${student.outcome==="Not Cleared"?"selected":""}>Not Cleared</option>
+          <option ${student.outcome==="Pending"?"selected":""}>Pending</option>
+          <option ${student.outcome==="Absent"?"selected":""}>Absent</option>
+          <option ${student.outcome==="Withdrawn"?"selected":""}>Withdrawn</option>
+        </select>
+      </td>
+
+      <td>
+        <input class="note-input" value="${student.remark}">
+      </td>
+
+      <td>
+        Placement Team
+        <div class="student-meta">Today</div>
+      </td>
+    </tr>
+  `).join("");
+
+  document.querySelectorAll(".stage-student-check").forEach(check=>{
+    check.addEventListener("change",()=>{
+      const id=Number(check.dataset.id);
+      if(check.checked) selectedStageStudents.add(id);
+      else selectedStageStudents.delete(id);
+      updateStageSelectionText();
+    });
+  });
+
+  updateStageSelectionText();
+}
+
+function changeOutcome(id,select){
+  const student=students.find(s=>s.id===id);
+  student.outcome=select.value;
+  select.className="outcome-select "+outcomeClass(select.value);
+  showToast(`${student.name}'s outcome updated to ${select.value}`);
+}
+
+function bulkOutcome(outcome){
+  if(!selectedStageStudents.size){
+    showToast("Select one or more students first");
+    return;
+  }
+
+  students.forEach(student=>{
+    if(selectedStageStudents.has(student.id)){
+      student.outcome=outcome;
+      student.remark=outcome==="Pending"?"Result awaited":outcome;
+    }
+  });
+
+  renderStageStudents();
+  showToast(`${selectedStageStudents.size} student outcomes updated`);
+}
+
+function updateStageSelectionText(){
+  document.getElementById("stageSelectionText").textContent=
+    selectedStageStudents.size
+      ? `${selectedStageStudents.size} students selected`
+      : "Select students";
+}
+
+function renderRoster(){
+  document.getElementById("rosterTable").innerHTML=students.map(student=>`
+    <tr>
+      <td><input type="checkbox"></td>
+      <td>
+        <div class="student-identity">
+          <div class="mini-avatar">${initials(student.name)}</div>
+          <div>
+            <div class="student-name">${student.name}</div>
+            <div class="student-meta">${student.reg}</div>
+          </div>
+        </div>
+      </td>
+      <td>${student.dept}</td>
+      <td>${student.cgpa}</td>
+      <td>${student.offer}</td>
+      <td><span class="status-badge badge-progress">Included</span></td>
+    </tr>
+  `).join("");
+}
+
+function renderCandidates(){
+  document.getElementById("candidateRows").innerHTML=candidates.map(candidate=>`
+    <div class="candidate-row">
+      <input type="checkbox" class="candidate-check"
+             data-id="${candidate.id}"
+             ${selectedCandidates.has(candidate.id)?"checked":""}>
+      <div>
+        <div class="student-name">${candidate.name}</div>
+        <div class="student-meta">${candidate.reg}</div>
+      </div>
+      <div>${candidate.dept}</div>
+      <div>${candidate.cgpa}</div>
+      <div>${candidate.status}</div>
+    </div>
+  `).join("");
+
+  document.querySelectorAll(".candidate-check").forEach(check=>{
+    check.addEventListener("change",()=>{
+      const id=Number(check.dataset.id);
+      if(check.checked) selectedCandidates.add(id);
+      else selectedCandidates.delete(id);
+
+      document.getElementById("candidateCount").textContent=
+        `${selectedCandidates.size} student${selectedCandidates.size===1?"":"s"} selected`;
+    });
+  });
+}
+
+function addSelectedStudents(){
+  if(!selectedCandidates.size){
+    showToast("Select at least one student");
+    return;
+  }
+
+  closeModal("studentModal");
+  showToast(`${selectedCandidates.size} students added to the drive`);
+  selectedCandidates.clear();
+  renderCandidates();
+}
+
+function renderFinalStudents(){
+  const finalStudents=students.filter(student=>
+    student.outcome==="Cleared" || student.outcome==="Pending"
+  );
+
+  document.getElementById("finalStudentList").innerHTML=finalStudents.map(student=>`
+    <div class="final-student">
+      <div class="student-identity">
+        <input type="checkbox">
+        <div class="mini-avatar">${initials(student.name)}</div>
+        <div>
+          <div class="student-name">${student.name}</div>
+          <div class="student-meta">${student.reg} · ${student.dept}</div>
+        </div>
+      </div>
+
+      <span class="status-badge ${
+        student.outcome==="Cleared"?"badge-completed":"badge-awaiting"
+      }">
+        ${student.outcome}
+      </span>
+    </div>
+
+    <div class="offer-fields">
+      <input class="control" placeholder="Final role">
+      <input class="control" placeholder="Final package">
+    </div>
+  `).join("");
+}
+
+function addSubstageRow(){
+  const container=document.getElementById("substageRows");
+  const row=document.createElement("div");
+  row.className="substage-row";
+  row.innerHTML=`
+    <input class="control" placeholder="Substage name">
+    <select class="control">
+      <option>Pending</option>
+      <option>Scheduled</option>
+      <option>Completed</option>
+    </select>
+    <button class="icon-remove" onclick="this.parentElement.remove()">×</button>
+  `;
+  container.appendChild(row);
+}
+
+function createNewStage(){
+  const name=document.getElementById("newStageName").value.trim();
+
+  if(!name){
+    showToast("Enter a stage name");
+    return;
+  }
+
+  const type=document.querySelector(".stage-type.active").dataset.type;
+  const stage={
+    id:Date.now(),
+    name:name,
+    state:"Pending",
+    info:type==="substage"?"Multiple substages":"Date not announced",
+    substages:[]
+  };
+
+  if(type==="substage"){
+    document.querySelectorAll("#substageRows input").forEach(input=>{
+      if(input.value.trim()) stage.substages.push(input.value.trim());
+    });
+
+    if(!stage.substages.length){
+      stage.substages=["Substage 1","Substage 2"];
+    }
+  }
+
+  stages.push(stage);
+  selectedStageId=stage.id;
+  closeModal("stageModal");
+  renderPipeline();
+  showToast(`${name} added to the recruitment process`);
+  document.getElementById("newStageName").value="";
+}
+
+function createDrive(){
+  const company=document.getElementById("createCompany").value.trim();
+  const role=document.getElementById("createRole").value.trim();
+
+  if(!company || !role){
+    showToast("Enter the company name and job role");
+    return;
+  }
+
+  closeModal("createDriveModal");
+  showToast(`${company} drive created as a draft`);
+}
+
+function saveDrive(){
+  showToast("Drive data saved successfully");
+}
+
+function completeDrive(){
+  const checks=[
+    document.getElementById("confirmStages"),
+    document.getElementById("confirmResult"),
+    document.getElementById("confirmStudents"),
+    document.getElementById("confirmDatabase")
+  ];
+
+  if(!checks.every(check=>check.checked)){
+    showToast("Confirm all completion conditions first");
+    return;
+  }
+
+  closeModal("completeModal");
+  document.getElementById("overallStatus").value="Completed";
+  updateOverallStatus();
+  showToast("Drive completed and student database updated");
+}
+
+function updateOverallStatus(){
+  const value=document.getElementById("overallStatus").value;
+  const box=document.getElementById("processPosition");
+
+  const messages={
+    "Draft":"Drive information is under preparation. Student list and recruitment stages may still be incomplete.",
+    "Registration Open":"Student registration is open. Eligible students may still be included in the drive.",
+    "Scheduled":"The drive is scheduled. Recruitment activity has not yet started.",
+    "In Progress":"One or more recruitment stages are currently active.",
+    "Awaiting Next Round Date":"The previous stage is complete, but the company has not announced the next round date.",
+    "Awaiting Final Result":"All announced rounds are complete. The final result is awaited from the company.",
+    "Completed":"The final result has been entered and student placement records have been updated.",
+    "On Hold":"The company has temporarily placed this drive on hold.",
+    "Cancelled":"This placement drive has been cancelled."
+  };
+
+  box.textContent=messages[value];
+
+  if(value==="Completed"){
+    box.className="success-box";
+  }else{
+    box.className="warning-box";
+  }
+}
+
+function openModal(id){
+  document.getElementById(id).classList.add("open");
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove("open");
+}
+
+function showToast(message){
+  const toast=document.getElementById("toast");
+  toast.textContent=message;
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),2500);
+}
+
+document.querySelectorAll(".workspace-tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".workspace-tab").forEach(item=>
+      item.classList.remove("active")
+    );
+
+    document.querySelectorAll(".workspace-section").forEach(section=>
+      section.classList.remove("active")
+    );
+
+    tab.classList.add("active");
+    document.getElementById(tab.dataset.section).classList.add("active");
+  });
+});
+
+document.querySelectorAll(".filter-tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".filter-tab").forEach(item=>
+      item.classList.remove("active")
+    );
+
+    tab.classList.add("active");
+    const filter=tab.dataset.filter;
+
+    document.querySelectorAll(".drive-card").forEach(card=>{
+      card.style.display=
+        filter==="all" ||
+        (filter==="active" && card.dataset.group==="active") ||
+        (filter==="completed" && card.dataset.group==="completed")
+          ?"block":"none";
+    });
+  });
+});
+
+document.querySelectorAll(".drive-card").forEach(card=>{
+  card.addEventListener("click",()=>{
+    document.querySelectorAll(".drive-card").forEach(item=>
+      item.classList.remove("active")
+    );
+
+    card.classList.add("active");
+
+    const company=card.querySelector(".drive-name").textContent;
+    const role=card.querySelector(".drive-role").textContent;
+
+    document.getElementById("currentDriveTitle").textContent=
+      `${company} Placement Drive`;
+
+    document.getElementById("currentDriveSubtitle").textContent=
+      `${role} · Placement Drive Record`;
+
+    showToast(`${company} drive opened`);
+  });
+});
+
+document.getElementById("driveSearch").addEventListener("input",event=>{
+  const query=event.target.value.toLowerCase();
+
+  document.querySelectorAll(".drive-card").forEach(card=>{
+    card.style.display=card.textContent.toLowerCase().includes(query)
+      ?"block":"none";
+  });
+});
+
+document.getElementById("stageStudentSearch").addEventListener("input",renderStageStudents);
+
+document.getElementById("headerStageCheck").addEventListener("change",event=>{
+  selectedStageStudents.clear();
+
+  if(event.target.checked){
+    students.forEach(student=>selectedStageStudents.add(student.id));
+  }
+
+  renderStageStudents();
+});
+
+document.getElementById("selectStageStudents").addEventListener("change",event=>{
+  selectedStageStudents.clear();
+
+  if(event.target.checked){
+    students.forEach(student=>selectedStageStudents.add(student.id));
+  }
+
+  renderStageStudents();
+});
+
+document.getElementById("overallStatus").addEventListener("change",()=>{
+  updateOverallStatus();
+  showToast("Overall drive status updated");
+});
+
+document.getElementById("openStudentModal").addEventListener("click",()=>{
+  renderCandidates();
+  openModal("studentModal");
+});
+
+document.getElementById("openStageModal").addEventListener("click",()=>{
+  openModal("stageModal");
+});
+
+document.getElementById("addSubstageButton").addEventListener("click",()=>{
+  openModal("stageModal");
+  document.querySelector('[data-type="substage"]').click();
+});
+
+document.getElementById("createDriveButton").addEventListener("click",()=>{
+  openModal("createDriveModal");
+});
+
+document.getElementById("completeDriveButton").addEventListener("click",()=>{
+  openModal("completeModal");
+});
+
+document.querySelectorAll(".stage-type").forEach(button=>{
+  button.addEventListener("click",()=>{
+    document.querySelectorAll(".stage-type").forEach(item=>
+      item.classList.remove("active")
+    );
+
+    button.classList.add("active");
+
+    document.getElementById("substageBuilder").style.display=
+      button.dataset.type==="substage"?"block":"none";
+  });
+});
+
+document.querySelectorAll(".modal-overlay").forEach(modal=>{
+  modal.addEventListener("click",event=>{
+    if(event.target===modal) modal.classList.remove("open");
+  });
+});
+
+renderPipeline();
+renderRoster();
+renderCandidates();
+renderFinalStudents();
+</script>
+
+</body>
+</html>

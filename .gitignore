@@ -1,0 +1,39 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors & IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.env
+frontend/.env.*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Backend
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/bin/
+backend/dist/
+backend/vendor/
+backend/.env
+backend/.env*.local
+backend/go.work
+backend/go.work.sum
+backend/*.test
+backend/*.out
+
