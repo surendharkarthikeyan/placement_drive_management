@@ -222,7 +222,7 @@ export default function DriveStudentsRoster({
             Students Included in this Drive
           </h2>
           <p className="text-[13px] text-[#64748b] mt-[3px] mb-0 font-medium">
-            {totalIncluded} students currently included
+            {includedCount} students currently included
           </p>
         </div>
 
