@@ -323,21 +323,24 @@ export default function DriveStudentsRoster({
 
         {/* Tab Filter Options: All, Included, Excluded, Special Entry + Exclude Button */}
         <div className="flex items-center gap-2">
-          {selectedIds.size > 0 && (
-            <button
-              type="button"
-              onClick={handleExcludeSelected}
-              disabled={isUpdatingStatus}
-              className="py-[6px] px-[14px] bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] rounded-[8px] text-[12.5px] font-[750] shadow-2xs hover:shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-60"
-            >
-              {isUpdatingStatus ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <UserMinus size={15} strokeWidth={2.4} />
-              )}
-              <span>Exclude Selected ({selectedIds.size})</span>
-            </button>
-          )}
+          {/* Exclude Selected button visible by default (enabled when students are selected) */}
+          <button
+            type="button"
+            onClick={handleExcludeSelected}
+            disabled={selectedIds.size === 0 || isUpdatingStatus}
+            className={`py-[6px] px-[14px] rounded-[8px] text-[12.5px] font-[750] shadow-2xs transition flex items-center gap-1.5 ${
+              selectedIds.size > 0 && !isUpdatingStatus
+                ? 'bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] cursor-pointer hover:shadow-xs active:scale-98'
+                : 'bg-[#f8fafc] text-[#94a3b8] border border-[#e2e8f0] cursor-not-allowed opacity-75'
+            }`}
+          >
+            {isUpdatingStatus ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <UserMinus size={15} strokeWidth={2.4} />
+            )}
+            <span>Exclude Selected {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}</span>
+          </button>
 
           <div className="flex items-center gap-1.5 p-1 bg-[#f1f5f9] rounded-[10px] border border-[#e2e8f0]/80">
             <button
