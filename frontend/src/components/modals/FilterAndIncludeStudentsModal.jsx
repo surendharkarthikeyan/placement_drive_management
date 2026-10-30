@@ -82,15 +82,16 @@ export default function FilterAndIncludeStudentsModal({
   useEffect(() => {
     if (isOpen) {
       loadStudents()
-      // Initialize filters from drive eligibility
-      if (eligibility) {
-        setMinCgpaFilter(eligibility.min_cgpa ? String(eligibility.min_cgpa) : '')
-        setMinTenthFilter(eligibility.min_tenth_mark ? String(eligibility.min_tenth_mark) : '')
-        setMinTwelfthFilter(eligibility.min_twelfth_mark ? String(eligibility.min_twelfth_mark) : '')
-        if (eligibility.max_current_arrears === 0) setArrearFilter('No Standing Arrears')
-        else if (eligibility.max_current_arrears === 1) setArrearFilter('Maximum 1 Arrear')
-        else setArrearFilter('Any Arrear Status')
-      }
+      // Do not pre-filter candidates by eligibility; start with clean open view
+      setMinCgpaFilter('')
+      setMinTenthFilter('')
+      setMinTwelfthFilter('')
+      setArrearFilter('Any Arrear Status')
+      setDeptFilter('All Eligible Departments')
+      setYearFilter('All Years')
+      setPlacementStatusFilter('All Placement Statuses')
+      setInternalBatchFilter('All Internal Batches')
+      setSearchQuery('')
     }
   }, [isOpen, driveId])
 
@@ -164,7 +165,7 @@ export default function FilterAndIncludeStudentsModal({
     return true
   })
 
-  // Toggle single student inclusion
+  // Toggle single student inclusion (any student added here gets 'special_entry' or 'included')
   const handleToggleStudent = (student) => {
     setSelectedMap((prev) => {
       const next = { ...prev }
@@ -172,9 +173,8 @@ export default function FilterAndIncludeStudentsModal({
         // Uncheck / exclude
         delete next[student.user_id]
       } else {
-        // If student is eligible according to drive criteria -> 'included'
-        // If student is NOT eligible (below CGPA, arrears, etc.) -> 'special_entry'!
-        next[student.user_id] = student.is_eligible ? 'included' : 'special_entry'
+        // As requested: students manually added from this modal get 'special_entry'
+        next[student.user_id] = 'special_entry'
       }
       return next
     })
@@ -194,7 +194,7 @@ export default function FilterAndIncludeStudentsModal({
         })
       } else {
         filteredCandidates.forEach((st) => {
-          next[st.user_id] = st.is_eligible ? 'included' : 'special_entry'
+          next[st.user_id] = 'special_entry'
         })
       }
       return next
@@ -480,27 +480,13 @@ export default function FilterAndIncludeStudentsModal({
                           {/* Eligibility Indicator & Special Entry Tag */}
                           <td className="py-3 px-4 text-center">
                             {isChecked ? (
-                              statusVal === 'special_entry' ? (
-                                <span className="inline-flex items-center gap-1 py-[3px] px-[10px] rounded-full text-[11.5px] font-[800] text-[#b45309] bg-[#fef3c7] border border-[#fde68a]">
-                                  <Sparkles size={12} className="text-[#d97706]" />
-                                  Special Entry
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 py-[3px] px-[10px] rounded-full text-[11.5px] font-[800] text-[#15803d] bg-[#dcfce7] border border-[#bbf7d0]">
-                                  <Check size={12} strokeWidth={3} />
-                                  Included
-                                </span>
-                              )
-                            ) : st.is_eligible ? (
-                              <span className="text-[12px] font-[650] text-[#16a34a]">
-                                Meets Criteria
+                              <span className="inline-flex items-center gap-1 py-[3px] px-[10px] rounded-full text-[11.5px] font-[800] text-[#b45309] bg-[#fef3c7] border border-[#fde68a]">
+                                <Sparkles size={12} className="text-[#d97706]" />
+                                Special Entry
                               </span>
                             ) : (
-                              <span
-                                className="text-[11.5px] font-[600] text-[#94a3b8]"
-                                title={st.ineligible_reasons?.join(', ') || 'Does not meet criteria'}
-                              >
-                                Criteria Gap (Add via Special Entry)
+                              <span className="text-[12px] font-[600] text-[#94a3b8]">
+                                Excluded
                               </span>
                             )}
                           </td>

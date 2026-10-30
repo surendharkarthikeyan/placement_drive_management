@@ -187,10 +187,6 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 		Joins("LEFT JOIN batches b ON u.batch_id = b.id").
 		Where("u.role_id = 1")
 
-	if len(drive.BatchIDs) > 0 {
-		query = query.Where("u.batch_id IN ?", []uint64(drive.BatchIDs))
-	}
-
 	var rows []studentRow
 	if err := query.Order("u.name asc").Scan(&rows).Error; err != nil {
 		return nil, err
