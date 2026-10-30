@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Users,
   Plus,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react'
 import { getDriveStudents } from '../../services/api'
 
@@ -17,6 +18,8 @@ export default function DriveStudentsRoster({
   const [students, setStudents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'included' | 'excluded' | 'special_entry'
 
   const fetchStudents = async () => {
     if (!driveId) return
@@ -69,23 +72,51 @@ export default function DriveStudentsRoster({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
   }
 
-  // Included students (either status = included or status = special_entry)
-  const includedStudents = students.filter((s) => s.is_included_in_drive && s.drive_status !== 'excluded')
-  const totalIncluded = includedStudents.length
+  // Core counts
+  const totalStudentsCount = students.length
+  const includedCount = students.filter((s) => s.drive_status === 'included').length
   const specialEntryCount = students.filter((s) => s.drive_status === 'special_entry').length
+  const totalIncluded = students.filter((s) => s.is_included_in_drive && s.drive_status !== 'excluded').length
   const excludedCount = students.filter((s) => !s.is_included_in_drive || s.drive_status === 'excluded').length
 
-  // Department-wise distribution among all candidates in pool / target batches
+  // Filtered students based on search term and selected status tab
+  const filteredStudents = useMemo(() => {
+    return students.filter((st) => {
+      // 1. Status Filter
+      if (statusFilter === 'included') {
+        if (st.drive_status !== 'included') return false
+      } else if (statusFilter === 'excluded') {
+        if (st.drive_status !== 'excluded' && st.is_included_in_drive) return false
+      } else if (statusFilter === 'special_entry') {
+        if (st.drive_status !== 'special_entry') return false
+      }
+      // 'all' includes everyone
+
+      // 2. Search Filter
+      if (searchTerm.trim()) {
+        const query = searchTerm.toLowerCase()
+        const nameMatch = st.name?.toLowerCase().includes(query)
+        const emailMatch = st.email?.toLowerCase().includes(query)
+        const deptMatch = st.department_name?.toLowerCase().includes(query)
+        const regMatch = getRegNumber(st).toLowerCase().includes(query)
+        if (!nameMatch && !emailMatch && !deptMatch && !regMatch) return false
+      }
+
+      return true
+    })
+  }, [students, statusFilter, searchTerm])
+
+  // Department-wise distribution among included students
   const deptMap = {}
-  students.forEach((s) => {
+  students.filter((s) => s.is_included_in_drive && s.drive_status !== 'excluded').forEach((s) => {
     const code = getDeptShortCode(s.department_name)
     deptMap[code] = (deptMap[code] || 0) + 1
   })
 
-  // Select all toggle
+  // Select all toggle for current filtered view
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(new Set(includedStudents.map((s) => s.user_id)))
+      setSelectedIds(new Set(filteredStudents.map((s) => s.user_id)))
     } else {
       setSelectedIds(new Set())
     }
@@ -190,70 +221,134 @@ export default function DriveStudentsRoster({
         </div>
       )}
 
-      {/* 3. Summary Cards: Total Included, Excluded, Special Entry, Department-wise Counts */}
-      <div className="grid grid-cols-6 gap-[10px]">
-        {/* Total Included */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {totalIncluded}
+      {/* 3. Summary Cards: All Candidates, Total Included, Excluded, Special Entry, and Department-wise Cards (Scrollable) */}
+      <div className="flex items-stretch gap-[14px] overflow-x-auto pb-2 pt-1 scrollbar-thin">
+        {/* 1. All Candidates */}
+        <div className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs">
+          <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
+            {totalStudentsCount}
           </strong>
-          <span className="text-[12px] text-[#2563eb] font-bold mt-[4px] block">
-            Total Included
+          <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
+            All candidates
           </span>
         </div>
 
-        {/* Excluded Count */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#64748b] leading-tight">
+        {/* 2. Total Included */}
+        <div className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs">
+          <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
+            {totalIncluded}
+          </strong>
+          <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
+            Total included
+          </span>
+        </div>
+
+        {/* 3. Excluded Count */}
+        <div className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs">
+          <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
             {excludedCount}
           </strong>
-          <span className="text-[12px] text-[#64748b] font-bold mt-[4px] block">
+          <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
             Excluded
           </span>
         </div>
 
-        {/* Special Entry */}
-        <div className="p-[14px] text-center bg-[#fefce8] border border-[#fde68a] rounded-[11px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#b45309] leading-tight">
+        {/* 4. Special Entry */}
+        <div className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs">
+          <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
             {specialEntryCount}
           </strong>
-          <span className="text-[12px] text-[#b45309] font-bold mt-[4px] block">
-            Special Entry
+          <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
+            Special entry
           </span>
         </div>
 
-        {/* Department 1: CSE */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {deptMap['CSE'] || 0}
-          </strong>
-          <span className="text-[12px] text-[#475569] font-bold mt-[4px] block">
-            CSE Candidates
-          </span>
+        {/* Dynamic Department-Wise Cards */}
+        {Object.entries(deptMap).map(([deptCode, count]) => (
+          <div
+            key={deptCode}
+            className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs"
+          >
+            <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
+              {count}
+            </strong>
+            <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
+              {deptCode} students
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* 4. Filter & Search Controls Bar matching user design */}
+      <div className="p-[12px_16px] bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        {/* Search input with search icon */}
+        <div className="relative flex-1 min-w-[260px] max-w-[420px]">
+          <Search
+            size={16}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none"
+          />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by student name, email, department..."
+            className="w-full pl-9 pr-3 py-[7.5px] bg-[#f8fafc] hover:bg-white focus:bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[9px] text-[13px] text-[#1e293b] placeholder-[#94a3b8] outline-none transition"
+          />
         </div>
 
-        {/* Department 2: IT */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {deptMap['IT'] || 0}
-          </strong>
-          <span className="text-[12px] text-[#475569] font-bold mt-[4px] block">
-            IT Candidates
-          </span>
-        </div>
+        {/* Tab Filter Options: All, Included, Excluded, Special Entry */}
+        <div className="flex items-center gap-1.5 p-1 bg-[#f1f5f9] rounded-[10px] border border-[#e2e8f0]/80">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+              statusFilter === 'all'
+                ? 'bg-white text-[#2563eb] shadow-2xs'
+                : 'text-[#64748b] hover:text-[#1e293b]'
+            }`}
+          >
+            All ({totalStudentsCount})
+          </button>
 
-        {/* Department 3: ECE */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {deptMap['ECE'] || 0}
-          </strong>
-          <span className="text-[12px] text-[#475569] font-bold mt-[4px] block">
-            ECE Candidates
-          </span>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('included')}
+            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+              statusFilter === 'included'
+                ? 'bg-white text-[#2563eb] shadow-2xs'
+                : 'text-[#64748b] hover:text-[#1e293b]'
+            }`}
+          >
+            Included ({includedCount})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('excluded')}
+            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+              statusFilter === 'excluded'
+                ? 'bg-white text-[#2563eb] shadow-2xs'
+                : 'text-[#64748b] hover:text-[#1e293b]'
+            }`}
+          >
+            Excluded ({excludedCount})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('special_entry')}
+            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+              statusFilter === 'special_entry'
+                ? 'bg-white text-[#b45309] shadow-2xs'
+                : 'text-[#64748b] hover:text-[#1e293b]'
+            }`}
+          >
+            Spl Entry ({specialEntryCount})
+          </button>
         </div>
       </div>
 
-      {/* 4. Student Table Card matching template design */}
+      {/* 5. Student Table Card matching template design */}
       <div className="bg-white border border-[#dbe5f1] rounded-[14px] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -262,27 +357,29 @@ export default function DriveStudentsRoster({
                 <th className="py-3 px-4 w-[48px]">
                   <input
                     type="checkbox"
-                    checked={includedStudents.length > 0 && selectedIds.size === includedStudents.length}
+                    checked={filteredStudents.length > 0 && selectedIds.size === filteredStudents.length}
                     onChange={handleSelectAll}
                     className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
                   />
                 </th>
-                <th className="py-3 px-4">Student</th>
-                <th className="py-3 px-4">Department</th>
+                <th className="py-3 px-4">Candidate</th>
+                <th className="py-3 px-4">Department &amp; Batch</th>
                 <th className="py-3 px-4">CGPA</th>
-                <th className="py-3 px-4">Current Offer</th>
-                <th className="py-3 px-4 text-center">Drive Status</th>
+                <th className="py-3 px-4">10th / 12th %</th>
+                <th className="py-3 px-4">Arrears (Curr / Hist)</th>
+                <th className="py-3 px-4 text-center">Eligibility Status</th>
+                <th className="py-3 px-4 text-center">Roster Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#edf2f7]">
-              {includedStudents.length === 0 ? (
+              {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#64748b] text-[14px]">
-                    No students currently added to this drive.
+                  <td colSpan={8} className="py-12 text-center text-[#64748b] text-[14px]">
+                    No students match the current filters.
                   </td>
                 </tr>
               ) : (
-                includedStudents.map((st) => {
+                filteredStudents.map((st) => {
                   const isSelected = selectedIds.has(st.user_id)
                   const deptShort = getDeptShortCode(st.department_name)
                   const regNo = getRegNumber(st)
@@ -305,7 +402,7 @@ export default function DriveStudentsRoster({
                         />
                       </td>
 
-                      {/* Student Identity: Mini-avatar, Name, Reg Number */}
+                      {/* Candidate: Avatar, Name, Reg Number, Email */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-[34px] h-[34px] rounded-[9px] bg-[#dbeafe] text-[#2563eb] font-[850] text-[12px] flex items-center justify-center shrink-0">
@@ -316,36 +413,66 @@ export default function DriveStudentsRoster({
                               {st.name}
                             </div>
                             <div className="text-[12px] text-[#94a3b8] font-medium leading-tight mt-0.5">
-                              {regNo}
+                              {regNo} {st.email ? `• ${st.email}` : ''}
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Department */}
-                      <td className="py-3.5 px-4 text-[13.5px] font-[600] text-[#475569]">
-                        {deptShort}
+                      {/* Department & Batch */}
+                      <td className="py-3.5 px-4">
+                        <div className="text-[13.5px] font-[700] text-[#334155]">
+                          {deptShort}
+                        </div>
+                        <div className="text-[12px] text-[#64748b] font-medium">
+                          {st.batch_name || 'Batch'}
+                        </div>
                       </td>
 
                       {/* CGPA */}
-                      <td className="py-3.5 px-4 text-[13.5px] font-[700] text-[#334155]">
-                        {st.cgpa !== null && st.cgpa !== undefined ? st.cgpa.toFixed(2) : '—'}
+                      <td className="py-3.5 px-4 text-[13.5px] font-[750] text-[#1e293b]">
+                        {st.cgpa !== null && st.cgpa !== undefined ? Number(st.cgpa).toFixed(2) : '—'}
                       </td>
 
-                      {/* Current Offer */}
-                      <td className="py-3.5 px-4 text-[13.5px] font-[600] text-[#475569]">
-                        {st.max_existing_offer ? `${st.max_existing_offer} LPA` : 'No Offer'}
+                      {/* 10th / 12th % */}
+                      <td className="py-3.5 px-4 text-[13px] font-[600] text-[#475569]">
+                        {st.tenth_mark !== null && st.tenth_mark !== undefined ? `${st.tenth_mark}%` : '—'} / {st.twelfth_mark !== null && st.twelfth_mark !== undefined ? `${st.twelfth_mark}%` : '—'}
                       </td>
 
-                      {/* Drive Status Badge */}
+                      {/* Arrears (Curr / Hist) */}
+                      <td className="py-3.5 px-4 text-[13px] font-[600] text-[#475569]">
+                        {st.current_arrear_count ?? 0} / {st.history_arrear_count ?? 0}
+                      </td>
+
+                      {/* Eligibility Status */}
                       <td className="py-3.5 px-4 text-center">
-                        {st.drive_status === 'special_entry' ? (
-                          <span className="inline-flex items-center gap-1.5 py-[4px] px-[12px] rounded-full text-[12px] font-[800] text-[#b45309] bg-[#fef3c7] border border-[#fde68a]">
-                            Special Entry
+                        {st.is_eligible ? (
+                          <span className="inline-flex items-center gap-1 py-[3px] px-[10px] rounded-full text-[11.5px] font-[750] text-[#15803d] bg-[#f0fdf4] border border-[#bbf7d0]">
+                            Eligible
                           </span>
                         ) : (
+                          <span
+                            title={st.ineligible_reasons?.join(', ')}
+                            className="inline-flex items-center gap-1 py-[3px] px-[10px] rounded-full text-[11.5px] font-[750] text-[#b91c1c] bg-[#fef2f2] border border-[#fecaca] cursor-help"
+                          >
+                            Ineligible
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Roster Status Badge */}
+                      <td className="py-3.5 px-4 text-center">
+                        {st.drive_status === 'special_entry' ? (
+                          <span className="inline-flex items-center gap-1 py-[4px] px-[12px] rounded-full text-[12px] font-[800] text-[#b45309] bg-[#fefce8] border border-[#fde68a]">
+                            Special Entry
+                          </span>
+                        ) : st.is_included_in_drive && st.drive_status !== 'excluded' ? (
                           <span className="inline-block py-[4px] px-[12px] rounded-full text-[12px] font-[750] text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe]">
                             Included
+                          </span>
+                        ) : (
+                          <span className="inline-block py-[4px] px-[12px] rounded-full text-[12px] font-[700] text-[#64748b] bg-[#f1f5f9] border border-[#e2e8f0]">
+                            Excluded
                           </span>
                         )}
                       </td>
