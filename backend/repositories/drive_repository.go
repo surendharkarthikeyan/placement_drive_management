@@ -273,7 +273,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 			if isEligible {
 				status = "included"
 			} else {
-				status = "excluded"
+				status = "" // Not in roster!
 			}
 		}
 
@@ -296,6 +296,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 			IneligibleReasons:  reasons,
 			IsIncludedInDrive:  isIncluded,
 			DriveStatus:        status,
+			HasRosterRecord:    hasStatus,
 		})
 	}
 
@@ -363,25 +364,18 @@ func (r *DriveRepository) UpdateDriveStudentsRoster(driveID uint64, updates []St
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		for _, item := range updates {
 			if item.DriveStatus == "excluded" {
-				// Record explicitly as excluded or delete
+				// Case A: Selected student already has a record in placement_drive_students -> Update drive_status to excluded
+				// Case B: Selected student does not have a record -> Do nothing (do not create an excluded record)
 				var existing models.PlacementDriveStudent
 				err := tx.Where("drive_id = ? AND user_id = ?", driveID, item.UserID).First(&existing).Error
-				if err != nil {
-					newRecord := models.PlacementDriveStudent{
-						DriveID:     driveID,
-						UserID:      item.UserID,
-						DriveStatus: "excluded",
-						IncludedAt:  time.Now(),
-					}
-					if err := tx.Create(&newRecord).Error; err != nil {
-						return err
-					}
-				} else {
+				if err == nil {
+					// Existing record: update to excluded
 					if err := tx.Model(&existing).Update("drive_status", "excluded").Error; err != nil {
 						return err
 					}
 				}
-			} else {
+				// If not found (err != nil), do nothing as per requirement!
+			} else if item.DriveStatus == "included" || item.DriveStatus == "special_entry" {
 				// Upsert placement_drive_students record with drive_status ('included' or 'special_entry')
 				var existing models.PlacementDriveStudent
 				err := tx.Where("drive_id = ? AND user_id = ?", driveID, item.UserID).First(&existing).Error

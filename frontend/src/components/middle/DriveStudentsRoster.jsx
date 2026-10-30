@@ -21,7 +21,7 @@ export default function DriveStudentsRoster({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all') // Default to 'all' so candidates remain visible in the list with their updated Roster Status
+  const [statusFilter, setStatusFilter] = useState('included') // default to 'included' to show only drive roster students initially
 
   const fetchStudents = async () => {
     if (!driveId) return
@@ -96,26 +96,30 @@ export default function DriveStudentsRoster({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
   }
 
-  // Core counts
-  const totalStudentsCount = students.length
-  const includedCount = students.filter((s) => s.drive_status === 'included').length
-  const specialEntryCount = students.filter((s) => s.drive_status === 'special_entry').length
-  const totalIncluded = students.filter((s) => s.is_included_in_drive && s.drive_status !== 'excluded').length
-  const excludedCount = students.filter((s) => !s.is_included_in_drive || s.drive_status === 'excluded').length
+  // Students associated with this drive's roster (all students with an active roster record or initially eligible)
+  const rosterStudents = useMemo(() => {
+    return students.filter((s) => s.drive_status === 'included' || s.drive_status === 'special_entry' || s.drive_status === 'excluded')
+  }, [students])
+
+  // Core metrics strictly based on roster records
+  const allCandidatesCount = students.length // total evaluated pool
+  const totalRosterCount = rosterStudents.length
+  const includedCount = rosterStudents.filter((s) => s.drive_status === 'included').length
+  const specialEntryCount = rosterStudents.filter((s) => s.drive_status === 'special_entry').length
+  const excludedCount = rosterStudents.filter((s) => s.drive_status === 'excluded').length
 
   // Filtered students based on search term and selected status tab
   const filteredStudents = useMemo(() => {
-    return students.filter((st) => {
+    return rosterStudents.filter((st) => {
       // 1. Status Filter:
-      // 'included' shows all students in the drive (both regular eligible included and special entry)
       if (statusFilter === 'included') {
-        if (!st.is_included_in_drive || st.drive_status === 'excluded') return false
+        if (st.drive_status !== 'included') return false
       } else if (statusFilter === 'excluded') {
-        if (st.drive_status !== 'excluded' && st.is_included_in_drive) return false
+        if (st.drive_status !== 'excluded') return false
       } else if (statusFilter === 'special_entry') {
         if (st.drive_status !== 'special_entry') return false
       }
-      // 'all' includes everyone (accessible if clicked)
+      // 'all' shows all roster students (included, special_entry, and excluded)
 
       // 2. Search Filter
       if (searchTerm.trim()) {
@@ -129,11 +133,11 @@ export default function DriveStudentsRoster({
 
       return true
     })
-  }, [students, statusFilter, searchTerm])
+  }, [rosterStudents, statusFilter, searchTerm])
 
-  // Department-wise distribution among included students
+  // Department-wise distribution among students in roster (grouped by department)
   const deptMap = {}
-  students.filter((s) => s.is_included_in_drive && s.drive_status !== 'excluded').forEach((s) => {
+  rosterStudents.forEach((s) => {
     const code = getDeptShortCode(s.department_name)
     deptMap[code] = (deptMap[code] || 0) + 1
   })
@@ -251,7 +255,7 @@ export default function DriveStudentsRoster({
         {/* 1. All Candidates */}
         <div className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs">
           <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
-            {totalStudentsCount}
+            {allCandidatesCount}
           </strong>
           <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
             All candidates
@@ -261,7 +265,7 @@ export default function DriveStudentsRoster({
         {/* 2. Total Included */}
         <div className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs">
           <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
-            {totalIncluded}
+            {includedCount}
           </strong>
           <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
             Total included
@@ -352,7 +356,7 @@ export default function DriveStudentsRoster({
                   : 'text-[#64748b] hover:text-[#1e293b]'
               }`}
             >
-              All ({totalStudentsCount})
+              All ({totalRosterCount})
             </button>
 
             <button
@@ -364,7 +368,7 @@ export default function DriveStudentsRoster({
                   : 'text-[#64748b] hover:text-[#1e293b]'
               }`}
             >
-              Included ({totalIncluded})
+              Included ({includedCount})
             </button>
 
             <button

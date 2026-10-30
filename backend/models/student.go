@@ -40,7 +40,8 @@ type StudentEligibilityView struct {
 	IsEligible         bool     `json:"is_eligible"`
 	IneligibleReasons  []string `json:"ineligible_reasons"`
 	IsIncludedInDrive  bool     `json:"is_included_in_drive"`
-	DriveStatus        string   `json:"drive_status"` // 'included', 'special_entry', 'excluded', or ''
+	DriveStatus        string   `json:"drive_status"`    // 'included', 'special_entry', 'excluded', or ''
+	HasRosterRecord    bool     `json:"has_roster_record"` // whether user already has a record in placement_drive_students
 }
 
 type Batch struct {

@@ -54,13 +54,16 @@ export default function FilterAndIncludeStudentsModal({
       const data = await getDriveStudents(driveId)
       setStudents(data || [])
 
-      // Current state from DB
+      // Current state from DB:
+      // Only students who are in the drive roster or eligible get an active status
       const initialMap = {}
       ;(data || []).forEach((st) => {
-        if (st.is_included_in_drive && st.drive_status !== 'excluded') {
-          initialMap[st.user_id] = st.drive_status || (st.is_eligible ? 'included' : 'special_entry')
+        if (st.has_roster_record) {
+          initialMap[st.user_id] = st.drive_status // 'included', 'special_entry', or 'excluded'
+        } else if (st.is_eligible) {
+          initialMap[st.user_id] = 'included'
         } else {
-          initialMap[st.user_id] = 'excluded'
+          initialMap[st.user_id] = '' // Not in roster
         }
       })
       setSelectedMap(initialMap)
@@ -202,11 +205,19 @@ export default function FilterAndIncludeStudentsModal({
   }
 
   // Batch action: Exclude checked students
+  // Case A: Selected student already has a record in placement_drive_students -> update to 'excluded'
+  // Case B: Selected student does not have a record in placement_drive_students -> Do nothing to DB, remains '' (not in roster)
   const handleExcludeChecked = () => {
     setSelectedMap((prev) => {
       const next = { ...prev }
       checkedIds.forEach((id) => {
-        next[id] = 'excluded'
+        const student = students.find((s) => s.user_id === id)
+        if (student?.has_roster_record || prev[id] === 'included' || prev[id] === 'special_entry') {
+          next[id] = 'excluded'
+        } else {
+          // Never was in roster: remain unassigned (do not insert an excluded student into main roster)
+          next[id] = ''
+        }
       })
       return next
     })
@@ -218,12 +229,23 @@ export default function FilterAndIncludeStudentsModal({
       setIsSubmitting(true)
       setErrorMessage('')
 
-      // Build updates array for all known candidates
-      const updates = students.map((st) => {
-        const currentChoice = selectedMap[st.user_id] || 'excluded'
-        return {
-          user_id: st.user_id,
-          drive_status: currentChoice // 'included', 'special_entry', or 'excluded'
+      // Build updates array: only include candidates that have a defined roster status ('included', 'special_entry', 'excluded')
+      const updates = []
+      students.forEach((st) => {
+        const status = selectedMap[st.user_id]
+        if (status === 'included' || status === 'special_entry') {
+          updates.push({
+            user_id: st.user_id,
+            drive_status: status
+          })
+        } else if (status === 'excluded') {
+          // Only send excluded if they already had a roster record or were previously included
+          if (st.has_roster_record || st.is_eligible) {
+            updates.push({
+              user_id: st.user_id,
+              drive_status: 'excluded'
+            })
+          }
         }
       })
 
@@ -542,9 +564,13 @@ export default function FilterAndIncludeStudentsModal({
                               <span className="inline-block py-[3px] px-[10px] rounded-full text-[11.5px] font-[750] text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe]">
                                 Included
                               </span>
-                            ) : (
+                            ) : currentStatus === 'excluded' ? (
                               <span className="inline-block py-[3px] px-[10px] rounded-full text-[11.5px] font-[650] text-[#64748b] bg-[#f1f5f9] border border-[#e2e8f0]">
                                 Excluded
+                              </span>
+                            ) : (
+                              <span className="inline-block py-[3px] px-[10px] rounded-full text-[11.5px] font-[600] text-[#94a3b8] bg-[#f8fafc] border border-dashed border-[#cbd5e1]">
+                                Not in Roster
                               </span>
                             )}
                           </td>
