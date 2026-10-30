@@ -5,9 +5,10 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Search
+  Search,
+  UserMinus
 } from 'lucide-react'
-import { getDriveStudents } from '../../services/api'
+import { getDriveStudents, updateDriveStudentsRoster } from '../../services/api'
 
 export default function DriveStudentsRoster({
   driveId,
@@ -17,6 +18,7 @@ export default function DriveStudentsRoster({
 }) {
   const [students, setStudents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('included') // default to 'included' to show only drive roster students initially
@@ -31,6 +33,27 @@ export default function DriveStudentsRoster({
       console.error('Failed to load drive students:', err)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Handle batch excluding selected students
+  const handleExcludeSelected = async () => {
+    if (selectedIds.size === 0 || !driveId) return
+    try {
+      setIsUpdatingStatus(true)
+      const updates = Array.from(selectedIds).map((userId) => ({
+        user_id: userId,
+        drive_status: 'excluded'
+      }))
+      await updateDriveStudentsRoster(driveId, updates)
+      // Refetch fresh data from database
+      const data = await getDriveStudents(driveId)
+      setStudents(data || [])
+      setSelectedIds(new Set())
+    } catch (err) {
+      console.error('Failed to exclude students:', err)
+    } finally {
+      setIsUpdatingStatus(false)
     }
   }
 
@@ -298,55 +321,73 @@ export default function DriveStudentsRoster({
           />
         </div>
 
-        {/* Tab Filter Options: All, Included, Excluded, Special Entry */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#f1f5f9] rounded-[10px] border border-[#e2e8f0]/80">
-          <button
-            type="button"
-            onClick={() => setStatusFilter('all')}
-            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
-              statusFilter === 'all'
-                ? 'bg-white text-[#2563eb] shadow-2xs'
-                : 'text-[#64748b] hover:text-[#1e293b]'
-            }`}
-          >
-            All ({totalStudentsCount})
-          </button>
+        {/* Tab Filter Options: All, Included, Excluded, Special Entry + Exclude Button */}
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <button
+              type="button"
+              onClick={handleExcludeSelected}
+              disabled={isUpdatingStatus}
+              className="py-[6px] px-[14px] bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] rounded-[8px] text-[12.5px] font-[750] shadow-2xs hover:shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-60"
+            >
+              {isUpdatingStatus ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <UserMinus size={15} strokeWidth={2.4} />
+              )}
+              <span>Exclude Selected ({selectedIds.size})</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setStatusFilter('included')}
-            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
-              statusFilter === 'included'
-                ? 'bg-white text-[#2563eb] shadow-2xs'
-                : 'text-[#64748b] hover:text-[#1e293b]'
-            }`}
-          >
-            Included ({totalIncluded})
-          </button>
+          <div className="flex items-center gap-1.5 p-1 bg-[#f1f5f9] rounded-[10px] border border-[#e2e8f0]/80">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+                statusFilter === 'all'
+                  ? 'bg-white text-[#2563eb] shadow-2xs'
+                  : 'text-[#64748b] hover:text-[#1e293b]'
+              }`}
+            >
+              All ({totalStudentsCount})
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setStatusFilter('excluded')}
-            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
-              statusFilter === 'excluded'
-                ? 'bg-white text-[#2563eb] shadow-2xs'
-                : 'text-[#64748b] hover:text-[#1e293b]'
-            }`}
-          >
-            Excluded ({excludedCount})
-          </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('included')}
+              className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+                statusFilter === 'included'
+                  ? 'bg-white text-[#2563eb] shadow-2xs'
+                  : 'text-[#64748b] hover:text-[#1e293b]'
+              }`}
+            >
+              Included ({totalIncluded})
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setStatusFilter('special_entry')}
-            className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
-              statusFilter === 'special_entry'
-                ? 'bg-white text-[#b45309] shadow-2xs'
-                : 'text-[#64748b] hover:text-[#1e293b]'
-            }`}
-          >
-            Spl Entry ({specialEntryCount})
-          </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('excluded')}
+              className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+                statusFilter === 'excluded'
+                  ? 'bg-white text-[#2563eb] shadow-2xs'
+                  : 'text-[#64748b] hover:text-[#1e293b]'
+              }`}
+            >
+              Excluded ({excludedCount})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStatusFilter('special_entry')}
+              className={`py-[5px] px-[12px] rounded-[7px] text-[12.5px] font-[750] transition cursor-pointer ${
+                statusFilter === 'special_entry'
+                  ? 'bg-white text-[#b45309] shadow-2xs'
+                  : 'text-[#64748b] hover:text-[#1e293b]'
+              }`}
+            >
+              Spl Entry ({specialEntryCount})
+            </button>
+          </div>
         </div>
       </div>
 
