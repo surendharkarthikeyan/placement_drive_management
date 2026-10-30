@@ -57,6 +57,11 @@ export const getDriveStudents = async (id) => {
   return response.data?.data || []
 }
 
+export const updateDriveStudentsRoster = async (id, updates) => {
+  const response = await api.post(`/drives/${id}/students`, { updates })
+  return response.data?.data || []
+}
+
 export const getCompanies = async () => {
   const response = await api.get('/companies')
   return response.data?.data || []

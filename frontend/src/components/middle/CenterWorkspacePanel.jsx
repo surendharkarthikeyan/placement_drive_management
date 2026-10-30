@@ -7,6 +7,7 @@ import SearchableSelect from '../common/SearchableSelect'
 import CustomSelect from '../common/CustomSelect'
 import MultiSelectDropdown from '../common/MultiSelectDropdown'
 import DriveStudentsRoster from './DriveStudentsRoster'
+import FilterAndIncludeStudentsModal from '../modals/FilterAndIncludeStudentsModal'
 
 /**
  * CenterWorkspacePanel (Middle Panel)
@@ -35,6 +36,8 @@ export default function CenterWorkspacePanel({
   const [batches, setBatches] = useState([])
   const [isEligibilityModalOpen, setIsEligibilityModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isIncludeStudentsModalOpen, setIsIncludeStudentsModalOpen] = useState(false)
+  const [studentsRosterKey, setStudentsRosterKey] = useState(0)
   const driveCacheRef = React.useRef({})
 
   const extractFormData = (data) => ({
@@ -657,8 +660,10 @@ export default function CenterWorkspacePanel({
             </div>
           ) : (
             <DriveStudentsRoster
+              key={studentsRosterKey}
               driveId={selectedDriveId}
               eligibility={eligibility}
+              onOpenFilterModal={() => setIsIncludeStudentsModalOpen(true)}
               onConfigureCriteria={() => setIsEligibilityModalOpen(true)}
             />
           )}
@@ -712,6 +717,18 @@ export default function CenterWorkspacePanel({
             setInitialData(freshForm)
             onDirtyChange(false)
           }
+          onDriveUpdated()
+        }}
+      />
+
+      {/* Modal to Filter & Include Students (with Special Entry support) */}
+      <FilterAndIncludeStudentsModal
+        isOpen={isIncludeStudentsModalOpen}
+        onClose={() => setIsIncludeStudentsModalOpen(false)}
+        driveId={selectedDriveId}
+        eligibility={eligibility}
+        onRosterUpdated={() => {
+          setStudentsRosterKey((k) => k + 1)
           onDriveUpdated()
         }}
       />

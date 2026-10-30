@@ -277,3 +277,39 @@ func (ctrl *DriveController) GetDriveEligibleStudents(c *gin.Context) {
 		"total": len(students),
 	})
 }
+
+// UpdateDriveStudentsRoster updates students inclusion, special_entry, and exclusion
+func (ctrl *DriveController) UpdateDriveStudentsRoster(c *gin.Context) {
+	if config.DB == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Database not connected"})
+		return
+	}
+
+	driveID := c.Param("id")
+	driveIDUint, err := strconv.ParseUint(driveID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid drive id"})
+		return
+	}
+
+	var req struct {
+		Updates []repositories.StudentRosterUpdateItem `json:"updates"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := ctrl.service.UpdateDriveStudentsRoster(driveIDUint, req.Updates); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Return updated list
+	updatedList, _ := ctrl.service.GetDriveEligibleStudents(driveIDUint)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Student roster updated successfully",
+		"data":    updatedList,
+	})
+}

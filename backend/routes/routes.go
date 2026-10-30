@@ -20,6 +20,7 @@ func SetupRoutes(r *gin.Engine) {
 			drives.PUT("/:id", driveCtrl.UpdateDriveDetails)
 			drives.PUT("/:id/eligibility", driveCtrl.UpdateDriveEligibility)
 			drives.GET("/:id/students", driveCtrl.GetDriveEligibleStudents)
+			drives.POST("/:id/students", driveCtrl.UpdateDriveStudentsRoster)
 			drives.PATCH("/:id/status", driveCtrl.UpdateDriveStatus)
 			drives.GET("/:id/activities", driveCtrl.GetDriveActivities)
 		}

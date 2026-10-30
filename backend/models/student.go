@@ -39,6 +39,7 @@ type StudentEligibilityView struct {
 	IsEligible         bool     `json:"is_eligible"`
 	IneligibleReasons  []string `json:"ineligible_reasons"`
 	IsIncludedInDrive  bool     `json:"is_included_in_drive"`
+	DriveStatus        string   `json:"drive_status"` // 'included', 'special_entry', 'excluded', or ''
 }
 
 type Batch struct {

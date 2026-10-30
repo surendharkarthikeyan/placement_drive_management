@@ -155,12 +155,13 @@ func (PlacementDriveSubstage) TableName() string {
 }
 
 type PlacementDriveStudent struct {
-	ID         uint64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	DriveID    uint64      `gorm:"not null" json:"drive_id"`
-	UserID     uint64      `gorm:"not null" json:"user_id"`
-	User       *MasterUser `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	IncludedAt time.Time   `json:"included_at"`
-	Notes      string      `gorm:"type:text" json:"notes"`
+	ID          uint64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	DriveID     uint64      `gorm:"not null" json:"drive_id"`
+	UserID      uint64      `gorm:"not null" json:"user_id"`
+	DriveStatus string      `gorm:"type:enum('included','excluded','special_entry');default:'included'" json:"drive_status"`
+	User        *MasterUser `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	IncludedAt  time.Time   `json:"included_at"`
+	Notes       string      `gorm:"type:text" json:"notes"`
 }
 
 func (PlacementDriveStudent) TableName() string {

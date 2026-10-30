@@ -8,7 +8,12 @@ import {
 } from 'lucide-react'
 import { getDriveStudents } from '../../services/api'
 
-export default function DriveStudentsRoster({ driveId, eligibility, onConfigureCriteria }) {
+export default function DriveStudentsRoster({
+  driveId,
+  eligibility,
+  onOpenFilterModal = () => {},
+  onConfigureCriteria = () => {}
+}) {
   const [students, setStudents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState(new Set())
@@ -149,7 +154,7 @@ export default function DriveStudentsRoster({ driveId, eligibility, onConfigureC
 
         <button
           type="button"
-          onClick={onConfigureCriteria}
+          onClick={onOpenFilterModal}
           className="py-[9px] px-[16px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[9px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 active:scale-98"
         >
           <Plus size={16} strokeWidth={2.8} />
@@ -298,9 +303,15 @@ export default function DriveStudentsRoster({ driveId, eligibility, onConfigureC
 
                       {/* Drive Status Badge */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className="inline-block py-[4px] px-[12px] rounded-full text-[12px] font-[750] text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe]">
-                          Included
-                        </span>
+                        {st.drive_status === 'special_entry' ? (
+                          <span className="inline-flex items-center gap-1.5 py-[4px] px-[12px] rounded-full text-[12px] font-[800] text-[#b45309] bg-[#fef3c7] border border-[#fde68a]">
+                            Special Entry
+                          </span>
+                        ) : (
+                          <span className="inline-block py-[4px] px-[12px] rounded-full text-[12px] font-[750] text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe]">
+                            Included
+                          </span>
+                        )}
                       </td>
                     </tr>
                   )

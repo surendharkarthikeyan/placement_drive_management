@@ -239,3 +239,8 @@ func (s *DriveService) GetDriveEligibleStudents(driveID uint64) ([]models.Studen
 	return s.repo.GetDriveStudentsList(driveID)
 }
 
+// UpdateDriveStudentsRoster manages inclusion, exclusion and special entries
+func (s *DriveService) UpdateDriveStudentsRoster(driveID uint64, updates []repositories.StudentRosterUpdateItem) error {
+	return s.repo.UpdateDriveStudentsRoster(driveID, updates)
+}
+

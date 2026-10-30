@@ -196,15 +196,20 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 		return nil, err
 	}
 
-	// 2. Fetch students currently included in this drive
-	var includedUserIDs []uint64
+	// 2. Fetch students currently attached to this drive with drive_status
+	type driveStudentRow struct {
+		UserID      uint64 `gorm:"column:user_id"`
+		DriveStatus string `gorm:"column:drive_status"`
+	}
+	var driveStudentRows []driveStudentRow
 	r.db.Table("placement_drive_students").
+		Select("user_id, drive_status").
 		Where("drive_id = ?", driveID).
-		Pluck("user_id", &includedUserIDs)
+		Scan(&driveStudentRows)
 
-	includedMap := make(map[uint64]bool)
-	for _, uid := range includedUserIDs {
-		includedMap[uid] = true
+	driveStatusMap := make(map[uint64]string)
+	for _, ds := range driveStudentRows {
+		driveStatusMap[ds.UserID] = ds.DriveStatus
 	}
 
 	// 3. Fetch max existing offers per student from placement_drive_offers
@@ -264,6 +269,9 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 			}
 		}
 
+		status, hasStatus := driveStatusMap[s.UserID]
+		isIncluded := hasStatus && (status == "included" || status == "special_entry")
+
 		result = append(result, models.StudentEligibilityView{
 			UserID:             s.UserID,
 			Name:               s.Name,
@@ -278,7 +286,8 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 			MaxExistingOffer:   maxOffer,
 			IsEligible:         isEligible,
 			IneligibleReasons:  reasons,
-			IsIncludedInDrive:  includedMap[s.UserID],
+			IsIncludedInDrive:  isIncluded,
+			DriveStatus:        status,
 		})
 	}
 
@@ -333,4 +342,48 @@ func (r *DriveRepository) FindOrCreateCompany(name string) (*models.PlacementCom
 		return nil, err
 	}
 	return &company, nil
+}
+
+// StudentRosterUpdateItem payload for batch update
+type StudentRosterUpdateItem struct {
+	UserID      uint64 `json:"user_id"`
+	DriveStatus string `json:"drive_status"` // 'included', 'special_entry', 'excluded'
+}
+
+// UpdateDriveStudentsRoster manages student membership and statuses in a drive
+func (r *DriveRepository) UpdateDriveStudentsRoster(driveID uint64, updates []StudentRosterUpdateItem) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, item := range updates {
+			if item.DriveStatus == "excluded" {
+				// Remove from drive or update status to excluded
+				if err := tx.Where("drive_id = ? AND user_id = ?", driveID, item.UserID).
+					Delete(&models.PlacementDriveStudent{}).Error; err != nil {
+					return err
+				}
+			} else {
+				// Upsert placement_drive_students record with drive_status
+				var existing models.PlacementDriveStudent
+				err := tx.Where("drive_id = ? AND user_id = ?", driveID, item.UserID).First(&existing).Error
+				if err != nil {
+					// Create new entry
+					newRecord := models.PlacementDriveStudent{
+						DriveID:     driveID,
+						UserID:      item.UserID,
+						DriveStatus: item.DriveStatus,
+						IncludedAt:  time.Now(),
+						Notes:       "",
+					}
+					if err := tx.Create(&newRecord).Error; err != nil {
+						return err
+					}
+				} else {
+					// Update existing status
+					if err := tx.Model(&existing).Update("drive_status", item.DriveStatus).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	})
 }
