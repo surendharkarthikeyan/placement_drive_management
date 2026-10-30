@@ -267,7 +267,17 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 		}
 
 		status, hasStatus := driveStatusMap[s.UserID]
-		isIncluded := hasStatus && (status == "included" || status == "special_entry")
+		// If the drive record hasn't explicitly set a status for this student yet:
+		// Automatically include them if they meet eligibility criteria!
+		if !hasStatus {
+			if isEligible {
+				status = "included"
+			} else {
+				status = "excluded"
+			}
+		}
+
+		isIncluded := (status == "included" || status == "special_entry")
 
 		result = append(result, models.StudentEligibilityView{
 			UserID:             s.UserID,
@@ -353,13 +363,26 @@ func (r *DriveRepository) UpdateDriveStudentsRoster(driveID uint64, updates []St
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		for _, item := range updates {
 			if item.DriveStatus == "excluded" {
-				// Remove from drive or update status to excluded
-				if err := tx.Where("drive_id = ? AND user_id = ?", driveID, item.UserID).
-					Delete(&models.PlacementDriveStudent{}).Error; err != nil {
-					return err
+				// Record explicitly as excluded or delete
+				var existing models.PlacementDriveStudent
+				err := tx.Where("drive_id = ? AND user_id = ?", driveID, item.UserID).First(&existing).Error
+				if err != nil {
+					newRecord := models.PlacementDriveStudent{
+						DriveID:     driveID,
+						UserID:      item.UserID,
+						DriveStatus: "excluded",
+						IncludedAt:  time.Now(),
+					}
+					if err := tx.Create(&newRecord).Error; err != nil {
+						return err
+					}
+				} else {
+					if err := tx.Model(&existing).Update("drive_status", "excluded").Error; err != nil {
+						return err
+					}
 				}
 			} else {
-				// Upsert placement_drive_students record with drive_status
+				// Upsert placement_drive_students record with drive_status ('included' or 'special_entry')
 				var existing models.PlacementDriveStudent
 				err := tx.Where("drive_id = ? AND user_id = ?", driveID, item.UserID).First(&existing).Error
 				if err != nil {

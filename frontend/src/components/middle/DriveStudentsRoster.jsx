@@ -19,7 +19,7 @@ export default function DriveStudentsRoster({
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'included' | 'excluded' | 'special_entry'
+  const [statusFilter, setStatusFilter] = useState('included') // default to 'included' to show only drive roster students initially
 
   const fetchStudents = async () => {
     if (!driveId) return
@@ -83,15 +83,16 @@ export default function DriveStudentsRoster({
   // Filtered students based on search term and selected status tab
   const filteredStudents = useMemo(() => {
     return students.filter((st) => {
-      // 1. Status Filter
+      // 1. Status Filter:
+      // 'included' shows all students in the drive (both regular eligible included and special entry)
       if (statusFilter === 'included') {
-        if (st.drive_status !== 'included') return false
+        if (!st.is_included_in_drive || st.drive_status === 'excluded') return false
       } else if (statusFilter === 'excluded') {
         if (st.drive_status !== 'excluded' && st.is_included_in_drive) return false
       } else if (statusFilter === 'special_entry') {
         if (st.drive_status !== 'special_entry') return false
       }
-      // 'all' includes everyone
+      // 'all' includes everyone (accessible if clicked)
 
       // 2. Search Filter
       if (searchTerm.trim()) {
@@ -320,7 +321,7 @@ export default function DriveStudentsRoster({
                 : 'text-[#64748b] hover:text-[#1e293b]'
             }`}
           >
-            Included ({includedCount})
+            Included ({totalIncluded})
           </button>
 
           <button
