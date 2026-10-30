@@ -76,28 +76,16 @@ export default function FilterAndIncludeStudentsModal({
   useEffect(() => {
     if (isOpen) {
       loadStudents()
-      // Initialize inputs with drive's configured eligibility if available, or clean
-      setMinCgpaFilter(eligibility?.min_cgpa !== undefined && eligibility?.min_cgpa !== null ? String(eligibility.min_cgpa) : '')
-      setMinTenthFilter(eligibility?.min_tenth_mark !== undefined && eligibility?.min_tenth_mark !== null ? String(eligibility.min_tenth_mark) : '')
-      setMinTwelfthFilter(eligibility?.min_twelfth_mark !== undefined && eligibility?.min_twelfth_mark !== null ? String(eligibility.min_twelfth_mark) : '')
-      setMaxCurrentArrearsFilter(
-        eligibility?.max_current_arrears !== undefined && eligibility?.max_current_arrears !== null
-          ? String(eligibility.max_current_arrears)
-          : 'no_restriction'
-      )
-      setMaxHistoryArrearsFilter(
-        eligibility?.max_history_arrears !== undefined && eligibility?.max_history_arrears !== null
-          ? String(eligibility.max_history_arrears)
-          : 'no_restriction'
-      )
-      setMaxExistingOfferFilter(
-        eligibility?.max_existing_offer_lpa !== undefined && eligibility?.max_existing_offer_lpa !== null
-          ? String(eligibility.max_existing_offer_lpa)
-          : ''
-      )
+      // Keep criteria inputs clean so all students are visible in the modal list
+      setMinCgpaFilter('')
+      setMinTenthFilter('')
+      setMinTwelfthFilter('')
+      setMaxCurrentArrearsFilter('no_restriction')
+      setMaxHistoryArrearsFilter('no_restriction')
+      setMaxExistingOfferFilter('')
       setSearchQuery('')
     }
-  }, [isOpen, driveId, eligibility])
+  }, [isOpen, driveId])
 
   if (!isOpen) return null
 
