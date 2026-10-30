@@ -21,7 +21,7 @@ export default function DriveStudentsRoster({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('included') // default to 'included' to show only drive roster students initially
+  const [statusFilter, setStatusFilter] = useState('all') // Default to 'all' so candidates remain visible in the list with their updated Roster Status
 
   const fetchStudents = async () => {
     if (!driveId) return
