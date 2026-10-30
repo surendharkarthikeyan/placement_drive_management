@@ -73,7 +73,7 @@ CREATE TABLE `placement_drive` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `company_id` bigint NOT NULL,
   `job_role` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `placement_type` enum('Full-time Placment','Internship + PPO','Internship','Apprenticeship') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `placement_type` enum('Full-time Placement','Full-time Placment','Internship + PPO','Internship','Apprenticeship') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Full-time Placement',
   `package_lpa` decimal(8,2) DEFAULT NULL,
   `drive_start_date` date DEFAULT NULL,
   `drive_end_date` date DEFAULT NULL,
