@@ -88,11 +88,27 @@ func (PlacementDriveEligibility) TableName() string {
 }
 
 type PlacementDriveStats struct {
-	InitiallyEligible  int64 `json:"initially_eligible"`
-	IncludedInDrive    int64 `json:"included_in_drive"`
-	ReachedFinalStage  int64 `json:"reached_final_stage"`
+	InitiallyEligible   int64 `json:"initially_eligible"`
+	IncludedInDrive     int64 `json:"included_in_drive"`
+	ReachedFinalStage   int64 `json:"reached_final_stage"`
 	AwaitingFinalResult int64 `json:"awaiting_final_result"`
-	NotClearedAbsent   int64 `json:"not_cleared_absent"`
+	NotClearedAbsent    int64 `json:"not_cleared_absent"`
+	OfferedStudents     int64 `json:"offered_students"`
+}
+
+type CheckpointDetail struct {
+	Index       int     `json:"index"`
+	Title       string  `json:"title"`
+	Weightage   float64 `json:"weightage"`
+	Earned      float64 `json:"earned"`
+	IsCompleted bool    `json:"is_completed"`
+	Detail      string  `json:"detail"`
+}
+
+type DataCompletionStats struct {
+	OverallPercentage int                `json:"overall_percentage"`
+	TotalEarned       float64            `json:"total_earned"`
+	Checkpoints       []CheckpointDetail `json:"checkpoints"`
 }
 
 type PlacementDrive struct {
@@ -119,6 +135,7 @@ type PlacementDrive struct {
 	Stages      []PlacementDriveStage      `gorm:"foreignKey:DriveID" json:"stages,omitempty"`
 	Eligibility *PlacementDriveEligibility `gorm:"foreignKey:DriveID" json:"eligibility,omitempty"`
 	Stats       PlacementDriveStats        `gorm:"-" json:"stats"`
+	DataCompletion *DataCompletionStats    `gorm:"-" json:"data_completion,omitempty"`
 
 	TotalStudents   int64  `gorm:"-" json:"total_students"`
 	PendingOutcomes int64  `gorm:"-" json:"pending_outcomes"`
@@ -137,7 +154,12 @@ type PlacementDriveStage struct {
 	SequenceNo    int                      `gorm:"not null" json:"sequence_no"`
 	ScheduledDate *time.Time               `json:"scheduled_date"`
 	CompletedAt   *time.Time               `json:"completed_at"`
+	InternalNotes string                   `gorm:"type:text" json:"internal_notes"`
+	StageStatus   string                   `gorm:"type:enum('pending','pending_date_not_announced','scheduled','in_progress','awaiting_result','completed');default:'pending'" json:"stage_status"`
 	Substages     []PlacementDriveSubstage `gorm:"foreignKey:StageID" json:"substages,omitempty"`
+
+	ParticipantsCount int64 `gorm:"-" json:"participants_count"`
+	ClearedCount      int64 `gorm:"-" json:"cleared_count"`
 }
 
 func (PlacementDriveStage) TableName() string {
@@ -145,10 +167,16 @@ func (PlacementDriveStage) TableName() string {
 }
 
 type PlacementDriveSubstage struct {
-	ID           uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
-	StageID      uint64 `gorm:"not null" json:"stage_id"`
-	SubstageName string `gorm:"size:150;not null" json:"substage_name"`
-	SequenceNo   int    `gorm:"not null" json:"sequence_no"`
+	ID             uint64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	StageID        uint64     `gorm:"not null" json:"stage_id"`
+	SubstageName   string     `gorm:"size:150;not null" json:"substage_name"`
+	SequenceNo     int        `gorm:"not null" json:"sequence_no"`
+	ScheduledDate  *time.Time `json:"scheduled_date"`
+	SubstageStatus string     `gorm:"type:enum('pending','pending_date_not_announced','scheduled','in_progress','awaiting_result','completed');default:'pending'" json:"substage_status"`
+	InternalNotes  string     `gorm:"type:text" json:"internal_notes"`
+
+	ParticipantsCount int64 `gorm:"-" json:"participants_count"`
+	ClearedCount      int64 `gorm:"-" json:"cleared_count"`
 }
 
 func (PlacementDriveSubstage) TableName() string {
@@ -170,16 +198,19 @@ func (PlacementDriveStudent) TableName() string {
 }
 
 type PlacementStageResult struct {
-	ID             uint64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	DriveStudentID uint64     `gorm:"not null" json:"drive_student_id"`
-	StageID        uint64     `gorm:"not null" json:"stage_id"`
-	SubstageID     *uint64    `json:"substage_id"`
-	Outcome        string     `gorm:"type:enum('pending','cleared','not_cleared','absent','withdrawn');default:'pending'" json:"outcome"`
-	Score          *float64   `gorm:"type:decimal(8,2)" json:"score"`
-	Remarks        string     `gorm:"type:text" json:"remarks"`
-	UpdatedBy      *uint64    `json:"updated_by"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID                  uint64                 `gorm:"primaryKey;autoIncrement" json:"id"`
+	DriveStudentID      uint64                 `gorm:"not null" json:"drive_student_id"`
+	StageID             uint64                 `gorm:"not null" json:"stage_id"`
+	SubstageID          *uint64                `json:"substage_id"`
+	PreviousStageStatus string                 `gorm:"type:enum('cleared','spl_entry');default:'cleared'" json:"previous_stage_status"`
+	Outcome             string                 `gorm:"type:enum('pending','cleared','not_cleared','absent','withdrawn');default:'pending'" json:"outcome"`
+	Score               *float64               `gorm:"type:decimal(8,2)" json:"score"`
+	Remarks             string                 `gorm:"type:text" json:"remarks"`
+	UpdatedBy           *uint64                `json:"updated_by"`
+	Updater             *MasterUser            `gorm:"foreignKey:UpdatedBy" json:"updater,omitempty"`
+	DriveStudent        *PlacementDriveStudent `gorm:"foreignKey:DriveStudentID" json:"drive_student,omitempty"`
+	CreatedAt           time.Time              `json:"created_at"`
+	UpdatedAt           time.Time              `json:"updated_at"`
 }
 
 func (PlacementStageResult) TableName() string {
@@ -191,6 +222,9 @@ type PlacementDriveActivityLog struct {
 	DriveID             uint64      `gorm:"not null" json:"drive_id"`
 	UserID              *uint64     `json:"user_id"`
 	User                *MasterUser `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	ActivityType        string      `gorm:"size:50" json:"activity_type,omitempty"`
+	EntityType          string      `gorm:"size:50" json:"entity_type,omitempty"`
+	EntityID            string      `gorm:"size:50" json:"entity_id,omitempty"`
 	ActivityDescription string      `gorm:"size:500;not null" json:"activity_description"`
 	CreatedAt           time.Time   `json:"created_at"`
 }

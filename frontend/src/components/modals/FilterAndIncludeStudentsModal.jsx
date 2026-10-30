@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { X, Search, Check, AlertCircle, Loader2, Sparkles, UserMinus, UserCheck } from 'lucide-react'
-import { getDriveStudents, updateDriveStudentsRoster } from '../../services/api'
+import { getDriveStudents, updateDriveStudentsRoster, getBatches } from '../../services/api'
 import CustomSelect from '../common/CustomSelect'
 
 /**
  * FilterAndIncludeStudentsModal
- * - Filters strictly matching the requested 6 fields:
+ * - Filters:
  *   1. Minimum CGPA
  *   2. Minimum 10th Mark (%)
  *   3. Minimum 12th / Diploma Mark (%)
  *   4. Max Current Standing Arrears
  *   5. Max History Arrears
  *   6. Maximum Existing Offer Cap (LPA)
+ *   7. Academic Batch Filter
  * - Live Search Bar: Search by name and roll_no
  * - Action buttons:
  *   - "Exclude Selected": marks selected students as 'excluded'
@@ -25,17 +26,19 @@ export default function FilterAndIncludeStudentsModal({
   onRosterUpdated = () => {}
 }) {
   const [students, setStudents] = useState([])
+  const [batches, setBatches] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  // Requested 6 Filter fields
+  // Requested Filter fields
   const [minCgpaFilter, setMinCgpaFilter] = useState('')
   const [minTenthFilter, setMinTenthFilter] = useState('')
   const [minTwelfthFilter, setMinTwelfthFilter] = useState('')
   const [maxCurrentArrearsFilter, setMaxCurrentArrearsFilter] = useState('no_restriction')
   const [maxHistoryArrearsFilter, setMaxHistoryArrearsFilter] = useState('no_restriction')
   const [maxExistingOfferFilter, setMaxExistingOfferFilter] = useState('')
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState('all')
 
   // Search input: by student name or roll_no
   const [searchQuery, setSearchQuery] = useState('')
@@ -79,6 +82,8 @@ export default function FilterAndIncludeStudentsModal({
   useEffect(() => {
     if (isOpen) {
       loadStudents()
+      // Load batches list for filter
+      getBatches().then((b) => setBatches(b || [])).catch(() => {})
       // Keep criteria inputs clean so all students are visible in the modal list
       setMinCgpaFilter('')
       setMinTenthFilter('')
@@ -86,6 +91,7 @@ export default function FilterAndIncludeStudentsModal({
       setMaxCurrentArrearsFilter('no_restriction')
       setMaxHistoryArrearsFilter('no_restriction')
       setMaxExistingOfferFilter('')
+      setSelectedBatchFilter('all')
       setSearchQuery('')
     }
   }, [isOpen, driveId])
@@ -155,6 +161,14 @@ export default function FilterAndIncludeStudentsModal({
     if (maxExistingOfferFilter && !isNaN(parseFloat(maxExistingOfferFilter))) {
       const maxOffer = parseFloat(maxExistingOfferFilter)
       if (st.max_existing_offer && st.max_existing_offer > maxOffer) return false
+    }
+
+    // 7. Academic Batch Filter
+    if (selectedBatchFilter !== 'all') {
+      const batchStr = String(selectedBatchFilter)
+      const stBatchId = st.batch_id ? String(st.batch_id) : ''
+      const stBatchName = st.batch_name ? String(st.batch_name) : ''
+      if (stBatchId !== batchStr && stBatchName !== batchStr) return false
     }
 
     // 7. Search query: name and roll_no
@@ -293,19 +307,19 @@ export default function FilterAndIncludeStudentsModal({
         </div>
 
         {/* Modal Body with internal scrolling */}
-        <div className="p-[20px_26px] overflow-y-auto flex flex-col gap-[16px] flex-1">
+        <div className="p-[14px_24px] overflow-y-auto flex flex-col gap-[12px] flex-1">
           {errorMessage && (
-            <div className="p-[10px_14px] bg-[#fef2f2] border border-[#fecaca] rounded-[10px] text-[13.5px] text-[#dc2626] flex items-center gap-2">
-              <AlertCircle size={17} className="shrink-0" />
+            <div className="p-[8px_12px] bg-[#fef2f2] border border-[#fecaca] rounded-[8px] text-[13px] text-[#dc2626] flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* 1. Exactly the 6 Criteria Filters from Image */}
-          <div className="grid grid-cols-2 gap-x-[18px] gap-y-[14px] bg-[#f8fafc] p-[16px_20px] rounded-[14px] border border-[#e2e8f0]">
+          {/* 1. Criteria Filters: Compact 4-column layout to save vertical space */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-[14px] gap-y-[10px] bg-[#f8fafc] p-[12px_16px] rounded-[12px] border border-[#e2e8f0]">
             {/* Minimum CGPA */}
             <div>
-              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+              <label className="block text-[12px] font-[750] text-[#1e293b] mb-[3px]">
                 Minimum CGPA
               </label>
               <input
@@ -316,13 +330,13 @@ export default function FilterAndIncludeStudentsModal({
                 value={minCgpaFilter}
                 onChange={(e) => setMinCgpaFilter(e.target.value)}
                 placeholder="e.g. 8"
-                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+                className="w-full h-[36px] px-[10px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
               />
             </div>
 
             {/* Minimum 10th Mark (%) */}
             <div>
-              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+              <label className="block text-[12px] font-[750] text-[#1e293b] mb-[3px]">
                 Minimum 10th Mark (%)
               </label>
               <input
@@ -333,14 +347,14 @@ export default function FilterAndIncludeStudentsModal({
                 value={minTenthFilter}
                 onChange={(e) => setMinTenthFilter(e.target.value)}
                 placeholder="e.g. 70"
-                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+                className="w-full h-[36px] px-[10px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
               />
             </div>
 
             {/* Minimum 12th / Diploma Mark (%) */}
             <div>
-              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
-                Minimum 12th / Diploma Mark (%)
+              <label className="block text-[12px] font-[750] text-[#1e293b] mb-[3px]">
+                Minimum 12th / Diploma (%)
               </label>
               <input
                 type="number"
@@ -350,22 +364,22 @@ export default function FilterAndIncludeStudentsModal({
                 value={minTwelfthFilter}
                 onChange={(e) => setMinTwelfthFilter(e.target.value)}
                 placeholder="e.g. 65"
-                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+                className="w-full h-[36px] px-[10px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
               />
             </div>
 
             {/* Max Current Standing Arrears */}
             <div>
-              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
-                Max Current Standing Arrears
+              <label className="block text-[12px] font-[750] text-[#1e293b] mb-[3px]">
+                Max Current Arrears
               </label>
               <select
                 value={maxCurrentArrearsFilter}
                 onChange={(e) => setMaxCurrentArrearsFilter(e.target.value)}
-                className="w-full h-[42px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
+                className="w-full h-[36px] px-[10px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
               >
-                <option value="no_restriction">No restriction (e.g. 0)</option>
-                <option value="0">0 (No Standing Arrears)</option>
+                <option value="no_restriction">No restriction</option>
+                <option value="0">0 (No Arrears)</option>
                 <option value="1">Max 1 Arrear</option>
                 <option value="2">Max 2 Arrears</option>
                 <option value="3">Max 3 Arrears</option>
@@ -374,15 +388,15 @@ export default function FilterAndIncludeStudentsModal({
 
             {/* Max History Arrears */}
             <div>
-              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+              <label className="block text-[12px] font-[750] text-[#1e293b] mb-[3px]">
                 Max History Arrears
               </label>
               <select
                 value={maxHistoryArrearsFilter}
                 onChange={(e) => setMaxHistoryArrearsFilter(e.target.value)}
-                className="w-full h-[42px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
+                className="w-full h-[36px] px-[10px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
               >
-                <option value="no_restriction">No restriction (e.g. 0)</option>
+                <option value="no_restriction">No restriction</option>
                 <option value="0">0 (No History Arrears)</option>
                 <option value="1">Max 1 History Arrear</option>
                 <option value="2">Max 2 History Arrears</option>
@@ -392,8 +406,8 @@ export default function FilterAndIncludeStudentsModal({
 
             {/* Maximum Existing Offer Cap (LPA) */}
             <div>
-              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
-                Maximum Existing Offer Cap (LPA)
+              <label className="block text-[12px] font-[750] text-[#1e293b] mb-[3px]">
+                Offer Cap (LPA)
               </label>
               <input
                 type="number"
@@ -402,13 +416,32 @@ export default function FilterAndIncludeStudentsModal({
                 value={maxExistingOfferFilter}
                 onChange={(e) => setMaxExistingOfferFilter(e.target.value)}
                 placeholder="e.g. 5"
-                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+                className="w-full h-[36px] px-[10px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
               />
+            </div>
+
+            {/* Target Academic Batch Filter */}
+            <div className="col-span-2 md:col-span-1">
+              <label className="block text-[12px] font-[750] text-[#1e293b] mb-[3px]">
+                Target Academic Batch
+              </label>
+              <select
+                value={selectedBatchFilter}
+                onChange={(e) => setSelectedBatchFilter(e.target.value)}
+                className="w-full h-[36px] px-[10px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
+              >
+                <option value="all">All Batches</option>
+                {batches.map((b) => (
+                  <option key={b.id} value={b.name}>
+                    Batch {b.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           {/* 2. Search Bar + Inclusion / Exclusion Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
             {/* Search Input: Name or Roll No */}
             <div className="relative flex-1 min-w-[280px]">
               <Search
@@ -420,7 +453,7 @@ export default function FilterAndIncludeStudentsModal({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by student name or roll no..."
-                className="w-full pl-9 pr-3 py-[9px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[13.5px] text-[#1e293b] placeholder-[#94a3b8] outline-none transition shadow-2xs"
+                className="w-full pl-9 pr-3 py-[7px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[13.5px] text-[#1e293b] placeholder-[#94a3b8] outline-none transition shadow-2xs"
               />
             </div>
 
@@ -430,7 +463,7 @@ export default function FilterAndIncludeStudentsModal({
                 type="button"
                 onClick={handleIncludeChecked}
                 disabled={checkedIds.size === 0}
-                className="py-[8.5px] px-[14px] bg-[#eff6ff] hover:bg-[#dbeafe] text-[#1d4ed8] border border-[#bfdbfe] rounded-[9px] text-[13px] font-[750] transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
+                className="py-[7.5px] px-[14px] bg-[#eff6ff] hover:bg-[#dbeafe] text-[#1d4ed8] border border-[#bfdbfe] rounded-[9px] text-[13px] font-[750] transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
               >
                 <UserCheck size={15} strokeWidth={2.4} />
                 <span>Include Selected ({checkedIds.size})</span>
@@ -440,7 +473,7 @@ export default function FilterAndIncludeStudentsModal({
                 type="button"
                 onClick={handleExcludeChecked}
                 disabled={checkedIds.size === 0}
-                className="py-[8.5px] px-[14px] bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] rounded-[9px] text-[13px] font-[750] transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
+                className="py-[7.5px] px-[14px] bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] rounded-[9px] text-[13px] font-[750] transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
               >
                 <UserMinus size={15} strokeWidth={2.4} />
                 <span>Exclude Selected ({checkedIds.size})</span>
@@ -449,8 +482,8 @@ export default function FilterAndIncludeStudentsModal({
           </div>
 
           {/* 3. Candidate List Table */}
-          <div className="border border-[#dbe5f1] rounded-[14px] overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto max-h-[310px]">
+          <div className="border border-[#dbe5f1] rounded-[14px] overflow-hidden shadow-2xs flex-1 min-h-[360px]">
+            <div className="overflow-x-auto max-h-[460px]">
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 bg-[#f8fafc] z-10 border-b border-[#e2e8f0]">
                   <tr className="text-[12px] font-[800] text-[#64748b] uppercase tracking-[0.35px]">
@@ -488,7 +521,7 @@ export default function FilterAndIncludeStudentsModal({
                   ) : (
                     filteredCandidates.map((st) => {
                       const isChecked = checkedIds.has(st.user_id)
-                      const currentStatus = selectedMap[st.user_id] || 'excluded'
+                      const currentStatus = selectedMap[st.user_id] || (st.has_roster_record ? st.drive_status : (st.is_eligible ? 'included' : ''))
                       const deptShort = getDeptShort(st.department_name)
                       const rollNo = getDisplayRollNo(st)
                       const avatarInitials = getInitials(st.name)

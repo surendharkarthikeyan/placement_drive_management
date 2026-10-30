@@ -77,7 +77,15 @@ func (s *DriveService) GetDriveByID(id string) (*models.PlacementDrive, error) {
 	drive.Stats = stats
 	drive.TotalStudents = stats.IncludedInDrive
 
+	dc := s.repo.ComputeDataCompletion(drive.ID)
+	drive.DataCompletion = &dc
+
 	return drive, nil
+}
+
+// GetDataCompletion retrieves the computed dynamic data completion breakdown for a drive
+func (s *DriveService) GetDataCompletion(driveID uint64) models.DataCompletionStats {
+	return s.repo.ComputeDataCompletion(driveID)
 }
 
 // CreateDrive creates a new drive adhering to MySQL schema constraints
@@ -87,8 +95,10 @@ func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, p
 		return nil, fmt.Errorf("failed to create or find company: %v", err)
 	}
 
-	dbPlacementType := "Full-time Placment"
+	dbPlacementType := "Full-time Placement"
 	switch placementType {
+	case "Full-time Placement", "Full-time Placment":
+		dbPlacementType = "Full-time Placement"
 	case "Internship + PPO":
 		dbPlacementType = "Internship + PPO"
 	case "Internship":
@@ -96,7 +106,7 @@ func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, p
 	case "Apprenticeship":
 		dbPlacementType = "Apprenticeship"
 	default:
-		dbPlacementType = "Full-time Placment"
+		dbPlacementType = "Full-time Placement"
 	}
 
 	var parsedStart *time.Time
@@ -142,7 +152,10 @@ func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, p
 	log := models.PlacementDriveActivityLog{
 		DriveID:             newDrive.ID,
 		UserID:              ownerID,
-		ActivityDescription: fmt.Sprintf("Drive record created in draft status for %s", jobRole),
+		ActivityType:        "DRIVE_CREATED",
+		EntityType:          "DRIVE",
+		EntityID:            fmt.Sprintf("%d", newDrive.ID),
+		ActivityDescription: fmt.Sprintf("Created %s placement drive", jobRole),
 		CreatedAt:           time.Now(),
 	}
 	s.repo.CreateActivityLog(&log)
@@ -157,57 +170,162 @@ func (s *DriveService) UpdateDriveDetails(id string, jobRole, placementType stri
 		return nil, err
 	}
 
-	drive.DriveOwnerUserID = ownerID
-	if jobRole != "" {
+	// Track changes to detect if actual data changed and if owner changed
+	hasChanged := false
+	ownerChanged := false
+	var oldOwnerID *uint64 = drive.DriveOwnerUserID
+
+	if (ownerID != nil && oldOwnerID == nil) || (ownerID == nil && oldOwnerID != nil) || (ownerID != nil && oldOwnerID != nil && *ownerID != *oldOwnerID) {
+		ownerChanged = true
+		hasChanged = true
+	}
+	if jobRole != "" && drive.JobRole != jobRole {
+		hasChanged = true
 		drive.JobRole = jobRole
 	}
-	if placementType != "" {
+	if placementType != "" && drive.PlacementType != placementType {
+		hasChanged = true
 		drive.PlacementType = placementType
 	}
-	if packageLPA > 0 {
+	if packageLPA > 0 && drive.PackageLPA != packageLPA {
+		hasChanged = true
 		drive.PackageLPA = packageLPA
 	}
-	drive.JobDescription = jobDescription
+	if drive.JobDescription != jobDescription {
+		hasChanged = true
+		drive.JobDescription = jobDescription
+	}
 	if len(batchIDs) > 0 {
+		hasChanged = true
 		drive.BatchIDs = models.Uint64Array(batchIDs)
 	}
 
+	var parsedStart *time.Time
 	if startDate != "" {
 		if t, err := time.Parse("2006-01-02", startDate); err == nil {
-			drive.DriveStartDate = &t
+			parsedStart = &t
 		}
-	} else {
-		drive.DriveStartDate = nil
 	}
+	if (parsedStart != nil && drive.DriveStartDate == nil) || (parsedStart == nil && drive.DriveStartDate != nil) {
+		hasChanged = true
+	}
+	drive.DriveStartDate = parsedStart
 
+	var parsedEnd *time.Time
 	if endDate != "" {
 		if t, err := time.Parse("2006-01-02", endDate); err == nil {
-			drive.DriveEndDate = &t
+			parsedEnd = &t
 		}
-	} else {
-		drive.DriveEndDate = nil
 	}
+	if (parsedEnd != nil && drive.DriveEndDate == nil) || (parsedEnd == nil && drive.DriveEndDate != nil) {
+		hasChanged = true
+	}
+	drive.DriveEndDate = parsedEnd
 
+	drive.DriveOwnerUserID = ownerID
 	drive.UpdatedAt = time.Now()
+
 	err = s.repo.SaveDriveFields(drive, "JobRole", "PlacementType", "PackageLPA", "JobDescription", "DriveOwnerUserID", "DriveStartDate", "DriveEndDate", "BatchIDs", "UpdatedAt")
 	if err != nil {
 		return nil, err
 	}
 
-	log := models.PlacementDriveActivityLog{
-		DriveID:             drive.ID,
-		UserID:              drive.DriveOwnerUserID,
-		ActivityDescription: fmt.Sprintf("Updated drive setup information for %s", drive.JobRole),
-		CreatedAt:           time.Now(),
+	// Only log if actual values changed
+	if hasChanged {
+		if ownerChanged && ownerID != nil {
+			ownerName := "Placement Officer"
+			var u models.MasterUser
+			if err := s.repo.GetDB().Where("id = ?", *ownerID).First(&u).Error; err == nil && u.Name != "" {
+				ownerName = u.Name
+			}
+			ownerLog := models.PlacementDriveActivityLog{
+				DriveID:             drive.ID,
+				UserID:              ownerID,
+				ActivityType:        "DRIVE_OWNER_CHANGED",
+				EntityType:          "DRIVE",
+				EntityID:            fmt.Sprintf("%d", drive.ID),
+				ActivityDescription: fmt.Sprintf("Drive owner changed to %s", ownerName),
+				CreatedAt:           time.Now(),
+			}
+			_ = s.repo.LogActivityWithSuppression(s.repo.GetDB(), &ownerLog)
+		} else {
+			driveLog := models.PlacementDriveActivityLog{
+				DriveID:             drive.ID,
+				UserID:              ownerID,
+				ActivityType:        "DRIVE_UPDATED",
+				EntityType:          "DRIVE",
+				EntityID:            fmt.Sprintf("%d", drive.ID),
+				ActivityDescription: fmt.Sprintf("Updated placement drive details for %s", drive.JobRole),
+				CreatedAt:           time.Now(),
+			}
+			_ = s.repo.LogActivityWithSuppression(s.repo.GetDB(), &driveLog)
+		}
 	}
-	s.repo.CreateActivityLog(&log)
 
 	return s.repo.GetDriveByID(id)
 }
 
-// UpdateDriveStatus updates the overall recruitment status
+// UpdateDriveStatus updates the overall recruitment status and logs the transition
 func (s *DriveService) UpdateDriveStatus(id string, overallStatus string) error {
-	return s.repo.UpdateStatus(id, overallStatus)
+	drive, err := s.repo.GetDriveByID(id)
+	if err != nil {
+		return err
+	}
+
+	oldStatus := drive.OverallStatus
+	if oldStatus == overallStatus {
+		// No change: do not log or update
+		return nil
+	}
+
+	if err := s.repo.UpdateStatus(id, overallStatus); err != nil {
+		return err
+	}
+
+	formatStatusLabel := func(st string) string {
+		switch st {
+		case "draft":
+			return "Draft"
+		case "registration_open":
+			return "Registration Open"
+		case "scheduled":
+			return "Scheduled"
+		case "in_progress":
+			return "In Progress"
+		case "awaiting_next_round":
+			return "Awaiting Next Round Date"
+		case "awaiting_final_result":
+			return "Awaiting Final Result"
+		case "completed":
+			return "Completed"
+		case "on_hold":
+			return "On Hold"
+		case "cancelled":
+			return "Cancelled"
+		default:
+			return st
+		}
+	}
+
+	actType := "DRIVE_STATUS_CHANGED"
+	desc := fmt.Sprintf("Drive status changed from %s to %s", formatStatusLabel(oldStatus), formatStatusLabel(overallStatus))
+	if overallStatus == "completed" {
+		actType = "DRIVE_COMPLETED"
+		desc = "Placement drive marked as completed"
+	}
+
+	log := models.PlacementDriveActivityLog{
+		DriveID:             drive.ID,
+		UserID:              drive.DriveOwnerUserID,
+		ActivityType:        actType,
+		EntityType:          "DRIVE",
+		EntityID:            fmt.Sprintf("%d", drive.ID),
+		ActivityDescription: desc,
+		CreatedAt:           time.Now(),
+	}
+	_ = s.repo.LogActivityWithSuppression(s.repo.GetDB(), &log)
+
+	return nil
 }
 
 // GetDriveActivities returns activity logs
@@ -215,7 +333,7 @@ func (s *DriveService) GetDriveActivities(driveID string) ([]models.PlacementDri
 	return s.repo.GetActivities(driveID)
 }
 
-// UpdateDriveEligibility updates or creates eligibility criteria
+// UpdateDriveEligibility updates or creates eligibility criteria and logs the change
 func (s *DriveService) UpdateDriveEligibility(driveID uint64, minCGPA, minTenth, minTwelfth *float64, maxCurrentArr, maxHistArr *int, maxOfferLPA *float64) (*models.PlacementDriveEligibility, error) {
 	eligibility, err := s.repo.GetEligibility(driveID)
 	isNew := err != nil
@@ -231,6 +349,34 @@ func (s *DriveService) UpdateDriveEligibility(driveID uint64, minCGPA, minTenth,
 	if err := s.repo.SaveEligibility(eligibility, isNew); err != nil {
 		return nil, err
 	}
+
+	actType := "ELIGIBILITY_UPDATED"
+	desc := "Updated eligibility criteria"
+	if isNew {
+		actType = "ELIGIBILITY_CONFIGURED"
+		if minCGPA != nil {
+			desc = fmt.Sprintf("Added eligibility criteria: CGPA ≥ %.1f", *minCGPA)
+		} else {
+			desc = "Configured eligibility criteria (Open to All Students)"
+		}
+	} else if minCGPA != nil {
+		desc = fmt.Sprintf("Updated eligibility criteria: CGPA ≥ %.1f", *minCGPA)
+	}
+
+	var d models.PlacementDrive
+	_ = s.repo.GetDB().First(&d, driveID).Error
+
+	log := models.PlacementDriveActivityLog{
+		DriveID:             driveID,
+		UserID:              d.DriveOwnerUserID,
+		ActivityType:        actType,
+		EntityType:          "ELIGIBILITY",
+		EntityID:            fmt.Sprintf("%d", driveID),
+		ActivityDescription: desc,
+		CreatedAt:           time.Now(),
+	}
+	_ = s.repo.LogActivityWithSuppression(s.repo.GetDB(), &log)
+
 	return eligibility, nil
 }
 
@@ -244,3 +390,84 @@ func (s *DriveService) UpdateDriveStudentsRoster(driveID uint64, updates []repos
 	return s.repo.UpdateDriveStudentsRoster(driveID, updates)
 }
 
+// GetDriveStages returns all stages for a drive
+func (s *DriveService) GetDriveStages(driveID uint64) ([]models.PlacementDriveStage, error) {
+	return s.repo.GetDriveStages(driveID)
+}
+
+// CreateStage creates a new stage and optional substages
+func (s *DriveService) CreateStage(driveID uint64, input repositories.StageCreateInput) (*models.PlacementDriveStage, error) {
+	return s.repo.CreateStage(driveID, input)
+}
+
+// UpdateStage updates stage details
+func (s *DriveService) UpdateStage(stageID uint64, input repositories.StageUpdateInput) (*models.PlacementDriveStage, error) {
+	return s.repo.UpdateStage(stageID, input)
+}
+
+// CreateSubstage adds a substage to an existing stage
+func (s *DriveService) CreateSubstage(stageID uint64, input repositories.SubstageCreateInput) (*models.PlacementDriveSubstage, error) {
+	return s.repo.CreateSubstage(stageID, input)
+}
+
+// GetStageResults returns student results for a stage/substage
+func (s *DriveService) GetStageResults(driveID uint64, stageID uint64, substageID *uint64) ([]models.StageStudentResultView, error) {
+	return s.repo.GetStageResults(driveID, stageID, substageID)
+}
+
+// UpdateStageResults updates individual or bulk student stage results
+func (s *DriveService) UpdateStageResults(officerUserID *uint64, updates []repositories.StudentOutcomeUpdateItem) error {
+	return s.repo.UpdateStageResults(officerUserID, updates)
+}
+
+// AddSpecialEntryToStage adds students directly to a stage
+func (s *DriveService) AddSpecialEntryToStage(driveID uint64, stageID uint64, substageID *uint64, userIDs []uint64, officerUserID *uint64) error {
+	return s.repo.AddSpecialEntryToStage(driveID, stageID, substageID, userIDs, officerUserID)
+}
+
+// CompleteStage completes a stage and moves cleared students to next stage
+func (s *DriveService) CompleteStage(driveID uint64, stageID uint64, officerUserID *uint64) error {
+	return s.repo.CompleteStage(driveID, stageID, officerUserID)
+}
+
+// UpdateSubstageStatus updates a substage status directly
+func (s *DriveService) UpdateSubstageStatus(stageID uint64, substageID uint64, status string) error {
+	return s.repo.UpdateSubstageStatus(stageID, substageID, status)
+}
+
+// CompleteSubstage completes a substage and moves cleared students to next substage
+func (s *DriveService) CompleteSubstage(driveID uint64, stageID uint64, substageID uint64, officerUserID *uint64) error {
+	return s.repo.CompleteSubstage(driveID, stageID, substageID, officerUserID)
+}
+
+
+
+
+
+// LogActivityWithSuppression logs an activity with the 30-minute duplicate prevention window
+func (s *DriveService) LogActivityWithSuppression(log *models.PlacementDriveActivityLog) error {
+	return s.repo.LogActivityWithSuppression(s.repo.GetDB(), log)
+}
+
+// CompleteRecruitmentProcess completes all stages and moves drive to final selection stage
+func (s *DriveService) CompleteRecruitmentProcess(driveID uint64, officerUserID *uint64) error {
+	return s.repo.CompleteRecruitmentProcess(driveID, officerUserID)
+}
+
+// GetFinalSelectionData retrieves the final candidates and existing offers
+func (s *DriveService) GetFinalSelectionData(driveID uint64) (*models.FinalSelectionData, error) {
+	return s.repo.GetFinalSelectionData(driveID)
+}
+
+// SaveFinalSelections updates final selection result info and student offers
+func (s *DriveService) SaveFinalSelections(
+	driveID uint64,
+	pubDate *time.Time,
+	reference string,
+	notes string,
+	offers []models.PlacementDriveOffer,
+	markCompleted bool,
+	officerUserID *uint64,
+) error {
+	return s.repo.SaveFinalSelections(driveID, pubDate, reference, notes, offers, markCompleted, officerUserID)
+}

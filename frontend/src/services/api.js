@@ -25,6 +25,11 @@ export const getDriveById = async (id) => {
   return response.data?.data
 }
 
+export const getDriveCompletion = async (id) => {
+  const response = await api.get(`/drives/${id}/completion`)
+  return response.data?.data
+}
+
 export const createDrive = async (driveData) => {
   const response = await api.post('/drives', driveData)
   return response.data?.data
@@ -75,6 +80,117 @@ export const getPlacementOfficers = async () => {
 export const getBatches = async () => {
   const response = await api.get('/batches')
   return response.data?.data || []
+}
+
+// Stages & Outcomes APIs
+export const getDriveStages = async (driveId) => {
+  const response = await api.get(`/drives/${driveId}/stages`)
+  return response.data?.data || []
+}
+
+export const createDriveStage = async (driveId, stageData) => {
+  const response = await api.post(`/drives/${driveId}/stages`, stageData)
+  return response.data?.data
+}
+
+export const updateDriveStage = async (driveId, stageId, stageData) => {
+  const response = await api.put(`/drives/${driveId}/stages/${stageId}`, stageData)
+  return response.data?.data
+}
+
+export const createDriveSubstage = async (driveId, stageId, substageData) => {
+  const response = await api.post(`/drives/${driveId}/stages/${stageId}/substages`, substageData)
+  return response.data?.data
+}
+
+export const getStageResults = async (driveId, stageId, substageId = null) => {
+  const params = {}
+  if (substageId) params.substage_id = substageId
+  const response = await api.get(`/drives/${driveId}/stages/${stageId}/results`, { params })
+  return response.data?.data || []
+}
+
+export const updateStageResults = async (driveId, stageId, updates, officerUserId = null) => {
+  const response = await api.put(`/drives/${driveId}/stages/${stageId}/results`, {
+    updates,
+    officer_user_id: officerUserId,
+  })
+  return response.data
+}
+
+export const addSpecialEntryToStage = async (driveId, stageId, userIds, substageId = null, officerUserId = null) => {
+  const response = await api.post(`/drives/${driveId}/stages/${stageId}/special-entry`, {
+    user_ids: userIds,
+    substage_id: substageId,
+    officer_user_id: officerUserId,
+  })
+  return response.data
+}
+
+export const completeDriveStage = async (driveId, stageId, officerUserId = null) => {
+  const response = await api.post(`/drives/${driveId}/stages/${stageId}/complete`, {
+    officer_user_id: officerUserId,
+  })
+  return response.data
+}
+
+export const completeDriveSubstage = async (driveId, stageId, substageId, officerUserId = null) => {
+  const response = await api.post(`/drives/${driveId}/stages/${stageId}/substages/${substageId}/complete`, {
+    officer_user_id: officerUserId,
+  })
+  return response.data
+}
+
+export const updateSubstageStatus = async (driveId, stageId, substageId, status) => {
+  const response = await api.patch(`/drives/${driveId}/stages/${stageId}/substages/${substageId}/status`, {
+    status,
+  })
+  return response.data
+}
+
+
+
+export const completeRecruitmentProcess = async (driveId, officerUserId = null) => {
+  const response = await api.post(`/drives/${driveId}/complete-recruitment`, {
+    officer_user_id: officerUserId,
+  })
+  return response.data
+}
+
+export const getFinalSelection = async (driveId) => {
+  const response = await api.get(`/drives/${driveId}/final-selection`)
+  return response.data?.data || null
+}
+
+export const saveFinalSelection = async (driveId, payload) => {
+  const response = await api.post(`/drives/${driveId}/final-selection`, payload)
+  return response.data
+}
+
+export const uploadReferenceDocument = async (driveId, file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post(`/drives/${driveId}/upload-reference-doc`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+export const uploadOfferLetter = async (driveId, driveStudentId, rollNo, companyCode, file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('drive_student_id', driveStudentId)
+  formData.append('roll_no', rollNo || '')
+  formData.append('company_code', companyCode || '')
+  const response = await api.post(`/drives/${driveId}/upload-offer-letter`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+export const downloadOfferLetterUrl = (driveId, driveStudentId) => {
+  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+  return `${baseURL}/drives/${driveId}/download-offer-letter/${driveStudentId}`
 }
 
 export default api

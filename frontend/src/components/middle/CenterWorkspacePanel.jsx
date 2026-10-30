@@ -7,6 +7,8 @@ import SearchableSelect from '../common/SearchableSelect'
 import CustomSelect from '../common/CustomSelect'
 import MultiSelectDropdown from '../common/MultiSelectDropdown'
 import DriveStudentsRoster from './DriveStudentsRoster'
+import DriveStagesAndOutcomes from './DriveStagesAndOutcomes'
+import FinalSelectionWorkspace from './FinalSelectionWorkspace'
 import FilterAndIncludeStudentsModal from '../modals/FilterAndIncludeStudentsModal'
 
 /**
@@ -245,7 +247,7 @@ export default function CenterWorkspacePanel({
 
   return (
     <section className="flex-1 h-full overflow-y-auto p-[22px] bg-[#f5f8fc] text-[#1e293b] select-none flex flex-col gap-[18px]">
-      {/* 1. Top Row: Title, Subtitle, Status Badge, Edit Drive button, and Save Changes button */}
+      {/* 1. Top Row: Title, Subtitle, Status Badge, Edit Drive button */}
       <div className="flex items-start justify-between gap-[16px]">
         <div>
           <div className="flex items-center gap-3">
@@ -268,25 +270,6 @@ export default function CenterWorkspacePanel({
           <p className="text-[13px] text-[#64748b] mt-[4px] mb-0">
             {drive.job_role} · {drive.package_lpa ? `${drive.package_lpa} LPA` : 'Competitive'} · Placement Drive Record
           </p>
-        </div>
-
-        <div className="flex items-center gap-[10px]">
-          {saveSuccess && (
-            <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#16a34a] bg-[#dcfce7] border border-[#bbf7d0] px-3 py-1.5 rounded-[9px] animate-in fade-in duration-200">
-              <CheckCircle2 size={15} />
-              Saved!
-            </span>
-          )}
-
-          <button
-            type="button"
-            onClick={handleSaveChanges}
-            disabled={isSaving}
-            className="py-[10px] px-[20px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[10px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-2 active:scale-98 disabled:opacity-75"
-          >
-            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-          </button>
         </div>
       </div>
 
@@ -365,14 +348,6 @@ export default function CenterWorkspacePanel({
                   </p>
                 </div>
               </div>
-
-              <span className={`py-[6px] px-[14px] rounded-full text-[13px] font-[800] tracking-wide shadow-xs ${
-                drive.overall_status === 'draft'
-                  ? 'text-[#475569] bg-[#f1f5f9] border border-[#cbd5e1]'
-                  : 'text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]'
-              }`}>
-                {drive.overall_status === 'draft' ? 'Draft' : 'Active Drive'}
-              </span>
             </div>
 
             {/* Form Fields Grid */}
@@ -520,6 +495,26 @@ export default function CenterWorkspacePanel({
                   className="w-full p-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[11px] text-[15px] font-[500] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition leading-relaxed resize-y shadow-xs"
                 />
               </div>
+            </div>
+
+            {/* Save Changes Button located right inside Company and Drive Information card */}
+            <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-[#f1f5f9]">
+              {saveSuccess && (
+                <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#16a34a] bg-[#dcfce7] border border-[#bbf7d0] px-3 py-1.5 rounded-[9px] animate-in fade-in duration-200">
+                  <CheckCircle2 size={15} />
+                  Saved!
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className="py-[9px] px-[20px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[10px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-2 active:scale-98 disabled:opacity-75"
+              >
+                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+              </button>
             </div>
           </div>
 
@@ -670,20 +665,24 @@ export default function CenterWorkspacePanel({
         </div>
       )}
 
-      {/* Tab 3: Stages & Outcomes Placeholder */}
+      {/* Tab 3: Stages & Outcomes Phase */}
       {activeTab === 'stages' && (
-        <div className="p-8 bg-white border border-[#dbe5f1] rounded-[14px] text-center text-[#64748b]">
-          <h3 className="text-base font-bold text-[#172554]">Stages & Outcomes</h3>
-          <p className="text-xs mt-1">Pipeline stages and outcome evaluations will appear here.</p>
-        </div>
+        <DriveStagesAndOutcomes
+          driveId={selectedDriveId}
+          officerUserId={formData.drive_owner_user_id ? parseInt(formData.drive_owner_user_id, 10) : 6}
+          onDriveUpdated={onDriveUpdated}
+          onNavigateToFinalSelection={() => setActiveTab('final')}
+        />
       )}
 
-      {/* Tab 4: Final Selection Placeholder */}
+      {/* Tab 4: Final Selection Phase */}
       {activeTab === 'final' && (
-        <div className="p-8 bg-white border border-[#dbe5f1] rounded-[14px] text-center text-[#64748b]">
-          <h3 className="text-base font-bold text-[#172554]">Final Selection</h3>
-          <p className="text-xs mt-1">Final offer confirmations and rollouts will appear here.</p>
-        </div>
+        <FinalSelectionWorkspace
+          driveId={selectedDriveId}
+          officerUserId={formData.drive_owner_user_id ? parseInt(formData.drive_owner_user_id, 10) : 6}
+          onDriveUpdated={onDriveUpdated}
+          onNavigateToTab={(tab) => setActiveTab(tab)}
+        />
       )}
 
       {/* Modal to Edit/Set Eligibility Criteria */}

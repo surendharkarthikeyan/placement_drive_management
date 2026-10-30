@@ -53,3 +53,23 @@ func (Batch) TableName() string {
 	return "batches"
 }
 
+// StageStudentResultView represents a student result row in a stage/substage
+type StageStudentResultView struct {
+	ResultID            uint64   `json:"result_id"`
+	DriveStudentID      uint64   `json:"drive_student_id"`
+	UserID              uint64   `json:"user_id"`
+	Name                string   `json:"name"`
+	RollNo              string   `json:"roll_no"`
+	Email               string   `json:"email"`
+	DepartmentName      string   `json:"department_name"`
+	BatchName           string   `json:"batch_name"`
+	PreviousStageStatus string   `json:"previous_stage_status"` // 'cleared' or 'spl_entry'
+	Outcome             string   `json:"outcome"`               // 'pending', 'cleared', 'not_cleared', 'absent', 'withdrawn'
+	Score               *float64 `json:"score"`
+	Remarks             string   `json:"remarks"`
+	UpdatedBy           *uint64  `json:"updated_by"`
+	UpdatedByName       string   `json:"updated_by_name"`
+	UpdatedAt           string   `json:"updated_at"`
+}
+
+

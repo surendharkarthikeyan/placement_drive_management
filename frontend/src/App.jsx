@@ -121,6 +121,7 @@ export default function App() {
         {/* DB Connected Right Control Panel */}
         <RightControlPanel
           drive={currentDriveData}
+          refreshKey={refreshKey}
           onStatusUpdated={handleStatusUpdated}
         />
       </main>

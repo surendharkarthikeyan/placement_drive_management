@@ -102,7 +102,7 @@ export default function DriveStudentsRoster({
   }, [students])
 
   // Core metrics strictly based on roster records
-  const allCandidatesCount = students.length // total evaluated pool
+  const allCandidatesCount = rosterStudents.length // count of students in the drive student roster (eligible criteria students + special entry + excluded)
   const totalRosterCount = rosterStudents.length
   const includedCount = rosterStudents.filter((s) => s.drive_status === 'included').length
   const specialEntryCount = rosterStudents.filter((s) => s.drive_status === 'special_entry').length
@@ -252,13 +252,13 @@ export default function DriveStudentsRoster({
 
       {/* 3. Summary Cards: All Candidates, Total Included, Excluded, Special Entry, and Department-wise Cards (Scrollable) */}
       <div className="flex items-stretch gap-[14px] overflow-x-auto pb-2 pt-1 scrollbar-thin">
-        {/* 1. All Candidates */}
+        {/* 1. Initially Eligible */}
         <div className="min-w-[170px] flex-1 shrink-0 p-[18px_20px] text-center bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs">
           <strong className="block text-[28px] font-[850] text-[#172554] leading-none">
             {allCandidatesCount}
           </strong>
-          <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block">
-            All candidates
+          <span className="text-[12.5px] font-[600] text-[#64748b] mt-[8px] block whitespace-nowrap">
+            Initially eligible
           </span>
         </div>
 
