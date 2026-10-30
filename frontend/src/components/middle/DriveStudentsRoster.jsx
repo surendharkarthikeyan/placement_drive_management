@@ -69,19 +69,23 @@ export default function DriveStudentsRoster({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
   }
 
-  // Included students (or all eligible candidates if none explicitly enrolled yet)
-  const includedStudents = students.filter((s) => s.is_included_in_drive)
-  const displayStudents = includedStudents.length > 0 ? includedStudents : students
+  // Included students (either status = included or status = special_entry)
+  const includedStudents = students.filter((s) => s.is_included_in_drive && s.drive_status !== 'excluded')
+  const totalIncluded = includedStudents.length
+  const specialEntryCount = students.filter((s) => s.drive_status === 'special_entry').length
+  const excludedCount = students.filter((s) => !s.is_included_in_drive || s.drive_status === 'excluded').length
 
-  // Aggregate department counts
-  const cseCount = displayStudents.filter((s) => getDeptShortCode(s.department_name) === 'CSE').length
-  const itCount = displayStudents.filter((s) => getDeptShortCode(s.department_name) === 'IT').length
-  const eceCount = displayStudents.filter((s) => getDeptShortCode(s.department_name) === 'ECE').length
+  // Department-wise distribution among all candidates in pool / target batches
+  const deptMap = {}
+  students.forEach((s) => {
+    const code = getDeptShortCode(s.department_name)
+    deptMap[code] = (deptMap[code] || 0) + 1
+  })
 
   // Select all toggle
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(new Set(displayStudents.map((s) => s.user_id)))
+      setSelectedIds(new Set(includedStudents.map((s) => s.user_id)))
     } else {
       setSelectedIds(new Set())
     }
@@ -94,37 +98,47 @@ export default function DriveStudentsRoster({
     setSelectedIds(next)
   }
 
-  // Generate dynamic eligibility condition tags based on drive.eligibility
+  // Generate dynamic eligibility condition tags strictly from what was set in eligibility criteria
   const renderEligibilityFilterTags = () => {
+    if (!eligibility) return []
     const tags = []
 
-    // Academic Year / Final Year tag
-    tags.push('Final Year')
-
-    // Eligible Departments
-    tags.push('CSE + IT + ECE')
-
     // Min CGPA
-    if (eligibility?.min_cgpa !== null && eligibility?.min_cgpa !== undefined) {
+    if (eligibility.min_cgpa !== null && eligibility.min_cgpa !== undefined && eligibility.min_cgpa !== '') {
       tags.push(`CGPA ≥ ${eligibility.min_cgpa}`)
-    } else {
-      tags.push('CGPA ≥ 7.0')
     }
 
-    // Arrears
-    if (eligibility?.max_current_arrears === 0) {
-      tags.push('No Arrears')
-    } else if (eligibility?.max_current_arrears > 0) {
-      tags.push(`Max ${eligibility.max_current_arrears} Arrear(s)`)
-    } else {
-      tags.push('No Arrears')
+    // Min 10th mark
+    if (eligibility.min_tenth_mark !== null && eligibility.min_tenth_mark !== undefined && eligibility.min_tenth_mark !== '') {
+      tags.push(`10th ≥ ${eligibility.min_tenth_mark}%`)
+    }
+
+    // Min 12th mark
+    if (eligibility.min_twelfth_mark !== null && eligibility.min_twelfth_mark !== undefined && eligibility.min_twelfth_mark !== '') {
+      tags.push(`12th ≥ ${eligibility.min_twelfth_mark}%`)
+    }
+
+    // Current Arrears
+    if (eligibility.max_current_arrears !== null && eligibility.max_current_arrears !== undefined) {
+      if (Number(eligibility.max_current_arrears) === 0) {
+        tags.push('No Current Arrears')
+      } else {
+        tags.push(`Max ${eligibility.max_current_arrears} Current Arrear(s)`)
+      }
+    }
+
+    // History Arrears
+    if (eligibility.max_history_arrears !== null && eligibility.max_history_arrears !== undefined) {
+      if (Number(eligibility.max_history_arrears) === 0) {
+        tags.push('No History Arrears')
+      } else {
+        tags.push(`Max ${eligibility.max_history_arrears} History Arrear(s)`)
+      }
     }
 
     // Offer cap
-    if (eligibility?.max_existing_offer_lpa !== null && eligibility?.max_existing_offer_lpa !== undefined) {
-      tags.push(`Not holding > ${eligibility.max_existing_offer_lpa} LPA offer`)
-    } else {
-      tags.push('Not holding > 15 LPA offer')
+    if (eligibility.max_existing_offer_lpa !== null && eligibility.max_existing_offer_lpa !== undefined && eligibility.max_existing_offer_lpa !== '') {
+      tags.push(`Offer Cap ≤ ${eligibility.max_existing_offer_lpa} LPA`)
     }
 
     return tags
@@ -148,7 +162,7 @@ export default function DriveStudentsRoster({
             Students Included in this Drive
           </h2>
           <p className="text-[13px] text-[#64748b] mt-[3px] mb-0 font-medium">
-            {displayStudents.length} students currently included
+            {totalIncluded} students currently included
           </p>
         </div>
 
@@ -162,57 +176,79 @@ export default function DriveStudentsRoster({
         </button>
       </div>
 
-      {/* 2. Filter / Criteria Tags Row */}
-      <div className="flex flex-wrap items-center gap-[7px]">
-        {renderEligibilityFilterTags().map((tag, idx) => (
-          <span
-            key={idx}
-            className="py-[5px] px-[12px] rounded-full text-[12px] font-[700] text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] shadow-2xs"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
+      {/* 2. Filter / Criteria Tags Row (strictly from what is configured in eligibility criteria) */}
+      {renderEligibilityFilterTags().length > 0 && (
+        <div className="flex flex-wrap items-center gap-[7px]">
+          {renderEligibilityFilterTags().map((tag, idx) => (
+            <span
+              key={idx}
+              className="py-[5px] px-[12px] rounded-full text-[12px] font-[700] text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe] shadow-2xs"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
 
-      {/* 3. 4-Column Roster Summary KPI Boxes */}
-      <div className="grid grid-cols-4 gap-[10px]">
+      {/* 3. Summary Cards: Total Included, Excluded, Special Entry, Department-wise Counts */}
+      <div className="grid grid-cols-6 gap-[10px]">
         {/* Total Included */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[10px] shadow-2xs">
+        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
           <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {displayStudents.length}
+            {totalIncluded}
           </strong>
-          <span className="text-[12px] text-[#64748b] font-medium mt-[4px] block">
-            Total included
+          <span className="text-[12px] text-[#2563eb] font-bold mt-[4px] block">
+            Total Included
           </span>
         </div>
 
-        {/* CSE Students */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[10px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {cseCount}
+        {/* Excluded Count */}
+        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
+          <strong className="block text-[24px] font-[850] text-[#64748b] leading-tight">
+            {excludedCount}
           </strong>
-          <span className="text-[12px] text-[#64748b] font-medium mt-[4px] block">
-            CSE students
+          <span className="text-[12px] text-[#64748b] font-bold mt-[4px] block">
+            Excluded
           </span>
         </div>
 
-        {/* IT Students */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[10px] shadow-2xs">
-          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {itCount}
+        {/* Special Entry */}
+        <div className="p-[14px] text-center bg-[#fefce8] border border-[#fde68a] rounded-[11px] shadow-2xs">
+          <strong className="block text-[24px] font-[850] text-[#b45309] leading-tight">
+            {specialEntryCount}
           </strong>
-          <span className="text-[12px] text-[#64748b] font-medium mt-[4px] block">
-            IT students
+          <span className="text-[12px] text-[#b45309] font-bold mt-[4px] block">
+            Special Entry
           </span>
         </div>
 
-        {/* ECE Students */}
-        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[10px] shadow-2xs">
+        {/* Department 1: CSE */}
+        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
           <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
-            {eceCount}
+            {deptMap['CSE'] || 0}
           </strong>
-          <span className="text-[12px] text-[#64748b] font-medium mt-[4px] block">
-            ECE students
+          <span className="text-[12px] text-[#475569] font-bold mt-[4px] block">
+            CSE Candidates
+          </span>
+        </div>
+
+        {/* Department 2: IT */}
+        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
+          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
+            {deptMap['IT'] || 0}
+          </strong>
+          <span className="text-[12px] text-[#475569] font-bold mt-[4px] block">
+            IT Candidates
+          </span>
+        </div>
+
+        {/* Department 3: ECE */}
+        <div className="p-[14px] text-center bg-[#fbfdff] border border-[#dbe5f1] rounded-[11px] shadow-2xs">
+          <strong className="block text-[24px] font-[850] text-[#172554] leading-tight">
+            {deptMap['ECE'] || 0}
+          </strong>
+          <span className="text-[12px] text-[#475569] font-bold mt-[4px] block">
+            ECE Candidates
           </span>
         </div>
       </div>
@@ -226,7 +262,7 @@ export default function DriveStudentsRoster({
                 <th className="py-3 px-4 w-[48px]">
                   <input
                     type="checkbox"
-                    checked={displayStudents.length > 0 && selectedIds.size === displayStudents.length}
+                    checked={includedStudents.length > 0 && selectedIds.size === includedStudents.length}
                     onChange={handleSelectAll}
                     className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
                   />
@@ -239,14 +275,14 @@ export default function DriveStudentsRoster({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#edf2f7]">
-              {displayStudents.length === 0 ? (
+              {includedStudents.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-[#64748b] text-[14px]">
                     No students currently added to this drive.
                   </td>
                 </tr>
               ) : (
-                displayStudents.map((st) => {
+                includedStudents.map((st) => {
                   const isSelected = selectedIds.has(st.user_id)
                   const deptShort = getDeptShortCode(st.department_name)
                   const regNo = getRegNumber(st)
