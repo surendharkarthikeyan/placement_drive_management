@@ -1,31 +1,21 @@
-import React, { useState, useEffect } from 'react'
-import { X, Search, Check, AlertCircle, Loader2, Sparkles, Filter } from 'lucide-react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { X, Search, Check, AlertCircle, Loader2, Sparkles, UserMinus, UserCheck } from 'lucide-react'
 import { getDriveStudents, updateDriveStudentsRoster } from '../../services/api'
 import CustomSelect from '../common/CustomSelect'
 
 /**
  * FilterAndIncludeStudentsModal
- * Matches the user reference template:
- * - Top Filter Controls:
- *   - Year / Batch selector (Final Year / Third Year / All Years)
- *   - Department selector (All Eligible Departments / CSE / IT / ECE)
- *   - Minimum CGPA input
- *   - Arrear status selector (No Standing Arrears / Maximum 1 Arrear / Any Arrear Status)
- *   - Minimum 10th % input
- *   - Minimum 12th % input
- *   - Placement Status (All Placement Statuses / Not Placed / Placed / Single Offer)
- *   - Internal Batches selector
- * - Criteria tags row (Final Year, CSE + IT + ECE, CGPA >= 7.5, etc.)
- * - Candidate List Table (regardless of eligibility, all pool candidates are listed):
- *   - Checkbox
- *   - Student (Mini avatar with initials, Name, Reg number)
- *   - Department
- *   - CGPA
- *   - Placement Status
- *   - Eligibility Indicator (Eligible vs Not Eligible)
- * - If user includes a student who does NOT meet eligibility criteria, their status becomes `special_entry`!
- * - If user excludes a student who was previously included, they are removed.
- * - Footer action: "X students selected" count, Cancel, and "Add Selected Students"
+ * - Filters strictly matching the requested 6 fields:
+ *   1. Minimum CGPA
+ *   2. Minimum 10th Mark (%)
+ *   3. Minimum 12th / Diploma Mark (%)
+ *   4. Max Current Standing Arrears
+ *   5. Max History Arrears
+ *   6. Maximum Existing Offer Cap (LPA)
+ * - Live Search Bar: Search by name and roll_no
+ * - Action buttons:
+ *   - "Exclude Selected": marks selected students as 'excluded'
+ *   - "Add / Include Selected": marks selected students as 'special_entry' (or 'included' if eligible)
  */
 export default function FilterAndIncludeStudentsModal({
   isOpen = false,
@@ -39,20 +29,21 @@ export default function FilterAndIncludeStudentsModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  // Filter state
-  const [yearFilter, setYearFilter] = useState('Final Year')
-  const [deptFilter, setDeptFilter] = useState('All Eligible Departments')
+  // Requested 6 Filter fields
   const [minCgpaFilter, setMinCgpaFilter] = useState('')
-  const [arrearFilter, setArrearFilter] = useState('No Standing Arrears')
   const [minTenthFilter, setMinTenthFilter] = useState('')
   const [minTwelfthFilter, setMinTwelfthFilter] = useState('')
-  const [placementStatusFilter, setPlacementStatusFilter] = useState('All Placement Statuses')
-  const [internalBatchFilter, setInternalBatchFilter] = useState('All Internal Batches')
+  const [maxCurrentArrearsFilter, setMaxCurrentArrearsFilter] = useState('no_restriction')
+  const [maxHistoryArrearsFilter, setMaxHistoryArrearsFilter] = useState('no_restriction')
+  const [maxExistingOfferFilter, setMaxExistingOfferFilter] = useState('')
+
+  // Search input: by student name or roll_no
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Selection state: Map of userId -> drive_status ('included' or 'special_entry')
-  // If checked: if student.is_eligible -> 'included', else -> 'special_entry'
+  // Selection state: Map of userId -> drive_status ('included', 'special_entry', or 'excluded')
   const [selectedMap, setSelectedMap] = useState({})
+  // Checked row IDs for batch actions
+  const [checkedIds, setCheckedIds] = useState(new Set())
 
   // Load students for drive
   const loadStudents = async () => {
@@ -63,14 +54,17 @@ export default function FilterAndIncludeStudentsModal({
       const data = await getDriveStudents(driveId)
       setStudents(data || [])
 
-      // Initial selection from DB
+      // Current state from DB
       const initialMap = {}
       ;(data || []).forEach((st) => {
-        if (st.is_included_in_drive) {
+        if (st.is_included_in_drive && st.drive_status !== 'excluded') {
           initialMap[st.user_id] = st.drive_status || (st.is_eligible ? 'included' : 'special_entry')
+        } else {
+          initialMap[st.user_id] = 'excluded'
         }
       })
       setSelectedMap(initialMap)
+      setCheckedIds(new Set())
     } catch (err) {
       console.error('Failed to load students:', err)
       setErrorMessage('Failed to load student candidates')
@@ -82,22 +76,32 @@ export default function FilterAndIncludeStudentsModal({
   useEffect(() => {
     if (isOpen) {
       loadStudents()
-      // Do not pre-filter candidates by eligibility; start with clean open view
-      setMinCgpaFilter('')
-      setMinTenthFilter('')
-      setMinTwelfthFilter('')
-      setArrearFilter('Any Arrear Status')
-      setDeptFilter('All Eligible Departments')
-      setYearFilter('All Years')
-      setPlacementStatusFilter('All Placement Statuses')
-      setInternalBatchFilter('All Internal Batches')
+      // Initialize inputs with drive's configured eligibility if available, or clean
+      setMinCgpaFilter(eligibility?.min_cgpa !== undefined && eligibility?.min_cgpa !== null ? String(eligibility.min_cgpa) : '')
+      setMinTenthFilter(eligibility?.min_tenth_mark !== undefined && eligibility?.min_tenth_mark !== null ? String(eligibility.min_tenth_mark) : '')
+      setMinTwelfthFilter(eligibility?.min_twelfth_mark !== undefined && eligibility?.min_twelfth_mark !== null ? String(eligibility.min_twelfth_mark) : '')
+      setMaxCurrentArrearsFilter(
+        eligibility?.max_current_arrears !== undefined && eligibility?.max_current_arrears !== null
+          ? String(eligibility.max_current_arrears)
+          : 'no_restriction'
+      )
+      setMaxHistoryArrearsFilter(
+        eligibility?.max_history_arrears !== undefined && eligibility?.max_history_arrears !== null
+          ? String(eligibility.max_history_arrears)
+          : 'no_restriction'
+      )
+      setMaxExistingOfferFilter(
+        eligibility?.max_existing_offer_lpa !== undefined && eligibility?.max_existing_offer_lpa !== null
+          ? String(eligibility.max_existing_offer_lpa)
+          : ''
+      )
       setSearchQuery('')
     }
-  }, [isOpen, driveId])
+  }, [isOpen, driveId, eligibility])
 
   if (!isOpen) return null
 
-  // Helper for department short code
+  // Helpers
   const getDeptShort = (dept) => {
     if (!dept) return 'ENGG'
     const lower = dept.toLowerCase()
@@ -109,7 +113,8 @@ export default function FilterAndIncludeStudentsModal({
     return dept.substring(0, 3).toUpperCase()
   }
 
-  const getRegNo = (st) => {
+  const getDisplayRollNo = (st) => {
+    if (st.roll_no && String(st.roll_no).trim()) return st.roll_no
     const yr = st.batch_name ? st.batch_name.substring(2, 4) : '22'
     const d = getDeptShort(st.department_name)
     const num = String(st.user_id + 1000).padStart(4, '0')
@@ -125,78 +130,96 @@ export default function FilterAndIncludeStudentsModal({
 
   // Filter logic across candidate pool
   const filteredCandidates = students.filter((st) => {
-    // Dept filter
-    if (deptFilter !== 'All Eligible Departments') {
-      const code = getDeptShort(st.department_name)
-      if (code !== deptFilter) return false
-    }
-
-    // CGPA filter
+    // 1. Minimum CGPA
     if (minCgpaFilter && !isNaN(parseFloat(minCgpaFilter))) {
       const targetCgpa = parseFloat(minCgpaFilter)
       if (st.cgpa === null || st.cgpa === undefined || st.cgpa < targetCgpa) return false
     }
 
-    // 10th mark filter
+    // 2. Minimum 10th %
     if (minTenthFilter && !isNaN(parseFloat(minTenthFilter))) {
       const targetTenth = parseFloat(minTenthFilter)
       if (st.tenth_mark === null || st.tenth_mark === undefined || st.tenth_mark < targetTenth) return false
     }
 
-    // 12th mark filter
+    // 3. Minimum 12th %
     if (minTwelfthFilter && !isNaN(parseFloat(minTwelfthFilter))) {
       const targetTwelfth = parseFloat(minTwelfthFilter)
       if (st.twelfth_mark === null || st.twelfth_mark === undefined || st.twelfth_mark < targetTwelfth) return false
     }
 
-    // Arrear filter
-    if (arrearFilter === 'No Standing Arrears' && st.current_arrear_count > 0) return false
-    if (arrearFilter === 'Maximum 1 Arrear' && st.current_arrear_count > 1) return false
+    // 4. Max Current Standing Arrears
+    if (maxCurrentArrearsFilter !== 'no_restriction') {
+      const maxArr = parseInt(maxCurrentArrearsFilter, 10)
+      if (st.current_arrear_count > maxArr) return false
+    }
 
-    // Search query
+    // 5. Max History Arrears
+    if (maxHistoryArrearsFilter !== 'no_restriction') {
+      const maxHist = parseInt(maxHistoryArrearsFilter, 10)
+      if (st.history_arrear_count > maxHist) return false
+    }
+
+    // 6. Maximum Existing Offer Cap (LPA)
+    if (maxExistingOfferFilter && !isNaN(parseFloat(maxExistingOfferFilter))) {
+      const maxOffer = parseFloat(maxExistingOfferFilter)
+      if (st.max_existing_offer && st.max_existing_offer > maxOffer) return false
+    }
+
+    // 7. Search query: name and roll_no
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
+      const q = searchQuery.toLowerCase().trim()
       const matchName = st.name && st.name.toLowerCase().includes(q)
-      const matchEmail = st.email && st.email.toLowerCase().includes(q)
-      const reg = getRegNo(st).toLowerCase()
-      if (!matchName && !matchEmail && !reg.includes(q)) return false
+      const roll = getDisplayRollNo(st).toLowerCase()
+      const matchRoll = roll.includes(q)
+      if (!matchName && !matchRoll) return false
     }
 
     return true
   })
 
-  // Toggle single student inclusion (any student added here gets 'special_entry' or 'included')
-  const handleToggleStudent = (student) => {
-    setSelectedMap((prev) => {
-      const next = { ...prev }
-      if (next[student.user_id]) {
-        // Uncheck / exclude
-        delete next[student.user_id]
-      } else {
-        // As requested: students manually added from this modal get 'special_entry'
-        next[student.user_id] = 'special_entry'
-      }
+  // Checkbox row toggles
+  const handleToggleCheck = (userId) => {
+    setCheckedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
       return next
     })
   }
 
-  // Toggle all filtered candidates
-  const isAllFilteredSelected =
+  const isAllChecked =
     filteredCandidates.length > 0 &&
-    filteredCandidates.every((st) => Boolean(selectedMap[st.user_id]))
+    filteredCandidates.every((st) => checkedIds.has(st.user_id))
 
-  const handleToggleSelectAll = () => {
+  const handleToggleCheckAll = () => {
+    if (isAllChecked) {
+      setCheckedIds(new Set())
+    } else {
+      setCheckedIds(new Set(filteredCandidates.map((st) => st.user_id)))
+    }
+  }
+
+  // Batch action: Include/Add checked students (as special_entry if not meeting criteria)
+  const handleIncludeChecked = () => {
     setSelectedMap((prev) => {
       const next = { ...prev }
-      if (isAllFilteredSelected) {
-        filteredCandidates.forEach((st) => {
-          delete next[st.user_id]
-        })
-      } else {
-        filteredCandidates.forEach((st) => {
-          next[st.user_id] = 'special_entry'
-        })
-      }
+      checkedIds.forEach((id) => {
+        const student = students.find((s) => s.user_id === id)
+        // If student is eligible based on drive criteria, included; otherwise special_entry
+        next[id] = student?.is_eligible ? 'included' : 'special_entry'
+      })
+      return next
+    })
+  }
+
+  // Batch action: Exclude checked students
+  const handleExcludeChecked = () => {
+    setSelectedMap((prev) => {
+      const next = { ...prev }
+      checkedIds.forEach((id) => {
+        next[id] = 'excluded'
+      })
       return next
     })
   }
@@ -209,16 +232,10 @@ export default function FilterAndIncludeStudentsModal({
 
       // Build updates array for all known candidates
       const updates = students.map((st) => {
-        const currentChoice = selectedMap[st.user_id]
-        if (currentChoice) {
-          return {
-            user_id: st.user_id,
-            drive_status: currentChoice // 'included' or 'special_entry'
-          }
-        }
+        const currentChoice = selectedMap[st.user_id] || 'excluded'
         return {
           user_id: st.user_id,
-          drive_status: 'excluded'
+          drive_status: currentChoice // 'included', 'special_entry', or 'excluded'
         }
       })
 
@@ -233,33 +250,40 @@ export default function FilterAndIncludeStudentsModal({
     }
   }
 
-  const selectedCount = Object.keys(selectedMap).length
-  const specialCount = Object.values(selectedMap).filter((status) => status === 'special_entry').length
+  const totalIncludedInMap = Object.values(selectedMap).filter(
+    (status) => status === 'included' || status === 'special_entry'
+  ).length
+  const totalSpecialInMap = Object.values(selectedMap).filter(
+    (status) => status === 'special_entry'
+  ).length
+  const totalExcludedInMap = Object.values(selectedMap).filter(
+    (status) => status === 'excluded'
+  ).length
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0f172a]/45 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-[840px] bg-white rounded-[20px] shadow-[0_24px_64px_-12px_rgba(15,23,42,0.30)] border border-[#dbe5f1] flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-[900px] bg-white rounded-[20px] shadow-[0_24px_64px_-12px_rgba(15,23,42,0.30)] border border-[#dbe5f1] flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="p-[22px_28px_16px] flex items-start justify-between border-b border-[#f1f5f9]">
+        <div className="p-[20px_26px_16px] flex items-start justify-between border-b border-[#f1f5f9]">
           <div>
-            <h2 className="text-[22px] font-[850] text-[#172554] leading-tight">
-              Filter and Include Students
+            <h2 className="text-[21px] font-[850] text-[#172554] leading-tight">
+              Filter and Add Students
             </h2>
-            <p className="text-[14px] text-[#64748b] mt-[4px]">
-              Apply company eligibility conditions and select students for this drive.
+            <p className="text-[13.5px] text-[#64748b] mt-[3px]">
+              Apply company eligibility criteria, search students by name/roll no, and include or exclude candidates.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-[36px] h-[36px] flex items-center justify-center rounded-[10px] text-[#64748b] hover:text-[#1e293b] hover:bg-[#f1f5f9] transition cursor-pointer"
+            className="w-[34px] h-[34px] flex items-center justify-center rounded-[10px] text-[#64748b] hover:text-[#1e293b] hover:bg-[#f1f5f9] transition cursor-pointer"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Modal Body with internal scrolling */}
-        <div className="p-[22px_28px] overflow-y-auto flex flex-col gap-[16px] flex-1">
+        <div className="p-[20px_26px] overflow-y-auto flex flex-col gap-[16px] flex-1">
           {errorMessage && (
             <div className="p-[10px_14px] bg-[#fef2f2] border border-[#fecaca] rounded-[10px] text-[13.5px] text-[#dc2626] flex items-center gap-2">
               <AlertCircle size={17} className="shrink-0" />
@@ -267,170 +291,202 @@ export default function FilterAndIncludeStudentsModal({
             </div>
           )}
 
-          {/* 1. Modal Filter Controls Grid */}
-          <div className="grid grid-cols-4 gap-[12px]">
-            {/* Year Selector */}
-            <select
-              value={yearFilter}
-              onChange={(e) => setYearFilter(e.target.value)}
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
-            >
-              <option value="Final Year">Final Year</option>
-              <option value="Third Year">Third Year</option>
-              <option value="All Years">All Years</option>
-            </select>
-
-            {/* Department Selector */}
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
-            >
-              <option value="All Eligible Departments">All Eligible Departments</option>
-              <option value="CSE">CSE</option>
-              <option value="IT">IT</option>
-              <option value="ECE">ECE</option>
-            </select>
-
+          {/* 1. Exactly the 6 Criteria Filters from Image */}
+          <div className="grid grid-cols-2 gap-x-[18px] gap-y-[14px] bg-[#f8fafc] p-[16px_20px] rounded-[14px] border border-[#e2e8f0]">
             {/* Minimum CGPA */}
-            <input
-              type="text"
-              value={minCgpaFilter}
-              onChange={(e) => setMinCgpaFilter(e.target.value)}
-              placeholder="Minimum CGPA"
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
-            />
+            <div>
+              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+                Minimum CGPA
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="10"
+                value={minCgpaFilter}
+                onChange={(e) => setMinCgpaFilter(e.target.value)}
+                placeholder="e.g. 8"
+                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+              />
+            </div>
 
-            {/* Arrear Status */}
-            <select
-              value={arrearFilter}
-              onChange={(e) => setArrearFilter(e.target.value)}
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
-            >
-              <option value="No Standing Arrears">No Standing Arrears</option>
-              <option value="Maximum 1 Arrear">Maximum 1 Arrear</option>
-              <option value="Any Arrear Status">Any Arrear Status</option>
-            </select>
+            {/* Minimum 10th Mark (%) */}
+            <div>
+              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+                Minimum 10th Mark (%)
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                max="100"
+                value={minTenthFilter}
+                onChange={(e) => setMinTenthFilter(e.target.value)}
+                placeholder="e.g. 70"
+                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+              />
+            </div>
 
-            {/* Minimum 10th % */}
-            <input
-              type="text"
-              value={minTenthFilter}
-              onChange={(e) => setMinTenthFilter(e.target.value)}
-              placeholder="Minimum 10th %"
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
-            />
+            {/* Minimum 12th / Diploma Mark (%) */}
+            <div>
+              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+                Minimum 12th / Diploma Mark (%)
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                max="100"
+                value={minTwelfthFilter}
+                onChange={(e) => setMinTwelfthFilter(e.target.value)}
+                placeholder="e.g. 65"
+                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+              />
+            </div>
 
-            {/* Minimum 12th % */}
-            <input
-              type="text"
-              value={minTwelfthFilter}
-              onChange={(e) => setMinTwelfthFilter(e.target.value)}
-              placeholder="Minimum 12th %"
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
-            />
+            {/* Max Current Standing Arrears */}
+            <div>
+              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+                Max Current Standing Arrears
+              </label>
+              <select
+                value={maxCurrentArrearsFilter}
+                onChange={(e) => setMaxCurrentArrearsFilter(e.target.value)}
+                className="w-full h-[42px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
+              >
+                <option value="no_restriction">No restriction (e.g. 0)</option>
+                <option value="0">0 (No Standing Arrears)</option>
+                <option value="1">Max 1 Arrear</option>
+                <option value="2">Max 2 Arrears</option>
+                <option value="3">Max 3 Arrears</option>
+              </select>
+            </div>
 
-            {/* Placement Status */}
-            <select
-              value={placementStatusFilter}
-              onChange={(e) => setPlacementStatusFilter(e.target.value)}
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
-            >
-              <option value="All Placement Statuses">All Placement Statuses</option>
-              <option value="Not Placed">Not Placed</option>
-              <option value="Single Offer">Single Offer</option>
-              <option value="Placed">Placed</option>
-            </select>
+            {/* Max History Arrears */}
+            <div>
+              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+                Max History Arrears
+              </label>
+              <select
+                value={maxHistoryArrearsFilter}
+                onChange={(e) => setMaxHistoryArrearsFilter(e.target.value)}
+                className="w-full h-[42px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
+              >
+                <option value="no_restriction">No restriction (e.g. 0)</option>
+                <option value="0">0 (No History Arrears)</option>
+                <option value="1">Max 1 History Arrear</option>
+                <option value="2">Max 2 History Arrears</option>
+                <option value="3">Max 3 History Arrears</option>
+              </select>
+            </div>
 
-            {/* Internal Batches */}
-            <select
-              value={internalBatchFilter}
-              onChange={(e) => setInternalBatchFilter(e.target.value)}
-              className="h-[44px] px-[12px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
-            >
-              <option value="All Internal Batches">All Internal Batches</option>
-              <option value="Batch 1">Batch 1</option>
-              <option value="Batch 2">Batch 2</option>
-              <option value="Batch 3">Batch 3</option>
-            </select>
+            {/* Maximum Existing Offer Cap (LPA) */}
+            <div>
+              <label className="block text-[13px] font-[800] text-[#1e293b] mb-[6px]">
+                Maximum Existing Offer Cap (LPA)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                value={maxExistingOfferFilter}
+                onChange={(e) => setMaxExistingOfferFilter(e.target.value)}
+                placeholder="e.g. 5"
+                className="w-full h-[42px] px-[13px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[9px] text-[14px] font-[600] text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition"
+              />
+            </div>
           </div>
 
-          {/* 2. Filter Tags Row */}
-          <div className="flex flex-wrap items-center gap-[6px]">
-            <span className="py-[4px] px-[10px] rounded-full text-[12px] font-[700] text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
-              Final Year
-            </span>
-            <span className="py-[4px] px-[10px] rounded-full text-[12px] font-[700] text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
-              CSE + IT + ECE
-            </span>
-            {minCgpaFilter && (
-              <span className="py-[4px] px-[10px] rounded-full text-[12px] font-[700] text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
-                CGPA ≥ {minCgpaFilter}
-              </span>
-            )}
-            {minTenthFilter && minTwelfthFilter && (
-              <span className="py-[4px] px-[10px] rounded-full text-[12px] font-[700] text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
-                10th & 12th ≥ {minTenthFilter}%
-              </span>
-            )}
-            <span className="py-[4px] px-[10px] rounded-full text-[12px] font-[700] text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
-              {arrearFilter}
-            </span>
+          {/* 2. Search Bar + Inclusion / Exclusion Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            {/* Search Input: Name or Roll No */}
+            <div className="relative flex-1 min-w-[280px]">
+              <Search
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by student name or roll no..."
+                className="w-full pl-9 pr-3 py-[9px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[13.5px] text-[#1e293b] placeholder-[#94a3b8] outline-none transition shadow-2xs"
+              />
+            </div>
+
+            {/* Action buttons for selected students */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleIncludeChecked}
+                disabled={checkedIds.size === 0}
+                className="py-[8.5px] px-[14px] bg-[#eff6ff] hover:bg-[#dbeafe] text-[#1d4ed8] border border-[#bfdbfe] rounded-[9px] text-[13px] font-[750] transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <UserCheck size={15} strokeWidth={2.4} />
+                <span>Include Selected ({checkedIds.size})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExcludeChecked}
+                disabled={checkedIds.size === 0}
+                className="py-[8.5px] px-[14px] bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] rounded-[9px] text-[13px] font-[750] transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <UserMinus size={15} strokeWidth={2.4} />
+                <span>Exclude Selected ({checkedIds.size})</span>
+              </button>
+            </div>
           </div>
 
           {/* 3. Candidate List Table */}
           <div className="border border-[#dbe5f1] rounded-[14px] overflow-hidden shadow-2xs">
-            <div className="overflow-x-auto max-h-[340px]">
+            <div className="overflow-x-auto max-h-[310px]">
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 bg-[#f8fafc] z-10 border-b border-[#e2e8f0]">
                   <tr className="text-[12px] font-[800] text-[#64748b] uppercase tracking-[0.35px]">
                     <th className="py-3 px-4 w-[46px]">
                       <input
                         type="checkbox"
-                        checked={isAllFilteredSelected}
-                        onChange={handleToggleSelectAll}
+                        checked={isAllChecked}
+                        onChange={handleToggleCheckAll}
                         className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
                       />
                     </th>
                     <th className="py-3 px-4">Student</th>
+                    <th className="py-3 px-4">Roll No</th>
                     <th className="py-3 px-4">Department</th>
                     <th className="py-3 px-4">CGPA</th>
-                    <th className="py-3 px-4">Placement Status</th>
-                    <th className="py-3 px-4 text-center">Eligibility / Entry</th>
+                    <th className="py-3 px-4">10th / 12th</th>
+                    <th className="py-3 px-4">Arrears</th>
+                    <th className="py-3 px-4 text-center">Roster Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#edf2f7]">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-[#64748b]">
+                      <td colSpan={8} className="py-12 text-center text-[#64748b]">
                         <Loader2 size={24} className="animate-spin mx-auto text-[#2563eb]" />
                         <span className="block mt-2 text-[13.5px]">Loading candidates...</span>
                       </td>
                     </tr>
                   ) : filteredCandidates.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-[#64748b] text-[14px]">
+                      <td colSpan={8} className="py-12 text-center text-[#64748b] text-[14px]">
                         No candidates match the filter parameters.
                       </td>
                     </tr>
                   ) : (
                     filteredCandidates.map((st) => {
-                      const isChecked = Boolean(selectedMap[st.user_id])
-                      const statusVal = selectedMap[st.user_id]
+                      const isChecked = checkedIds.has(st.user_id)
+                      const currentStatus = selectedMap[st.user_id] || 'excluded'
                       const deptShort = getDeptShort(st.department_name)
-                      const regNo = getRegNo(st)
+                      const rollNo = getDisplayRollNo(st)
                       const avatarInitials = getInitials(st.name)
-
-                      // Offer / placement status
-                      let placementLabel = 'Not Placed'
-                      if (st.max_existing_offer) {
-                        placementLabel = 'Single Offer'
-                      }
 
                       return (
                         <tr
                           key={st.user_id}
-                          onClick={() => handleToggleStudent(st)}
+                          onClick={() => handleToggleCheck(st.user_id)}
                           className={`hover:bg-[#fbfdff] transition cursor-pointer select-none ${
                             isChecked ? 'bg-[#eff6ff]/35' : ''
                           }`}
@@ -440,7 +496,7 @@ export default function FilterAndIncludeStudentsModal({
                             <input
                               type="checkbox"
                               checked={isChecked}
-                              onChange={() => handleToggleStudent(st)}
+                              onChange={() => handleToggleCheck(st.user_id)}
                               className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
                             />
                           </td>
@@ -456,10 +512,15 @@ export default function FilterAndIncludeStudentsModal({
                                   {st.name}
                                 </div>
                                 <div className="text-[11.5px] text-[#94a3b8] font-medium leading-tight mt-0.5">
-                                  {regNo}
+                                  {st.email}
                                 </div>
                               </div>
                             </div>
+                          </td>
+
+                          {/* Roll No */}
+                          <td className="py-3 px-4 text-[13px] font-[750] text-[#1e293b]">
+                            {rollNo}
                           </td>
 
                           {/* Department */}
@@ -469,23 +530,32 @@ export default function FilterAndIncludeStudentsModal({
 
                           {/* CGPA */}
                           <td className="py-3 px-4 text-[13px] font-[750] text-[#334155]">
-                            {st.cgpa !== null && st.cgpa !== undefined ? st.cgpa.toFixed(2) : '—'}
+                            {st.cgpa !== null && st.cgpa !== undefined ? Number(st.cgpa).toFixed(2) : '—'}
                           </td>
 
-                          {/* Placement Status */}
-                          <td className="py-3 px-4 text-[13px] font-[600] text-[#475569]">
-                            {placementLabel}
+                          {/* 10th / 12th */}
+                          <td className="py-3 px-4 text-[12.5px] font-[600] text-[#475569]">
+                            {st.tenth_mark ?? '—'}% / {st.twelfth_mark ?? '—'}%
                           </td>
 
-                          {/* Eligibility Indicator & Special Entry Tag */}
+                          {/* Arrears */}
+                          <td className="py-3 px-4 text-[12.5px] font-[600] text-[#475569]">
+                            {st.current_arrear_count ?? 0} / {st.history_arrear_count ?? 0}
+                          </td>
+
+                          {/* Roster Status */}
                           <td className="py-3 px-4 text-center">
-                            {isChecked ? (
-                              <span className="inline-flex items-center gap-1 py-[3px] px-[10px] rounded-full text-[11.5px] font-[800] text-[#b45309] bg-[#fef3c7] border border-[#fde68a]">
-                                <Sparkles size={12} className="text-[#d97706]" />
+                            {currentStatus === 'special_entry' ? (
+                              <span className="inline-flex items-center gap-1 py-[3px] px-[10px] rounded-full text-[11.5px] font-[800] text-[#b45309] bg-[#fefce8] border border-[#fde68a]">
+                                <Sparkles size={11} className="text-[#d97706]" />
                                 Special Entry
                               </span>
+                            ) : currentStatus === 'included' ? (
+                              <span className="inline-block py-[3px] px-[10px] rounded-full text-[11.5px] font-[750] text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe]">
+                                Included
+                              </span>
                             ) : (
-                              <span className="text-[12px] font-[600] text-[#94a3b8]">
+                              <span className="inline-block py-[3px] px-[10px] rounded-full text-[11.5px] font-[650] text-[#64748b] bg-[#f1f5f9] border border-[#e2e8f0]">
                                 Excluded
                               </span>
                             )}
@@ -501,15 +571,19 @@ export default function FilterAndIncludeStudentsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-[16px_28px] border-t border-[#f1f5f9] flex items-center justify-between">
-          <div className="text-[13.5px] font-[650] text-[#64748b]">
-            <span className="text-[#1e293b] font-[800]">{selectedCount}</span> student
-            {selectedCount === 1 ? '' : 's'} selected
-            {specialCount > 0 && (
-              <span className="ml-2 text-[#d97706] font-[750]">
-                ({specialCount} special {specialCount === 1 ? 'entry' : 'entries'})
-              </span>
-            )}
+        <div className="p-[16px_26px] border-t border-[#f1f5f9] flex items-center justify-between">
+          <div className="text-[13.5px] font-[650] text-[#64748b] flex items-center gap-3">
+            <span>
+              <strong className="text-[#1e293b] font-[800]">{totalIncludedInMap}</strong> included
+            </span>
+            <span>•</span>
+            <span className="text-[#d97706]">
+              <strong className="font-[800]">{totalSpecialInMap}</strong> special entry
+            </span>
+            <span>•</span>
+            <span>
+              <strong className="text-[#64748b] font-[800]">{totalExcludedInMap}</strong> excluded
+            </span>
           </div>
 
           <div className="flex items-center gap-[12px]">
@@ -517,7 +591,7 @@ export default function FilterAndIncludeStudentsModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-[20px] py-[10px] text-[14.5px] font-[700] text-[#475569] bg-white hover:bg-[#f8fafc] border border-[#dbe5f1] rounded-[10px] transition cursor-pointer active:scale-98"
+              className="px-[20px] py-[10px] text-[14px] font-[700] text-[#475569] bg-white hover:bg-[#f8fafc] border border-[#dbe5f1] rounded-[10px] transition cursor-pointer active:scale-98"
             >
               Cancel
             </button>
@@ -525,10 +599,10 @@ export default function FilterAndIncludeStudentsModal({
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="px-[24px] py-[10px] text-[14.5px] font-[750] text-white bg-[#2563eb] hover:bg-[#1d4ed8] rounded-[10px] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-2 active:scale-98 disabled:opacity-70"
+              className="px-[24px] py-[10px] text-[14px] font-[750] text-white bg-[#2563eb] hover:bg-[#1d4ed8] rounded-[10px] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-2 active:scale-98 disabled:opacity-70"
             >
               {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-              <span>{isSubmitting ? 'Saving...' : 'Add Selected Students'}</span>
+              <span>{isSubmitting ? 'Saving...' : 'Save & Update Roster'}</span>
             </button>
           </div>
         </div>
@@ -536,4 +610,3 @@ export default function FilterAndIncludeStudentsModal({
     </div>
   )
 }
-

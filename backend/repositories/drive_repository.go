@@ -168,6 +168,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 	// 1. Fetch all students belonging to the drive's target batches (or all students if no batch specified)
 	type studentRow struct {
 		UserID             uint64   `gorm:"column:user_id"`
+		RollNo             *string  `gorm:"column:roll_no"`
 		Name               string   `gorm:"column:name"`
 		Email              string   `gorm:"column:email"`
 		DepartmentName     string   `gorm:"column:dept_name"`
@@ -181,7 +182,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 	}
 
 	query := r.db.Table("master_users u").
-		Select("u.id as user_id, u.name, u.email, d.name as dept_name, b.name as batch_name, u.batch_id, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count").
+		Select("u.id as user_id, u.roll_no, u.name, u.email, d.name as dept_name, b.name as batch_name, u.batch_id, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count").
 		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
 		Joins("LEFT JOIN departments d ON u.department_id = d.id").
 		Joins("LEFT JOIN batches b ON u.batch_id = b.id").
@@ -270,6 +271,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 
 		result = append(result, models.StudentEligibilityView{
 			UserID:             s.UserID,
+			RollNo:             s.RollNo,
 			Name:               s.Name,
 			Email:              s.Email,
 			DepartmentName:     s.DepartmentName,

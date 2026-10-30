@@ -26,6 +26,7 @@ func (PlacementStudentBasicDetails) TableName() string {
 // StudentEligibilityView represents a student with academic metrics and eligibility status for a drive
 type StudentEligibilityView struct {
 	UserID             uint64   `json:"user_id"`
+	RollNo             *string  `json:"roll_no"`
 	Name               string   `json:"name"`
 	Email              string   `json:"email"`
 	DepartmentName     string   `json:"department_name"`

@@ -56,8 +56,9 @@ export default function DriveStudentsRoster({
       .join('')
   }
 
-  // Generate roll / reg number format (e.g., 22CSE1001)
+  // Generate roll / reg number format (prefer DB roll_no, otherwise fallback)
   const getRegNumber = (student) => {
+    if (student.roll_no && String(student.roll_no).trim()) return student.roll_no
     const yearPrefix = student.batch_name ? student.batch_name.substring(2, 4) : '22'
     const dept = getDeptShortCode(student.department_name)
     const padId = String(student.user_id + 1000).padStart(4, '0')

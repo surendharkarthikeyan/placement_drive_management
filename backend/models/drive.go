@@ -35,6 +35,7 @@ func (a *Uint64Array) Scan(value interface{}) error {
 
 type MasterUser struct {
 	ID           uint64  `gorm:"primaryKey;autoIncrement" json:"id"`
+	RollNo       *string `gorm:"size:20" json:"roll_no"`
 	Name         string  `gorm:"size:150;not null" json:"name"`
 	Email        string  `gorm:"size:255;not null;unique" json:"email"`
 	DepartmentID *uint64 `json:"department_id"`
