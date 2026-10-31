@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { X, Search, Check, AlertCircle, Loader2, Sparkles, UserMinus, UserCheck } from 'lucide-react'
-import { getDriveStudents, updateDriveStudentsRoster, getBatches } from '../../services/api'
-import CustomSelect from '../common/CustomSelect'
+import { getDriveStudents, updateDriveStudentsRoster, getBatches } from '../../../services/api'
+import CustomSelect from '../../common/CustomSelect'
 
 /**
  * FilterAndIncludeStudentsModal

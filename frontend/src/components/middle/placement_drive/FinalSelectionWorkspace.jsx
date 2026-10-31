@@ -20,7 +20,7 @@ import {
   uploadReferenceDocument,
   uploadOfferLetter,
   downloadOfferLetterUrl
-} from '../../services/api'
+} from '../../../services/api'
 
 /**
  * FinalSelectionWorkspace (Tab 4: Final Selection)

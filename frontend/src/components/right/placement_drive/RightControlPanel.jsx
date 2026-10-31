@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Loader2, CheckCircle2, AlertTriangle, Check, AlertCircle } from 'lucide-react'
-import { updateDriveStatus, getDriveCompletion, getDriveActivities } from '../../services/api'
+import { updateDriveStatus, getDriveCompletion, getDriveActivities } from '../../../services/api'
 
 /**
  * RightControlPanel (Right Panel)

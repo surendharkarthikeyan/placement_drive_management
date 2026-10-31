@@ -8,7 +8,7 @@ import {
   Search,
   UserMinus
 } from 'lucide-react'
-import { getDriveStudents, updateDriveStudentsRoster } from '../../services/api'
+import { getDriveStudents, updateDriveStudentsRoster } from '../../../services/api'
 
 export default function DriveStudentsRoster({
   driveId,

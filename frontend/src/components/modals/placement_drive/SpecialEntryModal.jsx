@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X, Search, UserCheck, Loader2 } from 'lucide-react'
-import { getDriveStudents } from '../../services/api'
+import { getDriveStudents } from '../../../services/api'
 
 export default function SpecialEntryModal({
   isOpen = false,

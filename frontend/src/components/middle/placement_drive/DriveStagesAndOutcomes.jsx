@@ -31,9 +31,9 @@ import {
   completeDriveSubstage,
   updateSubstageStatus,
   completeRecruitmentProcess
-} from '../../services/api'
-import AddStageModal from '../modals/AddStageModal'
-import SpecialEntryModal from '../modals/SpecialEntryModal'
+} from '../../../services/api'
+import AddStageModal from '../../modals/placement_drive/AddStageModal'
+import SpecialEntryModal from '../../modals/placement_drive/SpecialEntryModal'
 
 const getSubstageBadgeStyle = (status) => {
   switch (status) {

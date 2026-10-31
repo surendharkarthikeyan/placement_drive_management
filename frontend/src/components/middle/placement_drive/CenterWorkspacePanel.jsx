@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Save, Loader2, CheckCircle2, AlertCircle, Trophy, Sparkles, Building2, SlidersHorizontal, PlusCircle, AlertTriangle, Pencil, User } from 'lucide-react'
-import { getDriveById, updateDriveDetails, getPlacementOfficers, getBatches } from '../../services/api'
-import EditEligibilityModal from '../modals/EditEligibilityModal'
-import EditDriveModal from '../modals/EditDriveModal'
-import SearchableSelect from '../common/SearchableSelect'
-import CustomSelect from '../common/CustomSelect'
-import MultiSelectDropdown from '../common/MultiSelectDropdown'
+import { getDriveById, updateDriveDetails, getPlacementOfficers, getBatches } from '../../../services/api'
+import EditEligibilityModal from '../../modals/placement_drive/EditEligibilityModal'
+import EditDriveModal from '../../modals/placement_drive/EditDriveModal'
+import SearchableSelect from '../../common/SearchableSelect'
+import CustomSelect from '../../common/CustomSelect'
+import MultiSelectDropdown from '../../common/MultiSelectDropdown'
 import DriveStudentsRoster from './DriveStudentsRoster'
 import DriveStagesAndOutcomes from './DriveStagesAndOutcomes'
 import FinalSelectionWorkspace from './FinalSelectionWorkspace'
-import FilterAndIncludeStudentsModal from '../modals/FilterAndIncludeStudentsModal'
+import FilterAndIncludeStudentsModal from '../../modals/placement_drive/FilterAndIncludeStudentsModal'
 
 /**
  * CenterWorkspacePanel (Middle Panel)

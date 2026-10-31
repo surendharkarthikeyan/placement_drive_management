@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X, Loader2, SlidersHorizontal, Check } from 'lucide-react'
-import { updateDriveEligibility } from '../../services/api'
+import { updateDriveEligibility } from '../../../services/api'
 
 /**
  * EditEligibilityModal

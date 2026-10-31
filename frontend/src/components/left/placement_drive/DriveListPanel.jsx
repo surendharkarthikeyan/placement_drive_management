@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Plus, Search, Loader2, Users, Filter, Check, X } from 'lucide-react'
-import { getDrives } from '../../services/api'
+import { getDrives } from '../../../services/api'
 
 /**
  * DriveListPanel (Left Panel)
