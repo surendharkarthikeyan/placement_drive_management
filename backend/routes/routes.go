@@ -8,6 +8,7 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	driveCtrl := controllers.NewDriveController()
 	masterCtrl := controllers.NewMasterController()
+	studentReviewCtrl := controllers.NewStudentReviewController()
 
 	api := r.Group("/api")
 	{
@@ -61,6 +62,19 @@ func SetupRoutes(r *gin.Engine) {
 		batches := api.Group("/batches")
 		{
 			batches.GET("", masterCtrl.GetBatches)
+		}
+
+		// Departments lookup
+		departments := api.Group("/departments")
+		{
+			departments.GET("", masterCtrl.GetDepartments)
+		}
+
+		// Student Placement Review
+		studentReview := api.Group("/student-review")
+		{
+			studentReview.GET("/:user_id", studentReviewCtrl.GetStudentReviewDetail)
+			studentReview.POST("/:user_id/notes", studentReviewCtrl.SaveStudentReviewNote)
 		}
 
 		// Health Check

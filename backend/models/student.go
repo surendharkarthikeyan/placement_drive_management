@@ -53,6 +53,15 @@ func (Batch) TableName() string {
 	return "batches"
 }
 
+type Department struct {
+	ID   uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name string `gorm:"size:255;not null" json:"name"`
+}
+
+func (Department) TableName() string {
+	return "departments"
+}
+
 // StageStudentResultView represents a student result row in a stage/substage
 type StageStudentResultView struct {
 	ResultID            uint64   `json:"result_id"`

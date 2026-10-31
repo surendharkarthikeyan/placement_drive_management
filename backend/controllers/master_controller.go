@@ -65,3 +65,19 @@ func (ctrl *MasterController) GetBatches(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": batches})
 }
 
+// GetDepartments returns academic departments list
+func (ctrl *MasterController) GetDepartments(c *gin.Context) {
+	if config.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		return
+	}
+
+	depts, err := ctrl.repo.GetDepartments()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": depts})
+}
+

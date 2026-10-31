@@ -82,6 +82,11 @@ export const getBatches = async () => {
   return response.data?.data || []
 }
 
+export const getDepartments = async () => {
+  const response = await api.get('/departments')
+  return response.data?.data || []
+}
+
 // Stages & Outcomes APIs
 export const getDriveStages = async (driveId) => {
   const response = await api.get(`/drives/${driveId}/stages`)
@@ -191,6 +196,17 @@ export const uploadOfferLetter = async (driveId, driveStudentId, rollNo, company
 export const downloadOfferLetterUrl = (driveId, driveStudentId) => {
   const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
   return `${baseURL}/drives/${driveId}/download-offer-letter/${driveStudentId}`
+}
+
+// Student Placement Review
+export const getStudentReviewDetail = async (userId = 'default') => {
+  const response = await api.get(`/student-review/${userId}`)
+  return response.data
+}
+
+export const saveStudentReviewNote = async (userId, note) => {
+  const response = await api.post(`/student-review/${userId}/notes`, { note })
+  return response.data
 }
 
 export default api

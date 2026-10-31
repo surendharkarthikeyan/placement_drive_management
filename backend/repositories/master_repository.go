@@ -34,3 +34,10 @@ func (r *MasterRepository) GetBatches() ([]models.Batch, error) {
 	return batches, err
 }
 
+// GetDepartments fetches academic departments
+func (r *MasterRepository) GetDepartments() ([]models.Department, error) {
+	var depts []models.Department
+	err := r.db.Where("id != 4").Order("name ASC").Find(&depts).Error
+	return depts, err
+}
+

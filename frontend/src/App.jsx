@@ -4,6 +4,9 @@ import ModuleNavigationTabs from './components/layout/ModuleNavigationTabs'
 import DriveListPanel from './components/left/placement_drive/DriveListPanel'
 import CenterWorkspacePanel from './components/middle/placement_drive/CenterWorkspacePanel'
 import RightControlPanel from './components/right/placement_drive/RightControlPanel'
+import ReviewFiltersPanel from './components/left/student_placement_review/ReviewFiltersPanel'
+import ReviewProgressWorkspace from './components/middle/student_placement_review/ReviewProgressWorkspace'
+import ReviewStudentDetailPanel from './components/right/student_placement_review/ReviewStudentDetailPanel'
 import CreateDriveModal from './components/modals/placement_drive/CreateDriveModal'
 import { AlertCircle, AlertTriangle } from 'lucide-react'
 import { getBatches } from './services/api'
@@ -14,6 +17,9 @@ export default function App() {
   const [currentDriveData, setCurrentDriveData] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+
+  // Student Placement Review state
+  const [selectedReviewStudentId, setSelectedReviewStudentId] = useState(null)
 
   // Batch filter state (shared across Header and Left Panel)
   const [batches, setBatches] = useState([])
@@ -97,34 +103,61 @@ export default function App() {
         onBatchChange={setSelectedBatch}
       />
 
-      {/* 3. Main Workspace Area: Left Panel (335px) + Center Panel (flex-1 minmax) + Right Panel (360px-400px) */}
-      <main className="flex-1 flex h-[calc(100vh-144px)] overflow-hidden">
-        {/* DB Connected Left Panel */}
-        <DriveListPanel
-          selectedDriveId={selectedDriveId}
-          onSelectDrive={handleSelectDriveWithCheck}
-          onOpenCreateModal={() => setIsCreateModalOpen(true)}
-          refreshKey={refreshKey}
-          selectedBatch={selectedBatch}
-        />
+      {/* 3. Main Workspace Area: Conditional rendering based on activeModule */}
+      {activeModule === 'Placement Drive' && (
+        <main className="flex-1 flex h-[calc(100vh-144px)] overflow-hidden">
+          {/* DB Connected Left Panel */}
+          <DriveListPanel
+            selectedDriveId={selectedDriveId}
+            onSelectDrive={handleSelectDriveWithCheck}
+            onOpenCreateModal={() => setIsCreateModalOpen(true)}
+            refreshKey={refreshKey}
+            selectedBatch={selectedBatch}
+          />
 
-        {/* DB Connected Center Workspace Panel (scrollable middle content) */}
-        <CenterWorkspacePanel
-          selectedDriveId={selectedDriveId}
-          onDriveUpdated={() => setRefreshKey((prev) => prev + 1)}
-          onDriveLoaded={(drive) => setCurrentDriveData(drive)}
-          onDirtyChange={(dirty) => setIsFormDirty(dirty)}
-          saveTrigger={saveTrigger}
-          refreshKey={refreshKey}
-        />
+          {/* DB Connected Center Workspace Panel (scrollable middle content) */}
+          <CenterWorkspacePanel
+            selectedDriveId={selectedDriveId}
+            onDriveUpdated={() => setRefreshKey((prev) => prev + 1)}
+            onDriveLoaded={(drive) => setCurrentDriveData(drive)}
+            onDirtyChange={(dirty) => setIsFormDirty(dirty)}
+            saveTrigger={saveTrigger}
+            refreshKey={refreshKey}
+          />
 
-        {/* DB Connected Right Control Panel */}
-        <RightControlPanel
-          drive={currentDriveData}
-          refreshKey={refreshKey}
-          onStatusUpdated={handleStatusUpdated}
-        />
-      </main>
+          {/* DB Connected Right Control Panel */}
+          <RightControlPanel
+            drive={currentDriveData}
+            refreshKey={refreshKey}
+            onStatusUpdated={handleStatusUpdated}
+          />
+        </main>
+      )}
+
+      {activeModule === 'Student Placement Review' && (
+        <main className="flex-1 flex h-[calc(100vh-144px)] overflow-hidden">
+          {/* Left Review Filters Panel */}
+          <ReviewFiltersPanel />
+
+          {/* Middle Progress Workspace Panel */}
+          <ReviewProgressWorkspace
+            selectedStudentId={selectedReviewStudentId}
+            onSelectStudent={setSelectedReviewStudentId}
+          />
+
+          {/* Right Student Profile & Journey Panel */}
+          <ReviewStudentDetailPanel studentId={selectedReviewStudentId} />
+        </main>
+      )}
+
+      {activeModule !== 'Placement Drive' && activeModule !== 'Student Placement Review' && (
+        <main className="flex-1 flex h-[calc(100vh-144px)] overflow-hidden items-center justify-center bg-[#f5f8fc]">
+          <div className="text-center max-w-md bg-white border border-[#dbe5f1] rounded-[16px] p-8 shadow-sm">
+            <h2 className="text-[18px] font-[800] text-[#172554] mb-2">{activeModule}</h2>
+            <p className="text-[14px] text-[#64748b]">Module workspace under preparation.</p>
+          </div>
+        </main>
+      )}
 
       {/* Create Drive Modal */}
       <CreateDriveModal

@@ -15,7 +15,10 @@ export default function MultiSelectDropdown({
   options = [],
   selectedValues = [],
   onChange = () => {},
-  placeholder = 'Select batches...'
+  placeholder = 'Select batches...',
+  itemNoun = 'batch',
+  itemNounPlural = 'batches',
+  icon: Icon = GraduationCap
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
@@ -70,7 +73,7 @@ export default function MultiSelectDropdown({
         }`}
       >
         <div className="flex items-center gap-2.5 truncate pr-2">
-          <GraduationCap size={18} className="text-[#2563eb] shrink-0" />
+          <Icon size={18} className="text-[#2563eb] shrink-0" />
           <span className={`truncate ${selectedValues && selectedValues.length > 0 ? 'text-[#1e293b]' : 'text-[#94a3b8]'}`}>
             {getDisplayText()}
           </span>
@@ -78,7 +81,7 @@ export default function MultiSelectDropdown({
         <div className="flex items-center gap-2 shrink-0">
           {selectedValues && selectedValues.length > 1 && (
             <span className="text-[12px] font-bold text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe] px-2 py-0.5 rounded-full">
-              {selectedValues.length} batches
+              {selectedValues.length} {selectedValues.length === 1 ? itemNoun : itemNounPlural}
             </span>
           )}
           <ChevronDown
@@ -95,7 +98,7 @@ export default function MultiSelectDropdown({
         <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-[#dbe5f1] rounded-[13px] shadow-[0_10px_25px_-5px_rgba(15,23,42,0.12),0_8px_10px_-6px_rgba(15,23,42,0.06)] p-2 flex flex-col gap-1 max-h-[220px] overflow-y-auto overscroll-contain pr-1 custom-dropdown-scroll animate-in fade-in zoom-in-95 duration-150">
           {options.length === 0 ? (
             <div className="py-4 text-center text-[14px] text-[#94a3b8]">
-              No batches found
+              No {itemNounPlural} found
             </div>
           ) : (
             options.map((opt) => {
