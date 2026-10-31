@@ -350,6 +350,9 @@ func (s *DriveService) UpdateDriveEligibility(driveID uint64, minCGPA, minTenth,
 		return nil, err
 	}
 
+	// Create rows in placement_drive_students for eligible candidates
+	_, _ = s.repo.PopulateEligibleStudentsForDrive(driveID)
+
 	actType := "ELIGIBILITY_UPDATED"
 	desc := "Updated eligibility criteria"
 	if isNew {

@@ -218,6 +218,17 @@ export default function FilterAndIncludeStudentsModal({
     })
   }
 
+  // Batch action: Explicitly add checked students as Special Entry
+  const handleSpecialEntryChecked = () => {
+    setSelectedMap((prev) => {
+      const next = { ...prev }
+      checkedIds.forEach((id) => {
+        next[id] = 'special_entry'
+      })
+      return next
+    })
+  }
+
   // Batch action: Exclude checked students
   // Case A: Selected student already has a record in placement_drive_students -> update to 'excluded'
   // Case B: Selected student does not have a record in placement_drive_students -> Do nothing to DB, remains '' (not in roster)

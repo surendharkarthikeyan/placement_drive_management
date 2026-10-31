@@ -498,12 +498,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 		Joins("LEFT JOIN batches b ON u.batch_id = b.id").
 		Where("u.role_id = 1")
 
-	// Scope student retrieval to the drive's target batches if defined in placement_drive.batch_id
-	if len(drive.BatchIDs) > 0 {
-		// Include students whose batch is in target batches, OR students who have an explicit roster entry in placement_drive_students
-		query = query.Where("u.batch_id IN ? OR u.id IN (SELECT user_id FROM placement_drive_students WHERE drive_id = ?)", []uint64(drive.BatchIDs), driveID)
-	}
-
+	// Fetch all students across college to allow special entries from any batch / department
 	var rows []studentRow
 	if err := query.Order("u.name asc").Scan(&rows).Error; err != nil {
 		return nil, err
@@ -546,9 +541,25 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 	elig := drive.Eligibility
 	var result []models.StudentEligibilityView
 
+	// Set of target batch IDs for the drive
+	targetBatchMap := make(map[uint64]bool)
+	for _, bid := range drive.BatchIDs {
+		targetBatchMap[bid] = true
+	}
+
 	for _, s := range rows {
 		isEligible := true
 		var reasons []string
+
+		// Check if student belongs to one of the drive's target academic batches (if configured)
+		inTargetBatch := true
+		if len(drive.BatchIDs) > 0 {
+			if !targetBatchMap[s.BatchID] {
+				inTargetBatch = false
+				isEligible = false
+				reasons = append(reasons, "Outside drive target academic batch")
+			}
+		}
 
 		var maxOffer *float64
 		if pkg, ok := offersMap[s.UserID]; ok {
@@ -584,9 +595,9 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 
 		status, hasStatus := driveStatusMap[s.UserID]
 		// If the drive record hasn't explicitly set a status for this student yet:
-		// Automatically include them if they meet eligibility criteria!
+		// Automatically include them if they meet eligibility criteria AND belong to the drive target batch!
 		if !hasStatus {
-			if isEligible {
+			if isEligible && inTargetBatch {
 				status = "included"
 			} else {
 				status = "" // Not in roster!
@@ -631,6 +642,50 @@ func (r *DriveRepository) SaveEligibility(eligibility *models.PlacementDriveElig
 		return r.db.Create(eligibility).Error
 	}
 	return r.db.Save(eligibility).Error
+}
+
+// PopulateEligibleStudentsForDrive evaluates eligibility against candidate pool and creates/syncs rows in placement_drive_students
+func (r *DriveRepository) PopulateEligibleStudentsForDrive(driveID uint64) (int, error) {
+	candidates, err := r.GetDriveStudentsList(driveID)
+	if err != nil {
+		return 0, err
+	}
+
+	createdCount := 0
+	err = r.db.Transaction(func(tx *gorm.DB) error {
+		for _, c := range candidates {
+			// Check if a record already exists in placement_drive_students
+			var existing models.PlacementDriveStudent
+			err := tx.Where("drive_id = ? AND user_id = ?", driveID, c.UserID).First(&existing).Error
+			if err != nil {
+				// No row exists yet. If student is eligible, automatically create the 'included' row!
+				if c.IsEligible {
+					newRecord := models.PlacementDriveStudent{
+						DriveID:     driveID,
+						UserID:      c.UserID,
+						DriveStatus: "included",
+						IncludedAt:  time.Now(),
+						Notes:       "Automatically included based on eligibility criteria",
+					}
+					if err := tx.Create(&newRecord).Error; err != nil {
+						return err
+					}
+					createdCount++
+				}
+			} else {
+				// Record exists: If it was standard 'included' but no longer meets criteria and not special_entry, we can update or keep
+				// But if user explicitly set excluded or special_entry, preserve user's decision!
+				if existing.DriveStatus != "special_entry" && existing.DriveStatus != "excluded" {
+					if c.IsEligible && existing.DriveStatus != "included" {
+						_ = tx.Model(&existing).Update("drive_status", "included").Error
+					}
+				}
+			}
+		}
+		return nil
+	})
+
+	return createdCount, err
 }
 
 // FindOrCreateCompany returns existing or created company
@@ -693,6 +748,19 @@ func (r *DriveRepository) UpdateDriveStudentsRoster(driveID uint64, updates []St
 					if err := tx.Model(&existing).Update("drive_status", "excluded").Error; err != nil {
 						return err
 					}
+				} else {
+					// Create row with status 'excluded' if it didn't exist yet
+					newRecord := models.PlacementDriveStudent{
+						DriveID:     driveID,
+						UserID:      item.UserID,
+						DriveStatus: "excluded",
+						IncludedAt:  time.Now(),
+						Notes:       "Excluded by placement officer",
+					}
+					if err := tx.Create(&newRecord).Error; err != nil {
+						return err
+					}
+					excludedCount++
 				}
 			} else if item.DriveStatus == "included" || item.DriveStatus == "special_entry" {
 				var existing models.PlacementDriveStudent

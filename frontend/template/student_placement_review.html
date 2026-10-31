@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Placement Progress Review</title>
+
+<style>
+:root{
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --primary-soft:#eff6ff;
+  --navy:#172554;
+  --text:#1e293b;
+  --muted:#64748b;
+  --border:#dbe5f1;
+  --background:#f5f8fc;
+  --panel:#ffffff;
+  --success:#16a34a;
+  --success-soft:#ecfdf3;
+  --warning:#d97706;
+  --warning-soft:#fff7ed;
+  --danger:#dc2626;
+  --danger-soft:#fef2f2;
+  --purple:#7c3aed;
+  --purple-soft:#f5f3ff;
+  --shadow:0 8px 28px rgba(15,23,42,.07);
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  color:var(--text);
+  background:var(--background);
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  font-size:14px;
+}
+
+button,input,select,textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.app-header{
+  height:66px;
+  padding:0 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:white;
+  background:linear-gradient(115deg,#172554,#1d4ed8);
+  box-shadow:0 3px 14px rgba(30,64,175,.18);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand-logo{
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:rgba(255,255,255,.17);
+  border:1px solid rgba(255,255,255,.25);
+  font-weight:800;
+}
+
+.brand-title{
+  font-size:18px;
+  font-weight:750;
+}
+
+.brand-subtitle{
+  margin-top:2px;
+  font-size:11px;
+  opacity:.76;
+}
+
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.header-button{
+  padding:9px 13px;
+  color:white;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:9px;
+  background:rgba(255,255,255,.11);
+}
+
+.user-avatar{
+  width:37px;
+  height:37px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:white;
+  color:var(--primary);
+  font-weight:800;
+}
+
+.mode-bar{
+  min-height:58px;
+  padding:9px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  background:white;
+  border-bottom:1px solid var(--border);
+}
+
+.mode-tabs{
+  padding:4px;
+  display:flex;
+  gap:4px;
+  border-radius:10px;
+  background:#f1f5f9;
+}
+
+.mode-tab{
+  padding:8px 14px;
+  border:0;
+  border-radius:8px;
+  color:var(--muted);
+  background:transparent;
+  font-weight:650;
+}
+
+.mode-tab.active{
+  color:var(--primary);
+  background:white;
+  box-shadow:0 2px 7px rgba(15,23,42,.09);
+}
+
+.page-context{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.layout{
+  height:calc(100vh - 124px);
+  display:grid;
+  grid-template-columns:275px minmax(570px,1fr) 390px;
+  overflow:hidden;
+}
+
+.left-panel,
+.middle-panel,
+.right-panel{
+  overflow-y:auto;
+}
+
+.left-panel{
+  padding:16px;
+  background:#fbfdff;
+  border-right:1px solid var(--border);
+}
+
+.middle-panel{
+  padding:18px;
+}
+
+.right-panel{
+  padding:17px;
+  background:white;
+  border-left:1px solid var(--border);
+}
+
+.panel-title{
+  margin:0;
+  color:var(--navy);
+  font-size:16px;
+}
+
+.panel-description{
+  margin:5px 0 14px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.label{
+  margin:15px 0 6px;
+  display:block;
+  color:#475569;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+
+.search-box{
+  position:relative;
+}
+
+.search-box span{
+  position:absolute;
+  top:10px;
+  left:11px;
+  color:#94a3b8;
+}
+
+.search-box input{
+  width:100%;
+  padding:10px 10px 10px 34px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  outline:none;
+  background:white;
+}
+
+.search-box input:focus,
+select:focus,
+textarea:focus{
+  border-color:#93c5fd;
+  box-shadow:0 0 0 3px #dbeafe;
+}
+
+.select-control{
+  width:100%;
+  padding:9px 10px;
+  color:var(--text);
+  background:white;
+  border:1px solid var(--border);
+  border-radius:9px;
+  outline:none;
+}
+
+.chip-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.filter-chip{
+  padding:7px 9px;
+  color:#475569;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:white;
+  font-size:12px;
+}
+
+.filter-chip.active{
+  color:var(--primary);
+  border-color:#93c5fd;
+  background:var(--primary-soft);
+  font-weight:700;
+}
+
+.saved-view{
+  width:100%;
+  margin-bottom:7px;
+  padding:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  text-align:left;
+  color:#334155;
+  border:1px solid transparent;
+  border-radius:9px;
+  background:transparent;
+}
+
+.saved-view:hover{
+  background:#f1f5f9;
+}
+
+.saved-view.active{
+  color:var(--primary-dark);
+  border-color:#bfdbfe;
+  background:var(--primary-soft);
+  font-weight:700;
+}
+
+.count{
+  min-width:25px;
+  padding:3px 7px;
+  text-align:center;
+  border-radius:20px;
+  color:#475569;
+  background:#e2e8f0;
+  font-size:11px;
+}
+
+.saved-view.active .count{
+  color:var(--primary);
+  background:white;
+}
+
+.advanced-button{
+  width:100%;
+  margin-top:16px;
+  padding:10px;
+  color:var(--primary);
+  border:1px solid #93c5fd;
+  border-radius:9px;
+  background:var(--primary-soft);
+  font-weight:750;
+}
+
+.filter-summary{
+  margin-top:13px;
+  padding:11px;
+  color:#475569;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:white;
+  font-size:11px;
+  line-height:1.55;
+}
+
+.top-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.title-block h1{
+  margin:0;
+  color:var(--navy);
+  font-size:21px;
+}
+
+.title-block p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.primary-button,
+.secondary-button{
+  padding:9px 13px;
+  border-radius:9px;
+  font-weight:700;
+}
+
+.primary-button{
+  color:white;
+  border:1px solid var(--primary);
+  background:var(--primary);
+}
+
+.primary-button:hover{
+  background:var(--primary-dark);
+}
+
+.secondary-button{
+  color:#475569;
+  border:1px solid var(--border);
+  background:white;
+}
+
+.summary-grid{
+  margin:16px 0;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:9px;
+}
+
+.summary-card{
+  min-width:0;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  background:white;
+  box-shadow:0 3px 10px rgba(15,23,42,.03);
+}
+
+.summary-card .value{
+  margin-bottom:3px;
+  color:var(--navy);
+  font-size:20px;
+  font-weight:800;
+}
+
+.summary-card .name{
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.35;
+}
+
+.summary-card.blue{border-top:3px solid var(--primary)}
+.summary-card.green{border-top:3px solid var(--success)}
+.summary-card.purple{border-top:3px solid var(--purple)}
+.summary-card.orange{border-top:3px solid var(--warning)}
+.summary-card.red{border-top:3px solid var(--danger)}
+
+.toolbar{
+  padding:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid var(--border);
+  border-radius:10px 10px 0 0;
+  background:white;
+}
+
+.toolbar-left,
+.toolbar-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.selection-text{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.sort-select{
+  padding:7px 9px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:#475569;
+  background:white;
+}
+
+.student-list{
+  border:1px solid var(--border);
+  border-top:0;
+  border-radius:0 0 11px 11px;
+  background:white;
+  overflow:hidden;
+}
+
+.student-row{
+  padding:13px 12px;
+  display:grid;
+  grid-template-columns:24px minmax(165px,1.2fr) minmax(135px,1fr) 72px 82px 86px 30px;
+  align-items:center;
+  gap:10px;
+  border-bottom:1px solid #edf2f7;
+  cursor:pointer;
+  transition:.16s ease;
+}
+
+.student-row:last-child{
+  border-bottom:0;
+}
+
+.student-row:hover{
+  background:#f8fbff;
+}
+
+.student-row.selected{
+  background:var(--primary-soft);
+  box-shadow:inset 3px 0 var(--primary);
+}
+
+.table-header{
+  padding:8px 12px;
+  display:grid;
+  grid-template-columns:24px minmax(165px,1.2fr) minmax(135px,1fr) 72px 82px 86px 30px;
+  gap:10px;
+  color:#64748b;
+  background:#f8fafc;
+  border-bottom:1px solid var(--border);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.35px;
+  text-transform:uppercase;
+}
+
+.student-person{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+}
+
+.student-avatar{
+  width:35px;
+  height:35px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  color:var(--primary);
+  border-radius:10px;
+  background:#dbeafe;
+  font-size:11px;
+  font-weight:800;
+}
+
+.student-name{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#1e293b;
+  font-weight:750;
+}
+
+.student-meta{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.progress-wrap{
+  min-width:0;
+}
+
+.progress-title{
+  margin-bottom:5px;
+  display:flex;
+  justify-content:space-between;
+  color:#475569;
+  font-size:10px;
+}
+
+.progress-track{
+  height:7px;
+  overflow:hidden;
+  border-radius:20px;
+  background:#e8eef6;
+}
+
+.progress-fill{
+  height:100%;
+  border-radius:20px;
+  background:linear-gradient(90deg,#2563eb,#60a5fa);
+}
+
+.metric{
+  color:#334155;
+  text-align:center;
+  font-weight:750;
+  font-size:12px;
+}
+
+.metric small{
+  margin-top:3px;
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:500;
+}
+
+.status-badge{
+  padding:5px 7px;
+  display:inline-block;
+  border-radius:20px;
+  font-size:9px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.status-placed{
+  color:#15803d;
+  background:#dcfce7;
+}
+
+.status-progress{
+  color:#1d4ed8;
+  background:#dbeafe;
+}
+
+.status-priority{
+  color:#b45309;
+  background:#fef3c7;
+}
+
+.status-multiple{
+  color:#6d28d9;
+  background:#ede9fe;
+}
+
+.chevron{
+  color:#94a3b8;
+  font-size:18px;
+}
+
+.empty-state{
+  padding:40px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.right-header{
+  padding-bottom:14px;
+  border-bottom:1px solid var(--border);
+}
+
+.profile-top{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+
+.profile-avatar{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  color:white;
+  border-radius:13px;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  font-weight:800;
+}
+
+.profile-name{
+  margin:0;
+  color:var(--navy);
+  font-size:17px;
+}
+
+.profile-meta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.profile-badges{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+.detail-tabs{
+  margin:13px 0;
+  padding:4px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:3px;
+  border-radius:9px;
+  background:#f1f5f9;
+}
+
+.detail-tab{
+  padding:8px 4px;
+  color:var(--muted);
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  font-size:11px;
+  font-weight:700;
+}
+
+.detail-tab.active{
+  color:var(--primary);
+  background:white;
+  box-shadow:0 2px 6px rgba(15,23,42,.08);
+}
+
+.detail-section{
+  display:none;
+}
+
+.detail-section.active{
+  display:block;
+}
+
+.detail-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+}
+
+.detail-kpi{
+  padding:9px 5px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:#fbfdff;
+}
+
+.detail-kpi strong{
+  display:block;
+  color:var(--navy);
+  font-size:17px;
+}
+
+.detail-kpi span{
+  color:var(--muted);
+  font-size:9px;
+}
+
+.section-heading{
+  margin:16px 0 8px;
+  color:#334155;
+  font-size:12px;
+  font-weight:800;
+}
+
+.funnel{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:#fbfdff;
+}
+
+.funnel-row{
+  margin-bottom:9px;
+}
+
+.funnel-row:last-child{
+  margin-bottom:0;
+}
+
+.funnel-label{
+  margin-bottom:4px;
+  display:flex;
+  justify-content:space-between;
+  color:#475569;
+  font-size:10px;
+}
+
+.company-process{
+  margin-bottom:9px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+}
+
+.company-head{
+  padding:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  background:#fbfdff;
+  cursor:pointer;
+}
+
+.company-name{
+  font-weight:800;
+  color:#263449;
+}
+
+.company-role{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.result-success{
+  color:var(--success);
+  font-size:10px;
+  font-weight:800;
+}
+
+.result-failed{
+  color:var(--danger);
+  font-size:10px;
+  font-weight:800;
+}
+
+.result-active{
+  color:var(--primary);
+  font-size:10px;
+  font-weight:800;
+}
+
+.rounds{
+  padding:9px 10px 11px;
+  border-top:1px solid var(--border);
+}
+
+.round-line{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin:7px 0;
+  color:#475569;
+  font-size:10px;
+}
+
+.round-dot{
+  width:18px;
+  height:18px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  font-size:9px;
+  font-weight:800;
+}
+
+.round-pass{
+  color:#15803d;
+  background:#dcfce7;
+}
+
+.round-fail{
+  color:#b91c1c;
+  background:#fee2e2;
+}
+
+.round-wait{
+  color:#1d4ed8;
+  background:#dbeafe;
+}
+
+.recommendation{
+  padding:13px;
+  border:1px solid #bfdbfe;
+  border-radius:11px;
+  background:linear-gradient(135deg,#eff6ff,#f5f3ff);
+}
+
+.recommendation-title{
+  color:#1d4ed8;
+  font-weight:850;
+}
+
+.priority-score{
+  margin:7px 0;
+  color:var(--navy);
+  font-size:28px;
+  font-weight:850;
+}
+
+.reason-list{
+  margin:8px 0 0;
+  padding-left:18px;
+  color:#475569;
+  font-size:11px;
+  line-height:1.65;
+}
+
+.alert-box{
+  margin-top:10px;
+  padding:10px;
+  border-radius:9px;
+  font-size:11px;
+  line-height:1.5;
+}
+
+.alert-warning{
+  color:#92400e;
+  background:var(--warning-soft);
+  border:1px solid #fed7aa;
+}
+
+.alert-success{
+  color:#166534;
+  background:var(--success-soft);
+  border:1px solid #bbf7d0;
+}
+
+.note-box{
+  width:100%;
+  min-height:78px;
+  padding:10px;
+  resize:vertical;
+  border:1px solid var(--border);
+  border-radius:9px;
+  outline:none;
+}
+
+.full-button{
+  width:100%;
+  margin-top:9px;
+}
+
+.timeline-item{
+  position:relative;
+  margin-left:8px;
+  padding:0 0 16px 18px;
+  border-left:2px solid #dbeafe;
+}
+
+.timeline-item:last-child{
+  border-left-color:transparent;
+}
+
+.timeline-dot{
+  position:absolute;
+  top:0;
+  left:-7px;
+  width:12px;
+  height:12px;
+  border:2px solid white;
+  border-radius:50%;
+  background:var(--primary);
+  box-shadow:0 0 0 1px #93c5fd;
+}
+
+.timeline-title{
+  color:#334155;
+  font-size:11px;
+  font-weight:800;
+}
+
+.timeline-meta{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.45;
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  padding:28px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(15,23,42,.52);
+}
+
+.modal-overlay.open{
+  display:flex;
+}
+
+.modal{
+  width:min(940px,96vw);
+  max-height:90vh;
+  overflow:auto;
+  border-radius:16px;
+  background:white;
+  box-shadow:0 25px 70px rgba(15,23,42,.3);
+}
+
+.modal-header{
+  padding:18px 20px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+
+.modal-header h2{
+  margin:0;
+  color:var(--navy);
+  font-size:18px;
+}
+
+.modal-header p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.close-button{
+  width:32px;
+  height:32px;
+  color:#64748b;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:white;
+  font-size:18px;
+}
+
+.consolidated{
+  padding:12px 20px;
+  border-bottom:1px solid var(--border);
+  background:#f8fafc;
+}
+
+.consolidated-title{
+  margin-bottom:7px;
+  color:#475569;
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.selected-tag{
+  margin:2px;
+  padding:5px 8px;
+  display:inline-block;
+  color:#1d4ed8;
+  border:1px solid #bfdbfe;
+  border-radius:20px;
+  background:white;
+  font-size:10px;
+}
+
+.modal-grid{
+  padding:18px 20px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+
+.filter-block{
+  padding:13px;
+  border:1px solid var(--border);
+  border-radius:11px;
+}
+
+.filter-block h3{
+  margin:0 0 10px;
+  color:#334155;
+  font-size:12px;
+}
+
+.range-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+
+.range-grid input{
+  width:100%;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius:8px;
+}
+
+.check-line{
+  margin:8px 0;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#475569;
+  font-size:11px;
+}
+
+.modal-footer{
+  padding:14px 20px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  border-top:1px solid var(--border);
+}
+
+.toast{
+  position:fixed;
+  right:22px;
+  bottom:22px;
+  z-index:200;
+  padding:12px 16px;
+  color:white;
+  border-radius:10px;
+  background:#172554;
+  box-shadow:var(--shadow);
+  opacity:0;
+  transform:translateY(12px);
+  pointer-events:none;
+  transition:.25s ease;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+@media(max-width:1150px){
+  .layout{
+    grid-template-columns:245px 1fr 340px;
+  }
+
+  .student-row,
+  .table-header{
+    grid-template-columns:22px minmax(150px,1.2fr) minmax(120px,1fr) 65px 72px 30px;
+  }
+
+  .package-column{
+    display:none;
+  }
+}
+
+@media(max-width:900px){
+  .layout{
+    height:auto;
+    display:block;
+    overflow:visible;
+  }
+
+  .left-panel,.middle-panel,.right-panel{
+    overflow:visible;
+    border:0;
+  }
+
+  .summary-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .modal-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-logo">IP</div>
+    <div>
+      <div class="brand-title">InstiPortal</div>
+      <div class="brand-subtitle">Placement Detail Management</div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="header-button">Placement Year 2025–26</button>
+    <button class="header-button">Notifications 4</button>
+    <div class="user-avatar">PO</div>
+  </div>
+</header>
+
+<div class="mode-bar">
+  <div class="mode-tabs">
+    <button class="mode-tab">Today & Communications</button>
+    <button class="mode-tab">Students</button>
+    <button class="mode-tab">Industries</button>
+    <button class="mode-tab active">Student Placement Review</button>
+  </div>
+
+  <div class="page-context">
+    Final Year · All Departments · Updated today at 10:30 AM
+  </div>
+</div>
+
+<main class="layout">
+
+  <!-- LEFT PANEL -->
+  <aside class="left-panel">
+    <h2 class="panel-title">Review Filters</h2>
+    <p class="panel-description">
+      Compare opportunity exposure, participation and placement outcomes.
+    </p>
+
+    <div class="search-box">
+      <span>⌕</span>
+      <input id="studentSearch" type="text" placeholder="Search student or register no.">
+    </div>
+
+    <label class="label">Academic Year</label>
+    <select class="select-control" id="yearFilter">
+      <option value="Final Year">Final Year</option>
+      <option value="Third Year">Third Year</option>
+      <option value="Second Year">Second Year</option>
+      <option value="all">All Years</option>
+    </select>
+
+    <label class="label">Department</label>
+    <div class="chip-group" id="departmentFilters">
+      <button class="filter-chip active" data-value="all">All</button>
+      <button class="filter-chip" data-value="CSE">CSE</button>
+      <button class="filter-chip" data-value="IT">IT</button>
+      <button class="filter-chip" data-value="ECE">ECE</button>
+      <button class="filter-chip" data-value="EEE">EEE</button>
+      <button class="filter-chip" data-value="MECH">MECH</button>
+    </div>
+
+    <label class="label">Placement Status</label>
+    <select class="select-control" id="statusFilter">
+      <option value="all">All Students</option>
+      <option value="Placed">Placed</option>
+      <option value="Multiple Offers">Multiple Offers</option>
+      <option value="In Progress">Process in Progress</option>
+      <option value="Not Placed">Not Placed</option>
+    </select>
+
+    <label class="label">Placement Type</label>
+    <select class="select-control" id="typeFilter">
+      <option value="all">All Placement Types</option>
+      <option value="Product">Product Company</option>
+      <option value="Service">Service Company</option>
+      <option value="Core">Core Engineering</option>
+      <option value="Startup">Startup</option>
+      <option value="Internship">Internship + PPO</option>
+    </select>
+
+    <label class="label">Saved Review Views</label>
+
+    <button class="saved-view active" data-view="all">
+      <span>All student journeys</span><span class="count">128</span>
+    </button>
+
+    <button class="saved-view" data-view="priority">
+      <span>Needs next opportunity</span><span class="count">24</span>
+    </button>
+
+    <button class="saved-view" data-view="failed">
+      <span>Repeated final-round failures</span><span class="count">11</span>
+    </button>
+
+    <button class="saved-view" data-view="offers">
+      <span>Multiple offer holders</span><span class="count">18</span>
+    </button>
+
+    <button class="saved-view" data-view="salary">
+      <span>Highest salary packages</span><span class="count">15</span>
+    </button>
+
+    <button class="saved-view" data-view="lowExposure">
+      <span>Low opportunity exposure</span><span class="count">17</span>
+    </button>
+
+    <button class="saved-view" data-view="active">
+      <span>Active recruitment rounds</span><span class="count">31</span>
+    </button>
+
+    <button class="advanced-button" id="openAdvanced">
+      ⚙ Open Advanced Filters
+    </button>
+
+    <div class="filter-summary">
+      <strong>Current review:</strong><br>
+      Final-year students from all departments, including placed and unplaced
+      students. Opportunity priority is based on invitations, attempts, offers
+      and recent participation.
+    </div>
+  </aside>
+
+  <!-- MIDDLE PANEL -->
+  <section class="middle-panel">
+    <div class="top-row">
+      <div class="title-block">
+        <h1>Student Placement Progress</h1>
+        <p>Review outcomes and identify students who should receive the next opportunity.</p>
+      </div>
+
+      <button class="primary-button" id="bulkOpportunity">
+        + Assign Opportunity
+      </button>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card blue">
+        <div class="value" id="visibleCount">8</div>
+        <div class="name">Students in current review</div>
+      </div>
+
+      <div class="summary-card green">
+        <div class="value">74%</div>
+        <div class="name">Invitation acceptance rate</div>
+      </div>
+
+      <div class="summary-card purple">
+        <div class="value">42</div>
+        <div class="name">Students with offers</div>
+      </div>
+
+      <div class="summary-card orange">
+        <div class="value">24</div>
+        <div class="name">Need next opportunity</div>
+      </div>
+
+      <div class="summary-card red">
+        <div class="value">11</div>
+        <div class="name">Need interview support</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input type="checkbox" id="selectAll">
+        <span class="selection-text" id="selectionText">Select all visible students</span>
+      </div>
+
+      <div class="toolbar-right">
+        <button class="secondary-button" id="messageSelected">Message</button>
+
+        <select class="sort-select" id="sortStudents">
+          <option value="priority">Sort: Opportunity priority</option>
+          <option value="attempts">Most attempts</option>
+          <option value="offers">Most offers</option>
+          <option value="package">Highest package</option>
+          <option value="failures">Most failed processes</option>
+          <option value="invitations">Most invitations</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="student-list">
+      <div class="table-header">
+        <div></div>
+        <div>Student</div>
+        <div>Participation</div>
+        <div>Attempts</div>
+        <div>Offers</div>
+        <div class="package-column">Best Package</div>
+        <div></div>
+      </div>
+
+      <div id="studentRows"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <div id="studentDetail"></div>
+  </aside>
+</main>
+
+<!-- ADVANCED FILTER MODAL -->
+<div class="modal-overlay" id="advancedModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>Advanced Placement Review Filters</h2>
+        <p>Filter students by opportunity exposure, performance and placement outcome.</p>
+      </div>
+      <button class="close-button" id="closeAdvanced">×</button>
+    </div>
+
+    <div class="consolidated">
+      <div class="consolidated-title">Current consolidated selection</div>
+      <span class="selected-tag">Final Year</span>
+      <span class="selected-tag">All Departments</span>
+      <span class="selected-tag">All Placement Statuses</span>
+      <span class="selected-tag">2025–26 Placement Cycle</span>
+    </div>
+
+    <div class="modal-grid">
+
+      <div class="filter-block">
+        <h3>Opportunity Exposure</h3>
+        <div class="range-grid">
+          <input type="number" placeholder="Min invitations">
+          <input type="number" placeholder="Max invitations">
+          <input type="number" placeholder="Min companies">
+          <input type="number" placeholder="Max companies">
+        </div>
+        <label class="check-line"><input type="checkbox"> No invitation in last 30 days</label>
+        <label class="check-line"><input type="checkbox"> Below department average</label>
+      </div>
+
+      <div class="filter-block">
+        <h3>Recruitment Performance</h3>
+        <div class="range-grid">
+          <input type="number" placeholder="Min rounds cleared">
+          <input type="number" placeholder="Max failures">
+        </div>
+        <label class="check-line"><input type="checkbox"> Failed aptitude round</label>
+        <label class="check-line"><input type="checkbox"> Failed technical round</label>
+        <label class="check-line"><input type="checkbox"> Failed HR or final round</label>
+      </div>
+
+      <div class="filter-block">
+        <h3>Offer & Salary</h3>
+        <div class="range-grid">
+          <input type="number" placeholder="Min offers">
+          <input type="number" placeholder="Max offers">
+          <input type="number" placeholder="Min package LPA">
+          <input type="number" placeholder="Max package LPA">
+        </div>
+        <label class="check-line"><input type="checkbox"> Offer accepted</label>
+        <label class="check-line"><input type="checkbox"> Offer declined</label>
+      </div>
+
+      <div class="filter-block">
+        <h3>Participation Behaviour</h3>
+        <label class="check-line"><input type="checkbox"> Frequently accepts invitations</label>
+        <label class="check-line"><input type="checkbox"> Accepted but did not attend</label>
+        <label class="check-line"><input type="checkbox"> Invitations pending</label>
+        <label class="check-line"><input type="checkbox"> Frequently declines</label>
+      </div>
+
+      <div class="filter-block">
+        <h3>Placement Category</h3>
+        <label class="check-line"><input type="checkbox"> Product companies</label>
+        <label class="check-line"><input type="checkbox"> Service companies</label>
+        <label class="check-line"><input type="checkbox"> Core engineering</label>
+        <label class="check-line"><input type="checkbox"> Startups</label>
+        <label class="check-line"><input type="checkbox"> Internship with PPO</label>
+      </div>
+
+      <div class="filter-block">
+        <h3>Opportunity Recommendation</h3>
+        <label class="check-line"><input type="checkbox"> High priority for next drive</label>
+        <label class="check-line"><input type="checkbox"> Needs technical training</label>
+        <label class="check-line"><input type="checkbox"> Needs interview coaching</label>
+        <label class="check-line"><input type="checkbox"> Exclude multiple offer holders</label>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="secondary-button" id="resetAdvanced">Reset</button>
+      <button class="primary-button" id="applyAdvanced">Apply Filters</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const students = [
+  {
+    id:1,
+    name:"Aarav Krishnan",
+    reg:"21CSE1042",
+    dept:"CSE",
+    year:"Final Year",
+    cgpa:8.74,
+    invitations:12,
+    accepted:10,
+    attended:9,
+    attempts:7,
+    rounds:19,
+    offers:2,
+    package:18.5,
+    failures:5,
+    priority:38,
+    status:"Multiple Offers",
+    type:"Product",
+    skills:["Java","React","DSA","SQL"],
+    processes:[
+      {
+        company:"Amazon",
+        role:"Software Development Engineer",
+        package:"18.5 LPA",
+        result:"Offer received",
+        state:"success",
+        rounds:[
+          ["Online assessment","pass"],
+          ["Technical interview I","pass"],
+          ["Technical interview II","pass"],
+          ["Bar raiser interview","pass"],
+          ["HR discussion","pass"]
+        ]
+      },
+      {
+        company:"Zoho",
+        role:"Member Technical Staff",
+        package:"8.4 LPA",
+        result:"Offer received",
+        state:"success",
+        rounds:[
+          ["Aptitude","pass"],
+          ["Programming","pass"],
+          ["Advanced programming","pass"],
+          ["Technical HR","pass"]
+        ]
+      },
+      {
+        company:"Google",
+        role:"Associate Software Engineer",
+        package:"22 LPA",
+        result:"Not selected",
+        state:"failed",
+        rounds:[
+          ["Coding assessment","pass"],
+          ["Technical interview I","pass"],
+          ["Technical interview II","fail"]
+        ]
+      }
+    ]
+  },
+  {
+    id:2,
+    name:"Nithya Raman",
+    reg:"21ECE1088",
+    dept:"ECE",
+    year:"Final Year",
+    cgpa:9.12,
+    invitations:8,
+    accepted:7,
+    attended:7,
+    attempts:5,
+    rounds:14,
+    offers:1,
+    package:12.8,
+    failures:4,
+    priority:54,
+    status:"Placed",
+    type:"Core",
+    skills:["Embedded C","VLSI","IoT"],
+    processes:[
+      {
+        company:"Qualcomm",
+        role:"Embedded Engineer",
+        package:"12.8 LPA",
+        result:"Offer received",
+        state:"success",
+        rounds:[
+          ["Technical assessment","pass"],
+          ["Embedded systems interview","pass"],
+          ["Managerial interview","pass"],
+          ["HR discussion","pass"]
+        ]
+      },
+      {
+        company:"Bosch",
+        role:"Graduate Engineer",
+        package:"8.5 LPA",
+        result:"Not selected",
+        state:"failed",
+        rounds:[
+          ["Aptitude","pass"],
+          ["Technical interview","fail"]
+        ]
+      }
+    ]
+  },
+  {
+    id:3,
+    name:"Kavin Prakash",
+    reg:"21IT1021",
+    dept:"IT",
+    year:"Final Year",
+    cgpa:8.31,
+    invitations:6,
+    accepted:6,
+    attended:6,
+    attempts:6,
+    rounds:16,
+    offers:0,
+    package:0,
+    failures:6,
+    priority:94,
+    status:"Not Placed",
+    type:"Product",
+    skills:["Python","Cloud","SQL"],
+    processes:[
+      {
+        company:"Freshworks",
+        role:"Software Engineer",
+        package:"10 LPA",
+        result:"Final round failed",
+        state:"failed",
+        rounds:[
+          ["Coding round","pass"],
+          ["Technical interview","pass"],
+          ["Managerial interview","pass"],
+          ["Final interview","fail"]
+        ]
+      },
+      {
+        company:"TCS Digital",
+        role:"Digital Engineer",
+        package:"7 LPA",
+        result:"Technical round failed",
+        state:"failed",
+        rounds:[
+          ["National qualifier test","pass"],
+          ["Coding round","pass"],
+          ["Technical interview","fail"]
+        ]
+      }
+    ]
+  },
+  {
+    id:4,
+    name:"Meera S",
+    reg:"21CSE1095",
+    dept:"CSE",
+    year:"Final Year",
+    cgpa:8.92,
+    invitations:10,
+    accepted:9,
+    attended:8,
+    attempts:5,
+    rounds:15,
+    offers:3,
+    package:24,
+    failures:2,
+    priority:22,
+    status:"Multiple Offers",
+    type:"Product",
+    skills:["React","Node.js","Java","AWS"],
+    processes:[
+      {
+        company:"Microsoft",
+        role:"Software Engineer",
+        package:"24 LPA",
+        result:"Offer received",
+        state:"success",
+        rounds:[
+          ["Online coding","pass"],
+          ["Technical interview I","pass"],
+          ["Technical interview II","pass"],
+          ["Hiring manager","pass"]
+        ]
+      },
+      {
+        company:"Oracle",
+        role:"Applications Developer",
+        package:"14 LPA",
+        result:"Offer received",
+        state:"success",
+        rounds:[
+          ["Coding round","pass"],
+          ["Technical interview","pass"],
+          ["HR discussion","pass"]
+        ]
+      }
+    ]
+  },
+  {
+    id:5,
+    name:"Sanjay Kumar",
+    reg:"21EEE1034",
+    dept:"EEE",
+    year:"Final Year",
+    cgpa:7.91,
+    invitations:4,
+    accepted:3,
+    attended:3,
+    attempts:3,
+    rounds:7,
+    offers:0,
+    package:0,
+    failures:3,
+    priority:91,
+    status:"Not Placed",
+    type:"Core",
+    skills:["PLC","MATLAB","Power Systems"],
+    processes:[
+      {
+        company:"Siemens",
+        role:"Graduate Engineer",
+        package:"7.5 LPA",
+        result:"Technical round failed",
+        state:"failed",
+        rounds:[
+          ["Aptitude","pass"],
+          ["Electrical fundamentals","fail"]
+        ]
+      }
+    ]
+  },
+  {
+    id:6,
+    name:"Divya Narayanan",
+    reg:"21IT1076",
+    dept:"IT",
+    year:"Final Year",
+    cgpa:8.56,
+    invitations:9,
+    accepted:8,
+    attended:7,
+    attempts:5,
+    rounds:13,
+    offers:1,
+    package:9.5,
+    failures:4,
+    priority:58,
+    status:"Placed",
+    type:"Service",
+    skills:["Java","SQL","Spring Boot"],
+    processes:[
+      {
+        company:"Cognizant",
+        role:"Programmer Analyst",
+        package:"9.5 LPA",
+        result:"Offer received",
+        state:"success",
+        rounds:[
+          ["Aptitude","pass"],
+          ["Coding assessment","pass"],
+          ["Technical interview","pass"],
+          ["HR interview","pass"]
+        ]
+      }
+    ]
+  },
+  {
+    id:7,
+    name:"Rahul Dev",
+    reg:"21MECH1019",
+    dept:"MECH",
+    year:"Final Year",
+    cgpa:7.78,
+    invitations:3,
+    accepted:2,
+    attended:2,
+    attempts:2,
+    rounds:5,
+    offers:0,
+    package:0,
+    failures:2,
+    priority:97,
+    status:"Not Placed",
+    type:"Core",
+    skills:["CAD","SolidWorks","Manufacturing"],
+    processes:[
+      {
+        company:"Ashok Leyland",
+        role:"Graduate Engineer Trainee",
+        package:"6.5 LPA",
+        result:"Not selected",
+        state:"failed",
+        rounds:[
+          ["Aptitude","pass"],
+          ["Core technical interview","fail"]
+        ]
+      }
+    ]
+  },
+  {
+    id:8,
+    name:"Harini V",
+    reg:"21ECE1102",
+    dept:"ECE",
+    year:"Final Year",
+    cgpa:8.66,
+    invitations:7,
+    accepted:7,
+    attended:6,
+    attempts:4,
+    rounds:11,
+    offers:0,
+    package:0,
+    failures:3,
+    priority:86,
+    status:"In Progress",
+    type:"Product",
+    skills:["Embedded C","Python","IoT"],
+    processes:[
+      {
+        company:"Texas Instruments",
+        role:"Applications Engineer",
+        package:"14 LPA",
+        result:"Process active",
+        state:"active",
+        rounds:[
+          ["Online assessment","pass"],
+          ["Technical interview I","pass"],
+          ["Technical interview II","wait"]
+        ]
+      }
+    ]
+  }
+];
+
+let selectedStudentId = 3;
+let selectedDepartments = new Set(["all"]);
+let activeView = "all";
+let selectedRows = new Set();
+
+const studentRows = document.getElementById("studentRows");
+const studentDetail = document.getElementById("studentDetail");
+const searchInput = document.getElementById("studentSearch");
+const statusFilter = document.getElementById("statusFilter");
+const typeFilter = document.getElementById("typeFilter");
+const yearFilter = document.getElementById("yearFilter");
+const sortStudents = document.getElementById("sortStudents");
+const visibleCount = document.getElementById("visibleCount");
+
+function initials(name){
+  return name.split(" ").map(item => item[0]).slice(0,2).join("");
+}
+
+function statusClass(status){
+  if(status === "Placed") return "status-placed";
+  if(status === "Multiple Offers") return "status-multiple";
+  if(status === "In Progress") return "status-progress";
+  return "status-priority";
+}
+
+function opportunityLabel(student){
+  if(student.offers > 1) return "Low priority";
+  if(student.priority >= 90) return "Immediate priority";
+  if(student.priority >= 75) return "High priority";
+  if(student.offers === 1) return "Placed";
+  return "Standard priority";
+}
+
+function filteredStudents(){
+  const query = searchInput.value.trim().toLowerCase();
+  let list = students.filter(student => {
+    const matchesSearch =
+      student.name.toLowerCase().includes(query) ||
+      student.reg.toLowerCase().includes(query);
+
+    const matchesYear =
+      yearFilter.value === "all" ||
+      student.year === yearFilter.value;
+
+    const matchesDepartment =
+      selectedDepartments.has("all") ||
+      selectedDepartments.has(student.dept);
+
+    const matchesStatus =
+      statusFilter.value === "all" ||
+      student.status === statusFilter.value;
+
+    const matchesType =
+      typeFilter.value === "all" ||
+      student.type === typeFilter.value;
+
+    let matchesView = true;
+
+    if(activeView === "priority") matchesView = student.priority >= 80;
+    if(activeView === "failed") matchesView = student.failures >= 4;
+    if(activeView === "offers") matchesView = student.offers >= 2;
+    if(activeView === "salary") matchesView = student.package >= 12;
+    if(activeView === "lowExposure") matchesView = student.invitations <= 4;
+    if(activeView === "active") matchesView = student.status === "In Progress";
+
+    return matchesSearch && matchesYear && matchesDepartment &&
+           matchesStatus && matchesType && matchesView;
+  });
+
+  const sort = sortStudents.value;
+
+  list.sort((a,b) => {
+    if(sort === "priority") return b.priority - a.priority;
+    if(sort === "attempts") return b.attempts - a.attempts;
+    if(sort === "offers") return b.offers - a.offers;
+    if(sort === "package") return b.package - a.package;
+    if(sort === "failures") return b.failures - a.failures;
+    if(sort === "invitations") return b.invitations - a.invitations;
+    return 0;
+  });
+
+  return list;
+}
+
+function renderStudents(){
+  const list = filteredStudents();
+  visibleCount.textContent = list.length;
+
+  if(!list.length){
+    studentRows.innerHTML =
+      `<div class="empty-state">
+        No students match the selected filters.
+      </div>`;
+    return;
+  }
+
+  studentRows.innerHTML = list.map(student => {
+    const participation = student.invitations
+      ? Math.round((student.attended / student.invitations) * 100)
+      : 0;
+
+    return `
+      <div class="student-row ${student.id === selectedStudentId ? "selected" : ""}"
+           data-id="${student.id}">
+        <input class="row-check" type="checkbox"
+          data-check-id="${student.id}"
+          ${selectedRows.has(student.id) ? "checked" : ""}
+          onclick="event.stopPropagation()">
+
+        <div class="student-person">
+          <div class="student-avatar">${initials(student.name)}</div>
+          <div style="min-width:0">
+            <div class="student-name">${student.name}</div>
+            <div class="student-meta">
+              ${student.reg} · ${student.dept} · CGPA ${student.cgpa}
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-title">
+            <span>${student.attended}/${student.invitations} attended</span>
+            <strong>${participation}%</strong>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:${participation}%"></div>
+          </div>
+          <div style="margin-top:5px">
+            <span class="status-badge ${statusClass(student.status)}">
+              ${student.status}
+            </span>
+          </div>
+        </div>
+
+        <div class="metric">
+          ${student.attempts}
+          <small>${student.rounds} rounds</small>
+        </div>
+
+        <div class="metric">
+          ${student.offers}
+          <small>${student.failures} unsuccessful</small>
+        </div>
+
+        <div class="metric package-column">
+          ${student.package ? student.package + " LPA" : "—"}
+          <small>highest</small>
+        </div>
+
+        <div class="chevron">›</div>
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll(".student-row").forEach(row => {
+    row.addEventListener("click", () => {
+      selectedStudentId = Number(row.dataset.id);
+      renderStudents();
+      renderDetails();
+    });
+  });
+
+  document.querySelectorAll(".row-check").forEach(box => {
+    box.addEventListener("change", () => {
+      const id = Number(box.dataset.checkId);
+      if(box.checked) selectedRows.add(id);
+      else selectedRows.delete(id);
+      updateSelectionText();
+    });
+  });
+
+  updateSelectionText();
+}
+
+function renderDetails(){
+  const student = students.find(item => item.id === selectedStudentId);
+  const acceptance = Math.round((student.accepted / student.invitations) * 100);
+  const attendance = Math.round((student.attended / student.invitations) * 100);
+  const roundSuccess = Math.round(
+    (student.rounds - student.failures) / student.rounds * 100
+  );
+
+  studentDetail.innerHTML = `
+    <div class="right-header">
+      <div class="profile-top">
+        <div class="profile-avatar">${initials(student.name)}</div>
+        <div>
+          <h2 class="profile-name">${student.name}</h2>
+          <div class="profile-meta">
+            ${student.reg} · ${student.dept} · CGPA ${student.cgpa}
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-badges">
+        <span class="status-badge ${statusClass(student.status)}">
+          ${student.status}
+        </span>
+        <span class="status-badge status-progress">${student.type}</span>
+        <span class="status-badge status-priority">
+          ${opportunityLabel(student)}
+        </span>
+      </div>
+    </div>
+
+    <div class="detail-tabs">
+      <button class="detail-tab active" data-tab="journey">Placement Journey</button>
+      <button class="detail-tab" data-tab="opportunity">Next Opportunity</button>
+      <button class="detail-tab" data-tab="history">Activity History</button>
+    </div>
+
+    <div class="detail-section active" id="journey">
+      <div class="detail-kpis">
+        <div class="detail-kpi">
+          <strong>${student.invitations}</strong>
+          <span>Invitations</span>
+        </div>
+        <div class="detail-kpi">
+          <strong>${student.accepted}</strong>
+          <span>Accepted</span>
+        </div>
+        <div class="detail-kpi">
+          <strong>${student.attempts}</strong>
+          <span>Processes</span>
+        </div>
+        <div class="detail-kpi">
+          <strong>${student.offers}</strong>
+          <span>Offers</span>
+        </div>
+      </div>
+
+      <div class="section-heading">Participation funnel</div>
+      <div class="funnel">
+        ${funnelRow("Invitations accepted", acceptance, student.accepted + " of " + student.invitations)}
+        ${funnelRow("Processes attended", attendance, student.attended + " of " + student.invitations)}
+        ${funnelRow("Recruitment rounds cleared", roundSuccess, (student.rounds - student.failures) + " of " + student.rounds)}
+      </div>
+
+      <div class="section-heading">Company-wise recruitment processes</div>
+
+      ${student.processes.map((process,index) => `
+        <div class="company-process">
+          <div class="company-head" onclick="toggleRounds('rounds-${student.id}-${index}')">
+            <div>
+              <div class="company-name">${process.company}</div>
+              <div class="company-role">
+                ${process.role} · ${process.package}
+              </div>
+            </div>
+            <span class="result-${process.state}">${process.result}</span>
+          </div>
+
+          <div class="rounds" id="rounds-${student.id}-${index}">
+            ${process.rounds.map((round,roundIndex) => `
+              <div class="round-line">
+                <div class="round-dot round-${round[1]}">
+                  ${round[1] === "pass" ? "✓" : round[1] === "fail" ? "×" : "•"}
+                </div>
+                <span>Round ${roundIndex + 1}: ${round[0]}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="detail-section" id="opportunity">
+      <div class="recommendation">
+        <div class="recommendation-title">Opportunity Priority Score</div>
+        <div class="priority-score">${student.priority}/100</div>
+        <div style="color:#475569;font-size:11px">
+          ${opportunityLabel(student)}
+        </div>
+
+        <ul class="reason-list">
+          ${recommendationReasons(student).map(reason => `<li>${reason}</li>`).join("")}
+        </ul>
+      </div>
+
+      ${student.offers > 1
+        ? `<div class="alert-box alert-warning">
+             This student already holds ${student.offers} offers. Consider
+             prioritising eligible students without an offer before assigning
+             another general placement opportunity.
+           </div>`
+        : `<div class="alert-box alert-success">
+             This student can be considered for the next matching opportunity.
+             Verify company eligibility and student willingness before invitation.
+           </div>`
+      }
+
+      <div class="section-heading">Recommended placement category</div>
+      <select class="select-control">
+        <option>${student.type} company opportunity</option>
+        <option>Product company opportunity</option>
+        <option>Service company opportunity</option>
+        <option>Core engineering opportunity</option>
+        <option>Internship with PPO</option>
+      </select>
+
+      <div class="section-heading">Suitable skills</div>
+      <div class="chip-group">
+        ${student.skills.map(skill => `
+          <span class="filter-chip active">${skill}</span>
+        `).join("")}
+      </div>
+
+      <button class="primary-button full-button"
+        onclick="showToast('Opportunity recommendation recorded for ${student.name}')">
+        Recommend for Next Opportunity
+      </button>
+
+      <button class="secondary-button full-button"
+        onclick="showToast('Student profile added to placement review queue')">
+        Add to Review Queue
+      </button>
+    </div>
+
+    <div class="detail-section" id="history">
+      ${historyTimeline(student)}
+
+      <div class="section-heading">Placement officer note</div>
+      <textarea class="note-box"
+        placeholder="Add interview feedback, counselling notes or next action..."></textarea>
+
+      <button class="primary-button full-button"
+        onclick="showToast('Placement review note saved')">
+        Save Review Note
+      </button>
+    </div>
+  `;
+
+  document.querySelectorAll(".detail-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".detail-tab").forEach(item =>
+        item.classList.remove("active")
+      );
+
+      document.querySelectorAll(".detail-section").forEach(section =>
+        section.classList.remove("active")
+      );
+
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab).classList.add("active");
+    });
+  });
+}
+
+function funnelRow(label,value,text){
+  return `
+    <div class="funnel-row">
+      <div class="funnel-label">
+        <span>${label}</span>
+        <strong>${text}</strong>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${value}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+function recommendationReasons(student){
+  const reasons = [];
+
+  if(student.offers === 0) reasons.push("Student does not currently hold a placement offer.");
+  if(student.invitations <= 4) reasons.push("Opportunity exposure is below the cohort average.");
+  if(student.failures >= 4) reasons.push("Multiple unsuccessful attempts indicate a need for targeted support.");
+  if(student.attended === student.accepted) reasons.push("Strong attendance after accepting invitations.");
+  if(student.status === "In Progress") reasons.push("One or more recruitment processes are currently active.");
+  if(student.offers > 1) reasons.push("Multiple offers already received; general opportunity priority is reduced.");
+  if(!reasons.length) reasons.push("Balanced participation and placement performance.");
+
+  return reasons;
+}
+
+function historyTimeline(student){
+  const first = student.processes[0];
+
+  return `
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-title">${first.company} recruitment updated</div>
+      <div class="timeline-meta">
+        ${first.result} · Today, 10:20 AM
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-title">Placement process attended</div>
+      <div class="timeline-meta">
+        ${student.attended} total attended processes recorded.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-title">Invitation response updated</div>
+      <div class="timeline-meta">
+        Accepted ${student.accepted} of ${student.invitations} invitations.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-title">Student profile reviewed</div>
+      <div class="timeline-meta">
+        Skills matched: ${student.skills.join(", ")}.
+      </div>
+    </div>
+  `;
+}
+
+function toggleRounds(id){
+  const element = document.getElementById(id);
+  element.style.display = element.style.display === "none" ? "block" : "none";
+}
+
+function updateSelectionText(){
+  const text = document.getElementById("selectionText");
+  text.textContent = selectedRows.size
+    ? `${selectedRows.size} student${selectedRows.size > 1 ? "s" : ""} selected`
+    : "Select all visible students";
+}
+
+function showToast(message){
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  setTimeout(() => toast.classList.remove("show"),2600);
+}
+
+document.querySelectorAll("#departmentFilters .filter-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const value = chip.dataset.value;
+
+    if(value === "all"){
+      selectedDepartments.clear();
+      selectedDepartments.add("all");
+    }else{
+      selectedDepartments.delete("all");
+
+      if(selectedDepartments.has(value)){
+        selectedDepartments.delete(value);
+      }else{
+        selectedDepartments.add(value);
+      }
+
+      if(selectedDepartments.size === 0){
+        selectedDepartments.add("all");
+      }
+    }
+
+    document.querySelectorAll("#departmentFilters .filter-chip").forEach(item => {
+      item.classList.toggle("active",selectedDepartments.has(item.dataset.value));
+    });
+
+    renderStudents();
+  });
+});
+
+document.querySelectorAll(".saved-view").forEach(view => {
+  view.addEventListener("click", () => {
+    document.querySelectorAll(".saved-view").forEach(item =>
+      item.classList.remove("active")
+    );
+
+    view.classList.add("active");
+    activeView = view.dataset.view;
+    renderStudents();
+  });
+});
+
+[searchInput,statusFilter,typeFilter,yearFilter,sortStudents].forEach(control => {
+  control.addEventListener(control.tagName === "INPUT" ? "input" : "change",renderStudents);
+});
+
+document.getElementById("selectAll").addEventListener("change",event => {
+  const list = filteredStudents();
+
+  if(event.target.checked){
+    list.forEach(student => selectedRows.add(student.id));
+  }else{
+    list.forEach(student => selectedRows.delete(student.id));
+  }
+
+  renderStudents();
+});
+
+document.getElementById("bulkOpportunity").addEventListener("click",() => {
+  if(!selectedRows.size){
+    showToast("Select at least one student before assigning an opportunity");
+    return;
+  }
+
+  showToast(`Opportunity assignment opened for ${selectedRows.size} students`);
+});
+
+document.getElementById("messageSelected").addEventListener("click",() => {
+  if(!selectedRows.size){
+    showToast("Select students before sending a message");
+    return;
+  }
+
+  showToast(`Message composer opened for ${selectedRows.size} students`);
+});
+
+const modal = document.getElementById("advancedModal");
+
+document.getElementById("openAdvanced").addEventListener("click",() => {
+  modal.classList.add("open");
+});
+
+document.getElementById("closeAdvanced").addEventListener("click",() => {
+  modal.classList.remove("open");
+});
+
+document.getElementById("applyAdvanced").addEventListener("click",() => {
+  modal.classList.remove("open");
+  showToast("Advanced placement filters applied");
+});
+
+document.getElementById("resetAdvanced").addEventListener("click",() => {
+  modal.querySelectorAll("input").forEach(input => {
+    if(input.type === "checkbox") input.checked = false;
+    else input.value = "";
+  });
+
+  showToast("Advanced filters reset");
+});
+
+modal.addEventListener("click",event => {
+  if(event.target === modal) modal.classList.remove("open");
+});
+
+renderStudents();
+renderDetails();
+</script>
+
+</body>
+</html>
