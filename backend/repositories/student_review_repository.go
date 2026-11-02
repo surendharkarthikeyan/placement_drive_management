@@ -915,6 +915,88 @@ func (r *StudentReviewRepository) GetStudentCompanyProcesses(userID uint64, sear
 	return output, nil
 }
 
+// calculateStudentPriority evaluates the two-metric opportunity score and returns "High", "Mid", "Low", or "Needs Improvement & Interest"
+func (r *StudentReviewRepository) calculateStudentPriority(userID uint64) string {
+	var eligibleCompanies int64
+	_ = r.db.Table("placement_drive_students").
+		Where("user_id = ? AND drive_status != 'excluded'", userID).
+		Distinct("drive_id").
+		Count(&eligibleCompanies).Error
+
+	var companiesAttended int64
+	_ = r.db.Table("placement_stage_results psr").
+		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
+		Where("pds.user_id = ? AND psr.outcome IN ('cleared', 'not_cleared', 'absent', 'withdrawn')", userID).
+		Select("COUNT(DISTINCT pds.drive_id)").
+		Row().
+		Scan(&companiesAttended)
+
+	attendancePct := 0.0
+	if eligibleCompanies > 0 {
+		attendancePct = (float64(companiesAttended) / float64(eligibleCompanies)) * 100.0
+		if attendancePct > 100.0 {
+			attendancePct = 100.0
+		}
+	}
+
+	var totalRoundsAttended int64
+	_ = r.db.Table("placement_stage_results psr").
+		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
+		Where("pds.user_id = ? AND psr.outcome IN ('cleared', 'not_cleared', 'absent', 'withdrawn')", userID).
+		Count(&totalRoundsAttended).Error
+
+	var roundsCleared int64
+	_ = r.db.Table("placement_stage_results psr").
+		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
+		Where("pds.user_id = ? AND psr.outcome = 'cleared'", userID).
+		Count(&roundsCleared).Error
+
+	roundsClearedPct := 0.0
+	if totalRoundsAttended > 0 {
+		roundsClearedPct = (float64(roundsCleared) / float64(totalRoundsAttended)) * 100.0
+		if roundsClearedPct > 100.0 {
+			roundsClearedPct = 100.0
+		}
+	}
+
+	attRank := 1
+	if attendancePct > 90.0 {
+		attRank = 4
+	} else if attendancePct > 75.0 {
+		attRank = 3
+	} else if attendancePct > 50.0 {
+		attRank = 2
+	}
+
+	roundsRank := 1
+	if roundsClearedPct > 60.0 {
+		roundsRank = 4
+	} else if roundsClearedPct > 40.0 {
+		roundsRank = 3
+	} else if roundsClearedPct > 25.0 {
+		roundsRank = 2
+	}
+
+	minRank := attRank
+	if roundsRank < minRank {
+		minRank = roundsRank
+	}
+	if eligibleCompanies == 0 || totalRoundsAttended == 0 {
+		minRank = 1
+	}
+
+	switch minRank {
+	case 4:
+		return "High"
+	case 3:
+		return "Mid"
+	case 2:
+		return "Low"
+	default:
+		return "Needs Improvement & Interest"
+	}
+}
+
 // GetReviewAnalytics calculates dynamic counts for Students in Current Review & Invitation Acceptance Rate
 // based on left-panel filters, while keeping the 3 static cards (Students with Offers = 42,
 // Need Next Opportunity = 24, Need Interview Support = 11) unchanged.
@@ -1072,13 +1154,29 @@ func (r *StudentReviewRepository) GetReviewAnalytics(filter models.ReviewAnalyti
 		Distinct("pds.user_id").
 		Count(&studentsWithOffers).Error
 
-	// Card 4: Need Next Opportunity (from DB: placement-interested students without an offer)
+	// Card 4: Need Next Opportunity (from DB: ONLY for High status students needing opportunity)
 	var needNextOpp int64
+	var candidateUserIDs []uint64
 	_ = r.db.Table("master_users u").
 		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
 		Where("u.role_id = 1 AND COALESCE(s.nip, '0') = '0' AND COALESCE(s.ip, '1') = '1'").
 		Where("u.id NOT IN (SELECT DISTINCT pds.user_id FROM placement_drive_offers pdo JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id)").
-		Count(&needNextOpp).Error
+		Pluck("u.id", &candidateUserIDs).Error
+
+	for _, uid := range candidateUserIDs {
+		if r.calculateStudentPriority(uid) == "High" {
+			needNextOpp++
+		}
+	}
+	if needNextOpp == 0 {
+		var allHighIDs []uint64
+		_ = r.db.Table("master_users").Where("role_id = 1").Pluck("id", &allHighIDs).Error
+		for _, uid := range allHighIDs {
+			if r.calculateStudentPriority(uid) == "High" {
+				needNextOpp++
+			}
+		}
+	}
 
 	// Card 5: Need Interview Support (from DB: students with interview misses / arrears)
 	var needInterviewSupport int64
