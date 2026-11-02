@@ -322,7 +322,7 @@ export default function ReviewProgressWorkspace({
         </div>
 
         {/* Table Column Headers with balanced proportional spacing and straight alignment */}
-        <div className="grid grid-cols-[36px_minmax(190px,1.2fr)_minmax(160px,1.1fr)_minmax(185px,1.2fr)_minmax(90px,0.7fr)_minmax(95px,0.7fr)_28px] gap-4 items-center px-4 py-2.5 bg-[#f8fafc] border-b border-[#f1f5f9] text-[11px] font-[800] text-[#64748b] tracking-wider uppercase select-none">
+        <div className="grid grid-cols-[36px_minmax(240px,2fr)_minmax(150px,1fr)_minmax(145px,0.8fr)_minmax(80px,0.6fr)_minmax(85px,0.6fr)_28px] gap-4 items-center px-4 py-2.5 bg-[#f8fafc] border-b border-[#f1f5f9] text-[11px] font-[800] text-[#64748b] tracking-wider uppercase select-none">
           <div className="flex items-center justify-center">
             <span className="sr-only">Select</span>
           </div>
@@ -365,7 +365,7 @@ export default function ReviewProgressWorkspace({
                 <div
                   key={st.id}
                   onClick={() => onSelectStudent && onSelectStudent(st.id)}
-                  className={`grid grid-cols-[36px_minmax(190px,1.2fr)_minmax(160px,1.1fr)_minmax(185px,1.2fr)_minmax(90px,0.7fr)_minmax(95px,0.7fr)_28px] gap-4 items-center px-4 py-3.5 transition-colors cursor-pointer border-l-[4px] ${
+                  className={`grid grid-cols-[36px_minmax(240px,2fr)_minmax(150px,1fr)_minmax(145px,0.8fr)_minmax(80px,0.6fr)_minmax(85px,0.6fr)_28px] gap-4 items-center px-4 py-3.5 transition-colors cursor-pointer border-l-[4px] ${
                     isSelectedRow
                       ? 'border-l-[#2563eb] bg-[#eff6ff]/40'
                       : 'border-l-transparent hover:bg-[#f8fafc]'
