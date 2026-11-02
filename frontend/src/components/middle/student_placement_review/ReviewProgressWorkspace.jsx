@@ -422,11 +422,11 @@ export default function ReviewProgressWorkspace({
                     {/* Placed / Not Placed Badge below the pipeline */}
                     <div className="mt-1.5">
                       {st.is_placed ? (
-                        <span className="inline-block px-2 py-0.5 rounded-[5px] text-[10.5px] font-[750] bg-[#FEF9C3] text-[#854D0E] border border-[#FEF08A]/60">
+                        <span className="inline-block px-2 py-0.5 rounded-[5px] text-[10.5px] font-[750] bg-[#ecfdf5] text-[#15803d] border border-[#a7f3d0]">
                           Placed
                         </span>
                       ) : (
-                        <span className="inline-block px-2 py-0.5 rounded-[5px] text-[10.5px] font-[750] bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]/60">
+                        <span className="inline-block px-2 py-0.5 rounded-[5px] text-[10.5px] font-[750] bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1]">
                           Not Placed
                         </span>
                       )}
