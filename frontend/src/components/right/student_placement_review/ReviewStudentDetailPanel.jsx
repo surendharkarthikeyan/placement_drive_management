@@ -288,7 +288,7 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
                 Placed
               </span>
             ) : (
-              <span className="px-3 py-1 rounded-full text-[12px] font-bold font-sans tracking-tight bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1] inline-flex items-center justify-center">
+              <span className="px-3 py-1 rounded-full text-[12px] font-bold font-sans tracking-tight bg-[#fef9c3] text-[#854d0e] border border-[#fef08a] inline-flex items-center justify-center">
                 Not Placed
               </span>
             )}
