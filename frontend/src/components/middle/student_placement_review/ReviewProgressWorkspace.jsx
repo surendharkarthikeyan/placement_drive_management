@@ -451,9 +451,9 @@ export default function ReviewProgressWorkspace({
                       {st.offers_count}
                     </div>
                     <div className="text-[11.5px] text-[#64748b] font-medium mt-1 leading-tight">
-                      {st.unsuccessful_count > 0
-                        ? `${st.unsuccessful_count} unsuccessful`
-                        : `${st.attempts} rounds`}
+                      {st.unsuccessful_count === 1
+                        ? '1 failure'
+                        : `${st.unsuccessful_count ?? 0} failures`}
                     </div>
                   </div>
 
