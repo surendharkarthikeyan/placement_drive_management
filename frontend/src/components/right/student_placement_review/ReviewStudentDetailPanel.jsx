@@ -863,54 +863,61 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
                     <p className="text-[11.5px] text-[#94a3b8] mt-1">This student has not participated in any placement drives yet.</p>
                   </div>
                 ) : (
-                  <div className="relative pl-1 pr-1">
-                    {/* Vertical connecting line */}
-                    <div className="absolute left-[11px] top-3 bottom-5 w-[2px] bg-[#DEE9FC]" />
+                  <div>
+                    <div className="flex flex-col">
+                    {historyData?.items?.map((item, idx) => {
+                      let dotBg = 'bg-[#CC7C2E]' // In Process (Orange)
 
-                    <div className="flex flex-col gap-5">
-                      {historyData?.items?.map((item, idx) => {
-                        let dotBg = 'bg-[#CC7C2E]' // In Process (Orange)
+                      if (item.status === 'Offered') {
+                        dotBg = 'bg-[#4CA154]' // Offered (Green)
+                      } else if (item.status === 'Failed / Cancelled') {
+                        dotBg = 'bg-[#CA3A31]' // Failed / Cancelled (Red)
+                      }
 
-                        if (item.status === 'Offered') {
-                          dotBg = 'bg-[#4CA154]' // Offered (Green)
-                        } else if (item.status === 'Failed / Cancelled') {
-                          dotBg = 'bg-[#CA3A31]' // Failed / Cancelled (Red)
-                        }
+                      const isLast = idx === (historyData.items.length - 1)
 
-                        return (
-                          <div key={item.drive_id || idx} className="relative flex items-start gap-3.5 group">
-                            {/* Timeline Dot with ring */}
-                            <div className="relative flex items-center justify-center w-[24px] h-[24px] flex-shrink-0 z-10 bg-white rounded-full">
+                      return (
+                        <div key={item.drive_id || idx} className="relative flex items-stretch gap-3 group">
+                          {/* Timeline column with Dot and perfectly centered vertical connecting line */}
+                          <div className="flex flex-col items-center flex-shrink-0 w-[20px]">
+                            {/* Dot with halo ring */}
+                            <div className="w-[20px] h-[20px] flex items-center justify-center flex-shrink-0">
                               <div className={`w-[11px] h-[11px] rounded-full ring-[3.5px] ring-[#DEE9FC] ${dotBg}`} />
                             </div>
 
-                            {/* Company & Round details */}
-                            <div className="flex-1 min-w-0 pt-0.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <h5 className="text-[14px] font-bold text-[#1e293b] truncate leading-tight">
-                                  {item.company_name}
-                                </h5>
-                                {item.job_role && (
-                                  <span className="text-[10.5px] text-[#94a3b8] font-medium truncate max-w-[120px]">
-                                    {item.job_role}
-                                  </span>
-                                )}
-                              </div>
+                            {/* Connecting Line to next item - perfectly centered under the dot */}
+                            {!isLast && (
+                              <div className="w-[2px] bg-[#DEE9FC] flex-1 my-1" />
+                            )}
+                          </div>
 
-                              <div className="text-[12.5px] text-[#64748b] font-medium leading-relaxed mt-0.5">
-                                {item.round_detail_text}
-                              </div>
-
-                              {item.date_formatted && (
-                                <div className="text-[10.5px] text-[#94a3b8] mt-0.5">
-                                  {item.date_formatted}
-                                </div>
+                          {/* Company & Round details */}
+                          <div className={`flex-1 min-w-0 ${!isLast ? 'pb-5' : 'pb-1'}`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <h5 className="text-[14px] font-bold text-[#1e293b] truncate leading-tight">
+                                {item.company_name}
+                              </h5>
+                              {item.job_role && (
+                                <span className="text-[10.5px] text-[#94a3b8] font-medium truncate max-w-[120px]">
+                                  {item.job_role}
+                                </span>
                               )}
                             </div>
+
+                            <div className="text-[12.5px] text-[#64748b] font-medium leading-relaxed mt-0.5">
+                              {item.round_detail_text}
+                            </div>
+
+                            {item.date_formatted && (
+                              <div className="text-[10.5px] text-[#94a3b8] mt-0.5">
+                                {item.date_formatted}
+                              </div>
+                            )}
                           </div>
-                        )
-                      })}
-                    </div>
+                        </div>
+                      )
+                    })}
+                  </div>
 
                     {/* Pagination Controls */}
                     {historyData && historyData.total_pages > 1 && (
