@@ -321,8 +321,8 @@ export default function ReviewProgressWorkspace({
           </div>
         </div>
 
-        {/* Table Column Headers with tuned proportional spacing */}
-        <div className="grid grid-cols-[44px_minmax(190px,2fr)_minmax(180px,1.8fr)_minmax(120px,1.1fr)_minmax(95px,0.9fr)_100px_36px] items-center px-4 py-2.5 bg-[#f8fafc] border-b border-[#f1f5f9] text-[11px] font-[800] text-[#64748b] tracking-wider uppercase select-none">
+        {/* Table Column Headers with balanced proportional spacing and straight alignment */}
+        <div className="grid grid-cols-[36px_minmax(190px,1.2fr)_minmax(160px,1.1fr)_minmax(185px,1.2fr)_minmax(90px,0.7fr)_minmax(95px,0.7fr)_28px] gap-4 items-center px-4 py-2.5 bg-[#f8fafc] border-b border-[#f1f5f9] text-[11px] font-[800] text-[#64748b] tracking-wider uppercase select-none">
           <div className="flex items-center justify-center">
             <span className="sr-only">Select</span>
           </div>
@@ -365,7 +365,7 @@ export default function ReviewProgressWorkspace({
                 <div
                   key={st.id}
                   onClick={() => onSelectStudent && onSelectStudent(st.id)}
-                  className={`grid grid-cols-[44px_minmax(190px,2fr)_minmax(180px,1.8fr)_minmax(120px,1.1fr)_minmax(95px,0.9fr)_100px_36px] items-center px-4 py-3.5 transition-colors cursor-pointer border-l-[4px] ${
+                  className={`grid grid-cols-[36px_minmax(190px,1.2fr)_minmax(160px,1.1fr)_minmax(185px,1.2fr)_minmax(90px,0.7fr)_minmax(95px,0.7fr)_28px] gap-4 items-center px-4 py-3.5 transition-colors cursor-pointer border-l-[4px] ${
                     isSelectedRow
                       ? 'border-l-[#2563eb] bg-[#eff6ff]/40'
                       : 'border-l-transparent hover:bg-[#f8fafc]'
@@ -385,7 +385,7 @@ export default function ReviewProgressWorkspace({
                   </div>
 
                   {/* 2. STUDENT info */}
-                  <div className="flex items-center gap-3 pr-2 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-[38px] h-[38px] rounded-[10px] bg-[#eff6ff] border border-[#bfdbfe]/60 flex items-center justify-center text-[#2563eb] font-[800] text-[13px] shrink-0">
                       {st.initials}
                     </div>
@@ -402,8 +402,8 @@ export default function ReviewProgressWorkspace({
                   </div>
 
                   {/* 3. ATTENDANCE / PARTICIPATION with Placed / Not Placed badge below pipeline */}
-                  <div className="pr-4">
-                    <div className="flex items-center justify-between text-[12px] font-medium leading-none mb-1">
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between text-[12px] font-medium leading-none mb-1.5">
                       <span className="text-[#475569]">
                         {st.companies_attended}/{st.companies_eligible} attended
                       </span>
@@ -434,23 +434,23 @@ export default function ReviewProgressWorkspace({
                   </div>
 
                   {/* 4. PRIORITY SCORE */}
-                  <div className="pr-2">
-                    <div className="text-[14.5px] font-[850] text-[#0f172a] leading-none mb-1">
+                  <div className="min-w-0">
+                    <div className="text-[14.5px] font-[850] text-[#0f172a] leading-none mb-1.5">
                       {Math.round(st.priority_score)}/100
                     </div>
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-[6px] text-[10.5px] font-bold border ${badgeColor}`}
+                      className={`inline-block px-2 py-0.5 rounded-[6px] text-[10.5px] font-bold border truncate max-w-full ${badgeColor}`}
                     >
                       {st.priority_level}
                     </span>
                   </div>
 
                   {/* 5. OFFERS */}
-                  <div>
-                    <div className="text-[14px] font-[850] text-[#0f172a] leading-none">
+                  <div className="min-w-0">
+                    <div className="text-[14px] font-[850] text-[#0f172a] leading-none mb-1.5">
                       {st.offers_count}
                     </div>
-                    <div className="text-[11.5px] text-[#64748b] font-medium mt-1 leading-tight">
+                    <div className="text-[11.5px] text-[#64748b] font-medium leading-tight">
                       {st.unsuccessful_count === 1
                         ? '1 failure'
                         : `${st.unsuccessful_count ?? 0} failures`}
@@ -458,15 +458,15 @@ export default function ReviewProgressWorkspace({
                   </div>
 
                   {/* 6. BEST PACKAGE (Reduced space & highest subtitle) */}
-                  <div>
-                    <div className="text-[13.5px] font-[800] text-[#0f172a] leading-none">
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-[800] text-[#0f172a] leading-none mb-1.5">
                       {st.best_package_lpa != null && st.best_package_lpa > 0 ? (
                         `${st.best_package_lpa} LPA`
                       ) : (
                         '—'
                       )}
                     </div>
-                    <div className="text-[11px] text-[#94a3b8] font-medium mt-1 leading-tight">
+                    <div className="text-[11px] text-[#94a3b8] font-medium leading-tight">
                       highest
                     </div>
                   </div>
