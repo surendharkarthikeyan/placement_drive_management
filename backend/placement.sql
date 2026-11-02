@@ -130,16 +130,7 @@ CREATE TABLE `placement_drive` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `placement_drive` (`id`, `company_id`, `job_role`, `placement_type`, `package_lpa`, `drive_start_date`, `drive_end_date`, `drive_owner_user_id`, `job_description`, `overall_status`, `result_publication_date`, `result_reference`, `result_notes`, `created_at`, `updated_at`, `batch_id`, `batch_ids`) VALUES
-(1,	1,	'Software Engineer',	'Full-time Placement',	8.50,	'2026-11-05',	'2026-11-10',	6,	'Software development and problem-solving role.',	'in_progress',	NULL,	NULL,	'Technical interviews are in progress.',	'2026-10-28 09:36:33',	'2026-10-29 10:25:41',	'[1]',	NULL),
-(2,	2,	'Graduate Engineer Trainee',	'Internship + PPO',	5.00,	'2026-11-15',	'2026-11-18',	6,	'Entry-level engineering role.',	'scheduled',	NULL,	NULL,	'Drive scheduled for eligible students.',	'2026-10-28 09:36:33',	'2026-10-29 09:41:49',	'[1]',	NULL),
-(3,	16,	'Software Interns',	'Internship + PPO',	7.50,	'2026-10-30',	'2026-10-31',	7,	'',	'registration_open',	NULL,	'',	'',	'2026-10-29 05:50:17',	'2026-10-29 09:41:49',	'[1]',	NULL),
-(4,	16,	'Software Engineer',	'Apprenticeship',	12.00,	'2026-05-04',	NULL,	6,	'',	'on_hold',	NULL,	'',	'',	'2026-10-29 06:30:40',	'2026-10-29 10:24:15',	'[2]',	NULL),
-(5,	17,	'Full-stack developer',	'Internship + PPO',	8.00,	'2026-10-30',	NULL,	7,	'',	'awaiting_final_result',	NULL,	'',	'',	'2026-10-29 09:27:08',	'2026-10-29 10:23:57',	'[1, 2]',	NULL),
-(6,	1,	'Product Engineer',	'Full-time Placement',	12.00,	NULL,	NULL,	NULL,	'',	'awaiting_next_round',	NULL,	'',	'',	'2026-10-29 09:47:39',	'2026-10-29 10:25:41',	'[1, 2]',	NULL),
-(7,	18,	'Systems Engineer',	'Full-time Placement',	7.00,	NULL,	NULL,	NULL,	'',	'cancelled',	NULL,	'',	'',	'2026-10-29 09:48:03',	'2026-10-29 10:28:43',	'[1]',	NULL),
-(9,	18,	'Data analyst',	'Internship + PPO',	12.00,	NULL,	NULL,	7,	'',	'draft',	NULL,	'',	'',	'2026-10-29 10:30:13',	'2026-10-29 10:30:13',	'[1]',	NULL),
-(10,	2,	'Systems Engineer',	'Internship + PPO',	40.00,	'2026-10-31',	NULL,	7,	'',	'draft',	NULL,	'',	'',	'2026-10-30 03:47:02',	'2026-10-30 03:47:02',	'[2]',	NULL),
-(11,	1,	'Devops',	'Full-time Placement',	13.00,	NULL,	NULL,	7,	'',	'draft',	NULL,	'',	'',	'2026-10-30 05:25:30',	'2026-10-30 05:25:40',	'[1]',	NULL)
+(1,	18,	'Software Engineer',	'Full-time Placement',	12.00,	'2026-10-31',	NULL,	6,	'',	'awaiting_final_result',	NULL,	'',	'',	'2026-10-31 04:42:22',	'2026-10-31 04:47:43',	'[1]',	NULL)
 ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `company_id` = VALUES(`company_id`), `job_role` = VALUES(`job_role`), `placement_type` = VALUES(`placement_type`), `package_lpa` = VALUES(`package_lpa`), `drive_start_date` = VALUES(`drive_start_date`), `drive_end_date` = VALUES(`drive_end_date`), `drive_owner_user_id` = VALUES(`drive_owner_user_id`), `job_description` = VALUES(`job_description`), `overall_status` = VALUES(`overall_status`), `result_publication_date` = VALUES(`result_publication_date`), `result_reference` = VALUES(`result_reference`), `result_notes` = VALUES(`result_notes`), `created_at` = VALUES(`created_at`), `updated_at` = VALUES(`updated_at`), `batch_id` = VALUES(`batch_id`), `batch_ids` = VALUES(`batch_ids`);
 
 DROP TABLE IF EXISTS `placement_drive_activity_log`;
@@ -147,40 +138,33 @@ CREATE TABLE `placement_drive_activity_log` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `drive_id` bigint unsigned NOT NULL,
   `user_id` bigint unsigned DEFAULT NULL,
+  `activity_type` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `entity_type` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `entity_id` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `activity_description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_placement_drive_activity_log_drive` (`drive_id`),
   KEY `idx_placement_drive_activity_log_user` (`user_id`),
+  KEY `idx_dup_check` (`drive_id`,`user_id`,`activity_type`,`entity_type`,`entity_id`,`created_at`),
   CONSTRAINT `fk_placement_drive_activity_log_drive` FOREIGN KEY (`drive_id`) REFERENCES `placement_drive` (`id`),
   CONSTRAINT `fk_placement_drive_activity_log_user` FOREIGN KEY (`user_id`) REFERENCES `master_users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `placement_drive_activity_log` (`id`, `drive_id`, `user_id`, `activity_description`, `created_at`) VALUES
-(1,	1,	6,	'Created Software Engineer placement drive',	'2026-10-28 09:36:33'),
-(2,	1,	6,	'Added eligibility criteria',	'2026-10-28 09:36:33'),
-(3,	1,	6,	'Added students to the drive',	'2026-10-28 09:36:33'),
-(4,	1,	6,	'Recorded aptitude test results',	'2026-10-28 09:36:33'),
-(5,	2,	6,	'Created Graduate Engineer Trainee drive',	'2026-10-28 09:36:33'),
-(6,	3,	6,	'Created Software Intern placement drive for TCS (Status: Draft)',	'2026-10-29 05:50:17'),
-(7,	3,	6,	'Updated drive setup information for Software Intern',	'2026-10-29 06:27:11'),
-(8,	3,	6,	'Updated drive setup information for Software Interns',	'2026-10-29 06:27:20'),
-(9,	3,	6,	'Updated drive setup information for Software Interns',	'2026-10-29 06:27:54'),
-(10,	3,	6,	'Updated drive setup information for Software Interns',	'2026-10-29 06:28:23'),
-(11,	3,	7,	'Updated drive setup information for Software Interns',	'2026-10-29 06:28:33'),
-(12,	4,	6,	'Created Software Engineer placement drive for TCS (Status: Draft)',	'2026-10-29 06:30:40'),
-(13,	4,	6,	'Updated drive setup information for Software Engineer',	'2026-10-29 06:40:25'),
-(14,	4,	6,	'Updated drive setup information for Software Engineer',	'2026-10-29 06:40:47'),
-(15,	5,	7,	'Drive record created in draft status for Full-stack developer',	'2026-10-29 09:27:08'),
-(16,	6,	NULL,	'Drive record created in draft status for Product Engineer',	'2026-10-29 09:47:39'),
-(17,	7,	NULL,	'Drive record created in draft status for Systems Engineer',	'2026-10-29 09:48:03'),
-(19,	7,	NULL,	'Updated drive setup information for Systems Engineer',	'2026-10-29 10:23:11'),
-(20,	7,	NULL,	'Updated drive setup information for Systems Engineer',	'2026-10-29 10:28:43'),
-(21,	9,	7,	'Drive record created in draft status for Data analyst',	'2026-10-29 10:30:13'),
-(22,	10,	7,	'Drive record created in draft status for Systems Engineer',	'2026-10-30 03:47:02'),
-(23,	11,	7,	'Drive record created in draft status for Devops',	'2026-10-30 05:25:30'),
-(24,	11,	7,	'Updated drive setup information for Devops',	'2026-10-30 05:25:40')
-ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_id` = VALUES(`drive_id`), `user_id` = VALUES(`user_id`), `activity_description` = VALUES(`activity_description`), `created_at` = VALUES(`created_at`);
+INSERT INTO `placement_drive_activity_log` (`id`, `drive_id`, `user_id`, `activity_type`, `entity_type`, `entity_id`, `activity_description`, `created_at`) VALUES
+(1,	1,	6,	'DRIVE_CREATED',	'DRIVE',	'1',	'Created Software Engineer placement drive',	'2026-10-31 04:42:22'),
+(2,	1,	6,	'ELIGIBILITY_CONFIGURED',	'ELIGIBILITY',	'1',	'Configured eligibility criteria (Open to All Students)',	'2026-10-31 04:42:29'),
+(3,	1,	6,	'STUDENTS_EXCLUDED',	'ROSTER',	'1',	'1 students excluded from the drive',	'2026-10-31 04:42:38'),
+(4,	1,	6,	'SPECIAL_ENTRY_ADDED',	'ROSTER',	'1',	'2 students added through special entry',	'2026-10-31 04:43:03'),
+(5,	1,	6,	'STAGE_CREATED',	'STAGE',	'1',	'Created Online assesment stage',	'2026-10-31 04:43:36'),
+(6,	1,	6,	'STAGE_CREATED',	'STAGE',	'2',	'Created Tech stage',	'2026-10-31 04:44:17'),
+(7,	1,	6,	'STUDENTS_CLEARED',	'STAGE',	'1',	'1 students cleared Online assesment',	'2026-10-31 04:45:46'),
+(8,	1,	6,	'STAGE_COMPLETED',	'STAGE',	'1',	'Online assesment stage marked as completed',	'2026-10-31 04:45:58'),
+(9,	1,	6,	'STUDENTS_CLEARED',	'STAGE',	'2',	'1 students cleared Tech',	'2026-10-31 04:46:09'),
+(10,	1,	6,	'SUBSTAGE_COMPLETED',	'SUBSTAGE',	'1',	'Coding round marked as completed',	'2026-10-31 04:46:17'),
+(11,	1,	NULL,	'OFFER_LETTER_UPLOADED',	'STUDENT',	'6',	'Uploaded offer letter for CS201',	'2026-10-31 04:47:02'),
+(12,	1,	6,	'RECRUITMENT_COMPLETED',	'DRIVE',	'1',	'All recruitment stages completed; moved to Final Selection',	'2026-10-31 04:47:43')
+ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_id` = VALUES(`drive_id`), `user_id` = VALUES(`user_id`), `activity_type` = VALUES(`activity_type`), `entity_type` = VALUES(`entity_type`), `entity_id` = VALUES(`entity_id`), `activity_description` = VALUES(`activity_description`), `created_at` = VALUES(`created_at`);
 
 DROP TABLE IF EXISTS `placement_drive_eligibility`;
 CREATE TABLE `placement_drive_eligibility` (
@@ -198,14 +182,7 @@ CREATE TABLE `placement_drive_eligibility` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `placement_drive_eligibility` (`id`, `drive_id`, `min_cgpa`, `min_tenth_mark`, `min_twelfth_mark`, `max_current_arrears`, `max_history_arrears`, `max_existing_offer_lpa`) VALUES
-(1,	1,	7.50,	70.00,	70.00,	0,	0,	8.50),
-(2,	2,	7.00,	65.00,	65.00,	1,	1,	5.00),
-(3,	4,	NULL,	NULL,	NULL,	NULL,	NULL,	NULL),
-(4,	5,	NULL,	NULL,	NULL,	NULL,	NULL,	NULL),
-(6,	7,	NULL,	NULL,	NULL,	NULL,	NULL,	NULL),
-(7,	9,	7.00,	10.00,	70.00,	NULL,	NULL,	NULL),
-(8,	10,	8.00,	70.00,	65.00,	NULL,	NULL,	5.00),
-(9,	11,	6.00,	NULL,	NULL,	1,	1,	NULL)
+(1,	1,	NULL,	NULL,	NULL,	NULL,	NULL,	NULL)
 ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_id` = VALUES(`drive_id`), `min_cgpa` = VALUES(`min_cgpa`), `min_tenth_mark` = VALUES(`min_tenth_mark`), `min_twelfth_mark` = VALUES(`min_twelfth_mark`), `max_current_arrears` = VALUES(`max_current_arrears`), `max_history_arrears` = VALUES(`max_history_arrears`), `max_existing_offer_lpa` = VALUES(`max_existing_offer_lpa`);
 
 DROP TABLE IF EXISTS `placement_drive_offers`;
@@ -215,17 +192,18 @@ CREATE TABLE `placement_drive_offers` (
   `final_role` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `package_lpa` decimal(8,2) DEFAULT NULL,
   `confirmed_at` datetime DEFAULT NULL,
-  `result_reference` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `result_reference` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `offer_letter_file` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_placement_drive_offers_student` (`drive_student_id`),
   CONSTRAINT `fk_placement_drive_offers_student` FOREIGN KEY (`drive_student_id`) REFERENCES `placement_drive_students` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `placement_drive_offers` (`id`, `drive_student_id`, `final_role`, `package_lpa`, `confirmed_at`, `result_reference`, `notes`, `created_at`) VALUES
-(1,	2,	'Software Engineer',	8.50,	'2026-11-10 16:00:00',	'OFFER-TECH-001',	'Mock offer record for testing',	'2026-10-28 09:36:33')
-ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_student_id` = VALUES(`drive_student_id`), `final_role` = VALUES(`final_role`), `package_lpa` = VALUES(`package_lpa`), `confirmed_at` = VALUES(`confirmed_at`), `result_reference` = VALUES(`result_reference`), `notes` = VALUES(`notes`), `created_at` = VALUES(`created_at`);
+INSERT INTO `placement_drive_offers` (`id`, `drive_student_id`, `final_role`, `package_lpa`, `confirmed_at`, `result_reference`, `notes`, `offer_letter_file`, `created_at`) VALUES
+(1,	6,	NULL,	NULL,	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\CS201_TECH004.pdf',	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\CS201_TECH004.pdf',	'2026-10-31 04:47:02')
+ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_student_id` = VALUES(`drive_student_id`), `final_role` = VALUES(`final_role`), `package_lpa` = VALUES(`package_lpa`), `confirmed_at` = VALUES(`confirmed_at`), `result_reference` = VALUES(`result_reference`), `notes` = VALUES(`notes`), `offer_letter_file` = VALUES(`offer_letter_file`), `created_at` = VALUES(`created_at`);
 
 DROP TABLE IF EXISTS `placement_drive_stages`;
 CREATE TABLE `placement_drive_stages` (
@@ -236,18 +214,15 @@ CREATE TABLE `placement_drive_stages` (
   `scheduled_date` datetime DEFAULT NULL,
   `completed_at` datetime DEFAULT NULL,
   `internal_notes` text COLLATE utf8mb4_general_ci,
-  `stage_status` enum('pending','scheduled','in_progress','awaiting_result','completed') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending',
+  `stage_status` enum('pending','pending_date_not_announced','scheduled','in_progress','awaiting_result','completed') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending',
   PRIMARY KEY (`id`),
   KEY `idx_placement_drive_stages_drive` (`drive_id`),
   CONSTRAINT `fk_placement_drive_stages_drive` FOREIGN KEY (`drive_id`) REFERENCES `placement_drive` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `placement_drive_stages` (`id`, `drive_id`, `stage_name`, `sequence_no`, `scheduled_date`, `completed_at`, `internal_notes`, `stage_status`) VALUES
-(1,	1,	'Aptitude Test',	1,	'2026-11-05 09:00:00',	'2026-11-05 11:00:00',	NULL,	'pending'),
-(2,	1,	'Technical Interview',	2,	'2026-11-07 10:00:00',	NULL,	NULL,	'pending'),
-(3,	1,	'HR Interview',	3,	'2026-11-10 10:00:00',	NULL,	NULL,	'pending'),
-(4,	2,	'Written Test',	1,	'2026-11-15 09:00:00',	NULL,	NULL,	'pending'),
-(5,	2,	'Technical Interview',	2,	'2026-11-17 10:00:00',	NULL,	NULL,	'pending')
+(1,	1,	'Online assesment',	1,	NULL,	'2026-10-31 10:17:43',	'',	'completed'),
+(2,	1,	'Tech',	2,	'2026-01-31 05:30:00',	'2026-10-31 10:17:43',	'',	'completed')
 ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_id` = VALUES(`drive_id`), `stage_name` = VALUES(`stage_name`), `sequence_no` = VALUES(`sequence_no`), `scheduled_date` = VALUES(`scheduled_date`), `completed_at` = VALUES(`completed_at`), `internal_notes` = VALUES(`internal_notes`), `stage_status` = VALUES(`stage_status`);
 
 DROP TABLE IF EXISTS `placement_drive_students`;
@@ -266,20 +241,13 @@ CREATE TABLE `placement_drive_students` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `placement_drive_students` (`id`, `drive_id`, `user_id`, `drive_status`, `included_at`, `notes`) VALUES
-(1,	1,	1,	'included',	'2026-10-28 03:30:00',	'Eligible for software engineer drive'),
-(2,	1,	2,	'included',	'2026-10-28 03:35:00',	'Eligible for software engineer drive'),
-(3,	1,	3,	'included',	'2026-10-28 03:40:00',	'Review academic eligibility'),
-(4,	2,	3,	'included',	'2026-10-28 03:45:00',	'Included in graduate engineer drive'),
-(5,	2,	4,	'included',	'2026-10-28 03:50:00',	'Eligible for graduate engineer drive'),
-(6,	2,	5,	'included',	'2026-10-28 03:55:00',	'Eligible for graduate engineer drive'),
-(7,	1,	4,	'included',	'2026-10-29 11:21:58',	'Eligible for software engineer drive'),
-(8,	1,	5,	'included',	'2026-10-29 11:21:58',	'Eligible for software engineer drive'),
-(21,	11,	4,	'excluded',	'2026-10-30 05:34:44',	''),
-(22,	11,	3,	'excluded',	'2026-10-30 05:34:44',	''),
-(23,	11,	2,	'included',	'2026-10-30 05:34:44',	''),
-(24,	11,	5,	'included',	'2026-10-30 05:34:44',	''),
-(25,	11,	8,	'special_entry',	'2026-10-30 05:35:05',	''),
-(26,	11,	1,	'included',	'2026-10-30 05:35:05',	'')
+(1,	1,	1,	'excluded',	'2026-10-31 04:42:29',	'Automatically included based on eligibility criteria'),
+(2,	1,	4,	'included',	'2026-10-31 04:42:29',	'Automatically included based on eligibility criteria'),
+(3,	1,	3,	'included',	'2026-10-31 04:42:29',	'Automatically included based on eligibility criteria'),
+(4,	1,	2,	'included',	'2026-10-31 04:42:29',	'Automatically included based on eligibility criteria'),
+(5,	1,	5,	'included',	'2026-10-31 04:42:29',	'Automatically included based on eligibility criteria'),
+(6,	1,	8,	'special_entry',	'2026-10-31 04:43:03',	''),
+(7,	1,	13,	'special_entry',	'2026-10-31 04:43:03',	'')
 ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_id` = VALUES(`drive_id`), `user_id` = VALUES(`user_id`), `drive_status` = VALUES(`drive_status`), `included_at` = VALUES(`included_at`), `notes` = VALUES(`notes`);
 
 DROP TABLE IF EXISTS `placement_drive_substages`;
@@ -289,20 +257,38 @@ CREATE TABLE `placement_drive_substages` (
   `substage_name` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `sequence_no` int NOT NULL,
   `scheduled_date` datetime DEFAULT NULL,
-  `substage_status` enum('pending','scheduled','in_progress','awaiting_result','completed') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending',
+  `substage_status` enum('pending','pending_date_not_announced','scheduled','in_progress','awaiting_result','completed') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'pending',
   `internal_notes` text COLLATE utf8mb4_general_ci,
+  `completed_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_placement_drive_substages_stage` (`stage_id`),
   CONSTRAINT `fk_placement_drive_substages_stage` FOREIGN KEY (`stage_id`) REFERENCES `placement_drive_stages` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `placement_drive_substages` (`id`, `stage_id`, `substage_name`, `sequence_no`, `scheduled_date`, `substage_status`, `internal_notes`) VALUES
-(1,	1,	'Quantitative Aptitude',	1,	NULL,	'pending',	NULL),
-(2,	1,	'Logical Reasoning',	2,	NULL,	'pending',	NULL),
-(3,	2,	'Coding Round',	1,	NULL,	'pending',	NULL),
-(4,	2,	'Technical Discussion',	2,	NULL,	'pending',	NULL),
-(5,	4,	'Core Aptitude',	1,	NULL,	'pending',	NULL)
-ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `stage_id` = VALUES(`stage_id`), `substage_name` = VALUES(`substage_name`), `sequence_no` = VALUES(`sequence_no`), `scheduled_date` = VALUES(`scheduled_date`), `substage_status` = VALUES(`substage_status`), `internal_notes` = VALUES(`internal_notes`);
+INSERT INTO `placement_drive_substages` (`id`, `stage_id`, `substage_name`, `sequence_no`, `scheduled_date`, `substage_status`, `internal_notes`, `completed_at`) VALUES
+(1,	2,	'Coding',	1,	NULL,	'completed',	'',	'2026-10-31 10:16:17'),
+(2,	2,	'HR',	2,	NULL,	'completed',	'',	'2026-10-31 10:16:24')
+ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `stage_id` = VALUES(`stage_id`), `substage_name` = VALUES(`substage_name`), `sequence_no` = VALUES(`sequence_no`), `scheduled_date` = VALUES(`scheduled_date`), `substage_status` = VALUES(`substage_status`), `internal_notes` = VALUES(`internal_notes`), `completed_at` = VALUES(`completed_at`);
+
+DROP TABLE IF EXISTS `placement_review_notes`;
+CREATE TABLE `placement_review_notes` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint unsigned NOT NULL,
+  `note` text NOT NULL,
+  `created_by` bigint unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_created_by` (`created_by`),
+  CONSTRAINT `fk_review_note_creator` FOREIGN KEY (`created_by`) REFERENCES `master_users` (`id`),
+  CONSTRAINT `fk_review_note_student` FOREIGN KEY (`user_id`) REFERENCES `master_users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `placement_review_notes` (`id`, `user_id`, `note`, `created_by`, `created_at`, `updated_at`) VALUES
+(6,	1,	'wdefqwdefdewqed',	6,	'2026-11-02 03:49:05',	'2026-11-02 03:49:26'),
+(7,	1,	'wdefqwerwqw2e',	6,	'2026-11-02 03:49:08',	'2026-11-02 03:49:23')
+ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `user_id` = VALUES(`user_id`), `note` = VALUES(`note`), `created_by` = VALUES(`created_by`), `created_at` = VALUES(`created_at`), `updated_at` = VALUES(`updated_at`);
 
 DROP TABLE IF EXISTS `placement_stage_results`;
 CREATE TABLE `placement_stage_results` (
@@ -329,14 +315,17 @@ CREATE TABLE `placement_stage_results` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `placement_stage_results` (`id`, `drive_student_id`, `stage_id`, `substage_id`, `previous_stage_status`, `outcome`, `score`, `remarks`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1,	1,	1,	NULL,	'cleared',	'cleared',	85.00,	'Passed aptitude test',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33'),
-(2,	2,	1,	NULL,	'cleared',	'cleared',	92.00,	'Excellent performance',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33'),
-(3,	3,	1,	NULL,	'cleared',	'not_cleared',	42.00,	'Below cutoff',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33'),
-(4,	1,	2,	3,	'cleared',	'pending',	NULL,	'Coding round awaiting evaluation',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33'),
-(5,	2,	2,	3,	'cleared',	'cleared',	88.00,	'Coding round cleared',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33'),
-(6,	4,	4,	NULL,	'cleared',	'pending',	NULL,	'Written test not conducted yet',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33'),
-(7,	5,	4,	NULL,	'cleared',	'pending',	NULL,	'Written test not conducted yet',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33'),
-(8,	6,	4,	NULL,	'cleared',	'pending',	NULL,	'Written test not conducted yet',	6,	'2026-10-28 09:36:33',	'2026-10-28 09:36:33')
+(1,	2,	1,	NULL,	'cleared',	'pending',	NULL,	'',	NULL,	'2026-10-31 04:43:36',	'2026-10-31 04:43:36'),
+(2,	3,	1,	NULL,	'cleared',	'pending',	NULL,	'',	NULL,	'2026-10-31 04:43:36',	'2026-10-31 04:43:36'),
+(3,	4,	1,	NULL,	'cleared',	'cleared',	NULL,	'',	6,	'2026-10-31 04:43:36',	'2026-10-31 04:45:49'),
+(4,	5,	1,	NULL,	'cleared',	'pending',	NULL,	'',	NULL,	'2026-10-31 04:43:36',	'2026-10-31 04:43:36'),
+(5,	6,	1,	NULL,	'cleared',	'cleared',	NULL,	'',	6,	'2026-10-31 04:43:36',	'2026-10-31 04:45:46'),
+(6,	7,	1,	NULL,	'cleared',	'cleared',	NULL,	'',	6,	'2026-10-31 04:43:36',	'2026-10-31 04:45:47'),
+(7,	4,	2,	1,	'cleared',	'pending',	NULL,	'',	6,	'2026-10-31 04:45:58',	'2026-10-31 04:45:58'),
+(8,	6,	2,	1,	'cleared',	'cleared',	NULL,	'',	6,	'2026-10-31 04:45:58',	'2026-10-31 04:46:09'),
+(9,	7,	2,	1,	'cleared',	'cleared',	NULL,	'',	6,	'2026-10-31 04:45:58',	'2026-10-31 04:46:11'),
+(10,	6,	2,	2,	'cleared',	'cleared',	NULL,	'',	6,	'2026-10-31 04:46:17',	'2026-10-31 04:46:21'),
+(11,	7,	2,	2,	'cleared',	'pending',	NULL,	'',	6,	'2026-10-31 04:46:17',	'2026-10-31 04:46:17')
 ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_student_id` = VALUES(`drive_student_id`), `stage_id` = VALUES(`stage_id`), `substage_id` = VALUES(`substage_id`), `previous_stage_status` = VALUES(`previous_stage_status`), `outcome` = VALUES(`outcome`), `score` = VALUES(`score`), `remarks` = VALUES(`remarks`), `updated_by` = VALUES(`updated_by`), `created_at` = VALUES(`created_at`), `updated_at` = VALUES(`updated_at`);
 
 DROP TABLE IF EXISTS `placement_student_basic_details`;
@@ -391,4 +380,4 @@ INSERT INTO `roles` (`id`, `role`) VALUES
 (1,	'student')
 ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `role` = VALUES(`role`);
 
--- 2026-10-30 06:48:25 UTC
+-- 2026-11-02 04:46:30 UTC

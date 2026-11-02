@@ -204,9 +204,65 @@ export const getStudentReviewDetail = async (userId = 'default') => {
   return response.data
 }
 
+export const getStudentRecruitmentHistory = async (userId = 'default', page = 1, limit = 5) => {
+  const response = await api.get(`/student-review/${userId}/history`, {
+    params: { page, limit }
+  })
+  return response.data
+}
+
+export const getStudentCompanyProcesses = async (userId = 'default', search = '') => {
+  const response = await api.get(`/student-review/${userId}/company-processes`, {
+    params: { search }
+  })
+  return response.data
+}
+
+export const getReviewAnalytics = async (filters = {}) => {
+  const response = await api.post('/student-review/analytics', filters)
+  return response.data
+}
+
+export const getReviewStudents = async (filters = {}, sort = 'opportunity_priority') => {
+  const response = await api.post('/student-review/students', {
+    filter: filters,
+    sort
+  })
+  return response.data
+}
+
 export const saveStudentReviewNote = async (userId, note) => {
   const response = await api.post(`/student-review/${userId}/notes`, { note })
   return response.data
+}
+
+export const updateStudentReviewNote = async (noteId, note) => {
+  const response = await api.put(`/student-review/notes/${noteId}`, { note })
+  return response.data
+}
+
+export const deleteStudentReviewNote = async (noteId) => {
+  const response = await api.delete(`/student-review/notes/${noteId}`)
+  return response.data
+}
+
+export const exportReviewStudentsExcel = async (studentIds = [], filters = {}) => {
+  const response = await api.post(
+    '/student-review/export',
+    { student_ids: studentIds, filter: filters },
+    { responseType: 'blob' }
+  )
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', `Student_Placement_Review_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
 }
 
 export default api

@@ -1,6 +1,26 @@
-import React, { useState, useEffect } from 'react'
-import { Loader2, AlertCircle, MessageSquareQuote, Send, Clock } from 'lucide-react'
-import { getStudentReviewDetail, saveStudentReviewNote } from '../../../services/api'
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  Loader2,
+  AlertCircle,
+  MessageSquareQuote,
+  Send,
+  Clock,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Search
+} from 'lucide-react'
+import {
+  getStudentReviewDetail,
+  getStudentRecruitmentHistory,
+  getStudentCompanyProcesses,
+  saveStudentReviewNote,
+  updateStudentReviewNote,
+  deleteStudentReviewNote
+} from '../../../services/api'
 import GlassSegmentedControl from '../../common/GlassSegmentedControl'
 
 /**
@@ -15,6 +35,7 @@ import GlassSegmentedControl from '../../common/GlassSegmentedControl'
 export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
   const [student, setStudent] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('Placement Journey')
 
@@ -24,12 +45,87 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [noteSuccess, setNoteSuccess] = useState(false)
 
+  // Recommendation note edit & delete state
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [editingNoteText, setEditingNoteText] = useState('')
+  const [isUpdatingNote, setIsUpdatingNote] = useState(false)
+  const [deletingNoteId, setDeletingNoteId] = useState(null)
+  const [deleteConfirmNoteId, setDeleteConfirmNoteId] = useState(null)
+
+  // Recruitment History (Activity History tab) state
+  const [historyData, setHistoryData] = useState(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState(null)
+  const [historyPage, setHistoryPage] = useState(1)
+
+  const fetchHistory = useCallback(async (pageToLoad = 1) => {
+    try {
+      setHistoryLoading(true)
+      setHistoryError(null)
+      const targetUserId = student?.user_id || studentId || 'default'
+      const data = await getStudentRecruitmentHistory(targetUserId, pageToLoad, 5)
+      setHistoryData(data)
+    } catch (err) {
+      console.error('Error fetching recruitment history:', err)
+      setHistoryError('Failed to load recruitment history')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [student?.user_id, studentId])
+
+  useEffect(() => {
+    if (activeTab === 'Activity History') {
+      fetchHistory(historyPage)
+    }
+  }, [activeTab, historyPage, fetchHistory])
+
+  // Reset history page when student changes
+  useEffect(() => {
+    setHistoryPage(1)
+  }, [studentId])
+
+  // Company-wise Recruitment Processes state
+  const [processes, setProcesses] = useState([])
+  const [processesLoading, setProcessesLoading] = useState(false)
+  const [processesError, setProcessesError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const fetchProcesses = useCallback(async (query = '') => {
+    try {
+      setProcessesLoading(true)
+      setProcessesError(null)
+      const targetUserId = student?.user_id || studentId || 'default'
+      const data = await getStudentCompanyProcesses(targetUserId, query)
+      setProcesses(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('Error fetching company recruitment processes:', err)
+      setProcessesError('Failed to load company recruitment processes')
+    } finally {
+      setProcessesLoading(false)
+    }
+  }, [student?.user_id, studentId])
+
+  useEffect(() => {
+    if (activeTab === 'Activity History') {
+      fetchProcesses(searchQuery)
+    }
+  }, [activeTab, searchQuery, fetchProcesses])
+
+  // Reset search when student changes
+  useEffect(() => {
+    setSearchQuery('')
+  }, [studentId])
+
   useEffect(() => {
     let isMounted = true
 
     const fetchStudentDetail = async () => {
       try {
-        setIsLoading(true)
+        if (!student) {
+          setIsLoading(true)
+        } else {
+          setIsUpdating(true)
+        }
         setError(null)
         const data = await getStudentReviewDetail(studentId || 'default')
         if (isMounted) {
@@ -43,6 +139,7 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
       } finally {
         if (isMounted) {
           setIsLoading(false)
+          setIsUpdating(false)
         }
       }
     }
@@ -88,6 +185,38 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
     }
   }
 
+  // Update existing recommendation note
+  const handleUpdateNote = async (noteId) => {
+    if (!editingNoteText.trim()) return
+    try {
+      setIsUpdatingNote(true)
+      await updateStudentReviewNote(noteId, editingNoteText.trim())
+      const updated = await getStudentReviewDetail(student.user_id)
+      setStudent(updated)
+      setEditingNoteId(null)
+      setEditingNoteText('')
+    } catch (err) {
+      console.error('Failed to update review note:', err)
+    } finally {
+      setIsUpdatingNote(false)
+    }
+  }
+
+  // Delete recommendation note
+  const handleDeleteNote = async (noteId) => {
+    try {
+      setDeletingNoteId(noteId)
+      await deleteStudentReviewNote(noteId)
+      const updated = await getStudentReviewDetail(student.user_id)
+      setStudent(updated)
+    } catch (err) {
+      console.error('Failed to delete review note:', err)
+    } finally {
+      setDeletingNoteId(null)
+      setDeleteConfirmNoteId(null)
+    }
+  }
+
   // Priority status badge styling matching reference design:
   // High: text #CA3A31, bg #FCF2F2, border #F6CCCB
   // Mid: text #A85923, bg #FEFBED, border #F9E796
@@ -120,18 +249,18 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
 
   return (
     <aside className="w-[450px] xl:w-[490px] h-full overflow-y-auto bg-white border-l border-[#dbe5f1] p-[22px] shrink-0 select-none text-[#1e293b] flex flex-col">
-      {isLoading ? (
+      {isLoading && !student ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16 text-[#64748b]">
           <Loader2 className="w-7 h-7 animate-spin text-[#2563eb]" />
           <span className="text-[13px] font-[600]">Loading student profile...</span>
         </div>
-      ) : error ? (
+      ) : error && !student ? (
         <div className="p-4 bg-[#fef2f2] border border-[#fecaca] rounded-[12px] text-center text-[#991b1b] text-[13px] flex flex-col items-center gap-2 my-auto">
           <AlertCircle className="w-5 h-5 text-[#dc2626]" />
           <span className="font-[600]">{error}</span>
         </div>
       ) : student ? (
-        <div className="flex flex-col">
+        <div className={`flex flex-col transition-opacity duration-200 ${isUpdating ? 'opacity-70 pointer-events-none' : 'opacity-100'}`}>
           {/* 1. Profile Header Row */}
           <div className="flex items-center gap-3.5">
             {/* Avatar with royal blue/indigo gradient */}
@@ -455,23 +584,114 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
                     </div>
                   )}
 
-                  {/* List all notes in order */}
+                  {/* List all notes in order with edit & delete icon options */}
                   {student.opportunity?.notes && student.opportunity.notes.length > 0 ? (
-                    <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                    <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
                       {student.opportunity.notes.map((item) => (
                         <div
                           key={item.id}
                           className="bg-[#f8fafc] border border-[#e2e8f0] rounded-[12px] p-3 hover:border-[#cbd5e1] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                         >
-                          <p className="text-[12.5px] text-[#334155] italic leading-relaxed m-0 font-medium whitespace-pre-wrap">
-                            "{item.note}"
-                          </p>
-                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#edf2f7] text-[11px] text-[#64748b]">
-                            <span className="font-semibold text-[#475569]">
-                              {item.author_name || 'Placement Officer'}
-                            </span>
-                            <span className="text-[#94a3b8] font-medium">{item.created_at}</span>
-                          </div>
+                          {editingNoteId === item.id ? (
+                            <div className="flex flex-col gap-2">
+                              <span className="text-[11px] font-bold text-[#1e293b]">Edit Recommendation Note</span>
+                              <textarea
+                                value={editingNoteText}
+                                onChange={(e) => setEditingNoteText(e.target.value)}
+                                className="w-full text-[12.5px] p-2 bg-white border border-[#2563eb] rounded-[8px] focus:outline-none resize-none h-18 text-[#1e293b]"
+                                autoFocus
+                              />
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingNoteId(null)
+                                    setEditingNoteText('')
+                                  }}
+                                  className="px-2.5 py-1 text-[11px] font-semibold text-[#64748b] hover:bg-[#e2e8f0] rounded-[6px] cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isUpdatingNote || !editingNoteText.trim()}
+                                  onClick={() => handleUpdateNote(item.id)}
+                                  className="px-3 py-1 bg-[#2563eb] text-white text-[11px] font-semibold rounded-[6px] hover:bg-[#1d4ed8] disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                                >
+                                  {isUpdatingNote ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                  Save Changes
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-[12.5px] text-[#334155] italic leading-relaxed m-0 font-medium whitespace-pre-wrap flex-1">
+                                  "{item.note}"
+                                </p>
+
+                                {/* Edit & Delete Action Icons */}
+                                <div className="flex items-center gap-1 shrink-0 -mt-0.5">
+                                  {deleteConfirmNoteId === item.id ? (
+                                    <div className="flex items-center gap-1 bg-[#fef2f2] border border-[#fecaca] px-2 py-0.5 rounded-[6px] text-[11px] text-[#991b1b] shadow-xs">
+                                      <span>Delete?</span>
+                                      <button
+                                        type="button"
+                                        disabled={deletingNoteId === item.id}
+                                        onClick={() => handleDeleteNote(item.id)}
+                                        className="p-0.5 text-[#dc2626] hover:bg-[#fee2e2] rounded cursor-pointer"
+                                        title="Confirm delete"
+                                      >
+                                        {deletingNoteId === item.id ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Check className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeleteConfirmNoteId(null)}
+                                        className="p-0.5 text-[#64748b] hover:bg-[#fee2e2] rounded cursor-pointer"
+                                        title="Cancel"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingNoteId(item.id)
+                                          setEditingNoteText(item.note)
+                                          setDeleteConfirmNoteId(null)
+                                        }}
+                                        title="Edit note"
+                                        className="p-1.5 rounded-[6px] text-[#94a3b8] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-all cursor-pointer"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeleteConfirmNoteId(item.id)}
+                                        title="Delete note"
+                                        className="p-1.5 rounded-[6px] text-[#94a3b8] hover:text-[#dc2626] hover:bg-[#fef2f2] transition-all cursor-pointer"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#edf2f7] text-[11px] text-[#64748b]">
+                                <span className="font-semibold text-[#475569]">
+                                  {item.author_name || 'Placement Officer'}
+                                </span>
+                                <span className="text-[#94a3b8] font-medium">{item.created_at}</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -609,13 +829,227 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
 
           {/* Tab Content 3: Activity History */}
           {activeTab === 'Activity History' && (
-            <div className="flex flex-col gap-3 mt-4">
-              <div className="bg-white border border-[#dbe5f1] rounded-[16px] p-5 shadow-[0_1px_3px_rgba(15,23,42,0.03)] text-center text-[#64748b]">
-                <Clock className="w-8 h-8 text-[#94a3b8] mx-auto mb-2" />
-                <span className="text-[13px] font-semibold text-[#1e293b] block">Activity History</span>
-                <span className="text-[12px] text-[#64748b] mt-1 block">
-                  Drive and stage participation records are up to date.
-                </span>
+            <div className="flex flex-col gap-4 mt-4">
+              {/* 1. Timeline: Recent Company Recruitment History (On Top) */}
+              <div className="bg-white border border-[#dbe5f1] rounded-[16px] p-5 shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-[#f1f5f9]">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#3b82f6]" />
+                    <h4 className="text-[13.5px] font-bold text-[#1e293b] tracking-tight">
+                      Recent Company Recruitment History
+                    </h4>
+                  </div>
+                  {historyData && historyData.total_count > 0 && (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
+                      {historyData.total_count} total
+                    </span>
+                  )}
+                </div>
+
+                {/* Body */}
+                {historyLoading && !historyData ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-[#94a3b8]">
+                    <Loader2 className="w-5 h-5 animate-spin text-[#3b82f6] mb-2" />
+                    <span className="text-[12px]">Loading recruitment history...</span>
+                  </div>
+                ) : historyError ? (
+                  <div className="p-3 text-[12px] bg-red-50 text-red-600 rounded-lg text-center">
+                    {historyError}
+                  </div>
+                ) : historyData?.items?.length === 0 ? (
+                  <div className="py-6 text-center text-[#94a3b8]">
+                    <p className="text-[12.5px] font-medium text-[#64748b]">No recruitment history found</p>
+                    <p className="text-[11.5px] text-[#94a3b8] mt-1">This student has not participated in any placement drives yet.</p>
+                  </div>
+                ) : (
+                  <div className="relative pl-1 pr-1">
+                    {/* Vertical connecting line */}
+                    <div className="absolute left-[11px] top-3 bottom-5 w-[2px] bg-[#DEE9FC]" />
+
+                    <div className="flex flex-col gap-5">
+                      {historyData?.items?.map((item, idx) => {
+                        let dotBg = 'bg-[#CC7C2E]' // In Process (Orange)
+
+                        if (item.status === 'Offered') {
+                          dotBg = 'bg-[#4CA154]' // Offered (Green)
+                        } else if (item.status === 'Failed / Cancelled') {
+                          dotBg = 'bg-[#CA3A31]' // Failed / Cancelled (Red)
+                        }
+
+                        return (
+                          <div key={item.drive_id || idx} className="relative flex items-start gap-3.5 group">
+                            {/* Timeline Dot with ring */}
+                            <div className="relative flex items-center justify-center w-[24px] h-[24px] flex-shrink-0 z-10 bg-white rounded-full">
+                              <div className={`w-[11px] h-[11px] rounded-full ring-[3.5px] ring-[#DEE9FC] ${dotBg}`} />
+                            </div>
+
+                            {/* Company & Round details */}
+                            <div className="flex-1 min-w-0 pt-0.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <h5 className="text-[14px] font-bold text-[#1e293b] truncate leading-tight">
+                                  {item.company_name}
+                                </h5>
+                                {item.job_role && (
+                                  <span className="text-[10.5px] text-[#94a3b8] font-medium truncate max-w-[120px]">
+                                    {item.job_role}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-[12.5px] text-[#64748b] font-medium leading-relaxed mt-0.5">
+                                {item.round_detail_text}
+                              </div>
+
+                              {item.date_formatted && (
+                                <div className="text-[10.5px] text-[#94a3b8] mt-0.5">
+                                  {item.date_formatted}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {historyData && historyData.total_pages > 1 && (
+                      <div className="mt-6 pt-3.5 border-t border-[#f1f5f9] flex items-center justify-between">
+                        <span className="text-[11.5px] text-[#64748b] font-medium">
+                          Page <span className="font-bold text-[#1e293b]">{historyData.current_page}</span> of{' '}
+                          <span className="font-bold text-[#1e293b]">{historyData.total_pages}</span>
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={historyData.current_page <= 1 || historyLoading}
+                            onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                            className="px-2.5 py-1 text-[11.5px] font-medium rounded-[7px] border border-[#dbe5f1] text-[#475569] hover:bg-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                            Prev
+                          </button>
+                          <button
+                            type="button"
+                            disabled={historyData.current_page >= historyData.total_pages || historyLoading}
+                            onClick={() => setHistoryPage((p) => Math.min(historyData.total_pages, p + 1))}
+                            className="px-2.5 py-1 text-[11.5px] font-medium rounded-[7px] border border-[#dbe5f1] text-[#475569] hover:bg-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
+                          >
+                            Next
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Search Bar for Attended Companies (Down) */}
+              <div className="relative mt-1">
+                <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search attended companies or roles..."
+                  className="w-full pl-9 pr-3.5 py-2 text-[12.5px] bg-white border border-[#dbe5f1] rounded-[10px] focus:outline-none focus:border-[#3b82f6] text-[#1e293b] placeholder-[#94a3b8] shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-colors"
+                />
+              </div>
+
+              {/* 3. Company-wise Recruitment Processes Section (Down) */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[14.5px] font-bold text-[#1e293b] tracking-tight">
+                    Company-wise recruitment processes
+                  </h4>
+                  {processes && processes.length > 0 && (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
+                      {processes.length} attended
+                    </span>
+                  )}
+                </div>
+
+                {processesLoading && processes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-[#94a3b8] bg-white border border-[#e2e8f0] rounded-[16px]">
+                    <Loader2 className="w-5 h-5 animate-spin text-[#3b82f6] mb-2" />
+                    <span className="text-[12px]">Loading recruitment processes...</span>
+                  </div>
+                ) : processesError ? (
+                  <div className="p-3 text-[12px] bg-red-50 text-red-600 rounded-[12px] text-center border border-red-100">
+                    {processesError}
+                  </div>
+                ) : processes.length === 0 ? (
+                  <div className="py-8 text-center text-[#94a3b8] bg-white border border-[#e2e8f0] rounded-[16px] p-5">
+                    <p className="text-[13px] font-medium text-[#64748b]">No attended companies found</p>
+                    <p className="text-[11.5px] text-[#94a3b8] mt-1">
+                      {searchQuery
+                        ? `No results matching "${searchQuery}"`
+                        : 'This student has not attended any recruitment processes yet.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {processes.map((proc, pIdx) => (
+                      <div
+                        key={proc.drive_id || pIdx}
+                        className="bg-white border border-[#e2e8f0] rounded-[16px] p-4 shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col gap-3 transition-shadow hover:shadow-[0_2px_6px_rgba(15,23,42,0.06)]"
+                      >
+                        {/* Card Header: Company, Role · Package, and Overall Status */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-[16px] font-bold text-[#0f172a] leading-tight truncate">
+                              {proc.company_name}
+                            </h4>
+                            <p className="text-[13px] text-[#64748b] font-medium mt-0.5 truncate">
+                              {proc.job_role}
+                              {proc.package_lpa != null && proc.package_lpa > 0 && ` · ${proc.package_lpa} LPA`}
+                            </p>
+                          </div>
+
+                          {/* Overall Status: Offered (Green), Ongoing (Orange), or Failed (Red) */}
+                          <span
+                            className={`text-[13px] font-bold shrink-0 ${
+                              proc.overall_status === 'Offered'
+                                ? 'text-[#2e7d32]'
+                                : proc.overall_status === 'Ongoing' || proc.overall_status === 'In Process'
+                                ? 'text-[#d97706]'
+                                : 'text-[#b91c1c]'
+                            }`}
+                          >
+                            {proc.status_text}
+                          </span>
+                        </div>
+
+                        {/* Card Body: All recruitment stages attended in sequence */}
+                        {proc.rounds && proc.rounds.length > 0 && (
+                          <div className="border-t border-[#f1f5f9] pt-2.5 flex flex-col gap-2">
+                            {proc.rounds.map((round, rIdx) => (
+                              <div key={rIdx} className="flex items-center gap-2.5">
+                                {/* Visual Indicator: Green check or Red cross */}
+                                {round.is_cleared ? (
+                                  <div className="w-[22px] h-[22px] rounded-full bg-[#EBF8EE] flex items-center justify-center shrink-0">
+                                    <Check className="w-3.5 h-3.5 text-[#2E7D32] stroke-[2.5]" />
+                                  </div>
+                                ) : (
+                                  <div className="w-[22px] h-[22px] rounded-full bg-[#FCE8E6] flex items-center justify-center shrink-0">
+                                    <X className="w-3.5 h-3.5 text-[#EA4335] stroke-[2.5]" />
+                                  </div>
+                                )}
+
+                                {/* Round Name */}
+                                <span className="text-[13px] text-[#334155] font-normal">
+                                  Round {round.round_index}: {round.round_name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

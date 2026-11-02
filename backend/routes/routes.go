@@ -73,8 +73,17 @@ func SetupRoutes(r *gin.Engine) {
 		// Student Placement Review
 		studentReview := api.Group("/student-review")
 		{
+			studentReview.GET("/analytics", studentReviewCtrl.GetReviewAnalytics)
+			studentReview.POST("/analytics", studentReviewCtrl.GetReviewAnalytics)
+			studentReview.GET("/students", studentReviewCtrl.GetReviewStudents)
+			studentReview.POST("/students", studentReviewCtrl.GetReviewStudents)
+			studentReview.POST("/export", studentReviewCtrl.ExportReviewStudentsExcel)
 			studentReview.GET("/:user_id", studentReviewCtrl.GetStudentReviewDetail)
+			studentReview.GET("/:user_id/history", studentReviewCtrl.GetStudentRecruitmentHistory)
+			studentReview.GET("/:user_id/company-processes", studentReviewCtrl.GetStudentCompanyProcesses)
 			studentReview.POST("/:user_id/notes", studentReviewCtrl.SaveStudentReviewNote)
+			studentReview.PUT("/notes/:note_id", studentReviewCtrl.UpdateStudentReviewNote)
+			studentReview.DELETE("/notes/:note_id", studentReviewCtrl.DeleteStudentReviewNote)
 		}
 
 		// Health Check

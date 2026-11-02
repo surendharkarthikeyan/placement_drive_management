@@ -20,6 +20,7 @@ export default function App() {
 
   // Student Placement Review state
   const [selectedReviewStudentId, setSelectedReviewStudentId] = useState(null)
+  const [reviewFilters, setReviewFilters] = useState({})
 
   // Batch filter state (shared across Header and Left Panel)
   const [batches, setBatches] = useState([])
@@ -137,12 +138,13 @@ export default function App() {
       {activeModule === 'Student Placement Review' && (
         <main className="flex-1 flex h-[calc(100vh-144px)] overflow-hidden">
           {/* Left Review Filters Panel */}
-          <ReviewFiltersPanel />
+          <ReviewFiltersPanel onFilterChange={(f) => setReviewFilters(f)} />
 
           {/* Middle Progress Workspace Panel */}
           <ReviewProgressWorkspace
             selectedStudentId={selectedReviewStudentId}
             onSelectStudent={setSelectedReviewStudentId}
+            filters={reviewFilters}
           />
 
           {/* Right Student Profile & Journey Panel */}

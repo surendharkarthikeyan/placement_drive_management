@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-  X
+  X,
+  CheckCircle2
 } from 'lucide-react'
 import { getBatches, getDepartments } from '../../../services/api'
 import CustomSelect from '../../common/CustomSelect'
@@ -120,12 +121,13 @@ export default function ReviewFiltersPanel({
   const [departments, setDepartments] = useState([])
 
   // Main Filters state
-  const [selectedBatch, setSelectedBatch] = useState('2022-2026')
+  const [selectedBatch, setSelectedBatch] = useState('2023-2027')
   const [selectedDepartments, setSelectedDepartments] = useState([]) // Multi-select department IDs
   const [studentCategory, setStudentCategory] = useState('placement_interested') // 'placement_interested' | 'nip'
 
   // Sub-category filters
   const [placementInterestedIn, setPlacementInterestedIn] = useState('all') // 'all' | 'software' | 'core'
+  const [placementStatus, setPlacementStatus] = useState('all') // 'all' | 'placed' | 'not_placed'
   const [nipCategory, setNipCategory] = useState('all') // 'all' | 'higher_studies' | 'business_startup'
 
   // Additional Filters (Collapsible)
@@ -136,9 +138,9 @@ export default function ReviewFiltersPanel({
   const [offerHolders, setOfferHolders] = useState('all') // 'all' | 'one_offer' | 'multiple_offers'
   const [packageMin, setPackageMin] = useState(0)
   const [packageMax, setPackageMax] = useState(100)
-  const [finalFailures, setFinalFailures] = useState('all') // 'all' | '1' | '2' | 'more'
+  const [finalFailures, setFinalFailures] = useState(null) // null | '1' | '2' | 'more'
   const [opportunityPriority, setOpportunityPriority] = useState(null) // 'high' | 'mid' | 'low' | 'needs_improvement' | null
-  const [activeProcess, setActiveProcess] = useState('all') // 'all' | 'yes' | 'no'
+  const [activeProcess, setActiveProcess] = useState(null) // null | 'yes' | 'no'
 
   // Fetch batches & departments on mount
   useEffect(() => {
@@ -146,8 +148,11 @@ export default function ReviewFiltersPanel({
       .then((data) => {
         if (data && data.length > 0) {
           setBatches(data)
-          // Default to first batch or 2022-2026
-          const defaultBatch = data.find((b) => b.name === '2022-2026') || data[0]
+          // Default to 2023-2027 if present, otherwise first batch
+          const defaultBatch =
+            data.find((b) => b.name === '2023-2027') ||
+            data.find((b) => b.name === '2022-2026') ||
+            data[0]
           if (defaultBatch) setSelectedBatch(defaultBatch.name)
         }
       })
@@ -162,37 +167,48 @@ export default function ReviewFiltersPanel({
 
   // Reset all filters to default
   const handleReset = () => {
-    if (batches.length > 0) {
-      const defaultBatch = batches.find((b) => b.name === '2022-2026') || batches[0]
-      setSelectedBatch(defaultBatch?.name || '2022-2026')
-    } else {
-      setSelectedBatch('2022-2026')
-    }
+    const defaultBatch =
+      batches.length > 0
+        ? (batches.find((b) => b.name === '2023-2027') ||
+           batches.find((b) => b.name === '2022-2026') ||
+           batches[0]).name
+        : '2023-2027'
+
+    setSelectedBatch(defaultBatch)
     setSelectedDepartments([])
     setStudentCategory('placement_interested')
     setPlacementInterestedIn('all')
+    setPlacementStatus('all')
     setNipCategory('all')
     setJourneyStatus('all')
     setOfferHolders('all')
     setPackageMin(0)
     setPackageMax(100)
-    setFinalFailures('all')
+    setFinalFailures(null)
     setOpportunityPriority(null)
-    setActiveProcess('all')
+    setActiveProcess(null)
 
     onFilterChange({
-      batch: selectedBatch,
-      department: 'all',
+      batch: defaultBatch,
+      departments: [],
+      student_category: 'placement_interested',
       studentCategory: 'placement_interested',
+      placement_interested_in: 'all',
       placementInterestedIn: 'all',
-      nipCategory: 'all',
-      journeyStatus: 'all',
+      placement_status: 'all',
+      placementStatus: 'all',
+      offer_holders: 'all',
       offerHolders: 'all',
+      package_min: 0,
       packageMin: 0,
+      package_max: 100,
       packageMax: 100,
-      finalFailures: 'all',
+      final_failures: null,
+      finalFailures: null,
+      opportunity_priority: null,
       opportunityPriority: null,
-      activeProcess: 'all'
+      active_process: null,
+      activeProcess: null
     })
   }
 
@@ -200,21 +216,63 @@ export default function ReviewFiltersPanel({
   const handleClear = () => {
     setSelectedDepartments([])
     setPlacementInterestedIn('all')
+    setPlacementStatus('all')
     setNipCategory('all')
     setJourneyStatus('all')
     setOfferHolders('all')
     setPackageMin(0)
     setPackageMax(100)
-    setFinalFailures('all')
+    setFinalFailures(null)
     setOpportunityPriority(null)
-    setActiveProcess('all')
+    setActiveProcess(null)
   }
+
+  // Dynamic filter change notifier - immediately reflects in the center panel
+  useEffect(() => {
+    const isPlacedOrAll = placementStatus === 'all' || placementStatus === 'placed'
+    onFilterChange({
+      batch: selectedBatch,
+      departments: selectedDepartments.map((d) => String(d)),
+      student_category: studentCategory,
+      studentCategory,
+      placement_interested_in: studentCategory === 'placement_interested' ? placementInterestedIn : 'all',
+      placementInterestedIn: studentCategory === 'placement_interested' ? placementInterestedIn : 'all',
+      placement_status: studentCategory === 'placement_interested' ? placementStatus : 'all',
+      placementStatus: studentCategory === 'placement_interested' ? placementStatus : 'all',
+      offer_holders: (studentCategory === 'placement_interested' && isPlacedOrAll) ? offerHolders : 'all',
+      offerHolders: (studentCategory === 'placement_interested' && isPlacedOrAll) ? offerHolders : 'all',
+      package_min: (studentCategory === 'placement_interested' && isPlacedOrAll) ? packageMin : 0,
+      packageMin: (studentCategory === 'placement_interested' && isPlacedOrAll) ? packageMin : 0,
+      package_max: (studentCategory === 'placement_interested' && isPlacedOrAll) ? packageMax : 100,
+      packageMax: (studentCategory === 'placement_interested' && isPlacedOrAll) ? packageMax : 100,
+      final_failures: finalFailures,
+      finalFailures,
+      opportunity_priority: opportunityPriority,
+      opportunityPriority,
+      active_process: activeProcess,
+      activeProcess,
+      nip_category: studentCategory === 'nip' ? nipCategory : 'all',
+      nipCategory: studentCategory === 'nip' ? nipCategory : 'all'
+    })
+  }, [
+    selectedBatch,
+    selectedDepartments,
+    studentCategory,
+    placementInterestedIn,
+    placementStatus,
+    offerHolders,
+    packageMin,
+    packageMax,
+    finalFailures,
+    opportunityPriority,
+    activeProcess
+  ])
 
   // Apply filters callback
   const handleApply = () => {
     onFilterChange({
       batch: selectedBatch,
-      department: selectedDepartment,
+      departments: selectedDepartments,
       studentCategory,
       placementInterestedIn: studentCategory === 'placement_interested' ? placementInterestedIn : 'all',
       nipCategory: studentCategory === 'nip' ? nipCategory : 'all',
@@ -397,107 +455,151 @@ export default function ReviewFiltersPanel({
 
             {isAdditionalOpen && (
               <div className="flex flex-col gap-[15px] pt-1 animate-in fade-in duration-150">
-                {/* Offer Holders */}
-                <div>
-                  <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b] mb-2">
-                    <Award size={15} className="text-[#2563eb]" />
-                    <span>Offer Holders</span>
-                  </label>
-                  <GlassSegmentedControl
-                    options={[
-                      { id: 'all', label: 'All' },
-                      { id: 'one_offer', label: 'One Offer' },
-                      { id: 'multiple_offers', label: 'Multiple Offers' }
-                    ]}
-                    value={offerHolders}
-                    onChange={setOfferHolders}
-                    buttonPy="py-[7.5px]"
-                    fontSize="text-[12.5px]"
-                  />
-                </div>
-
-                {/* 6.3 Package Range (LPA) */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b]">
-                      <IndianRupee size={15} className="text-[#2563eb]" />
-                      <span>Package Range (LPA)</span>
+                {/* Placement & Offers Filter Group Box (Grouped because they are related) */}
+                <div className="p-[14px_16px] bg-[#f8fafc] border border-[#dbe5f1] rounded-[14px] shadow-2xs flex flex-col gap-[14px]">
+                  {/* 6.1 Placement Status (All, Placed, Not Placed) */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b] mb-2">
+                      <CheckCircle2 size={15} className="text-[#2563eb]" />
+                      <span>Placement Status</span>
                     </label>
-                    <span className="text-[12px] font-[700] text-[#64748b]">
-                      {packageMin} - {packageMax} LPA ({packageMax >= 100 ? '1 Cr' : `${packageMax}L`})
-                    </span>
-                  </div>
-
-                  {/* Dual-Thumb Range Slider */}
-                  <div className="px-1 py-1">
-                    <DualRangeSlider
-                      min={0}
-                      max={100}
-                      step={1}
-                      minValue={packageMin}
-                      maxValue={packageMax}
-                      onChangeMin={setPackageMin}
-                      onChangeMax={setPackageMax}
+                    <GlassSegmentedControl
+                      options={[
+                        { id: 'all', label: 'All' },
+                        { id: 'placed', label: 'Placed' },
+                        { id: 'not_placed', label: 'Not Placed' }
+                      ]}
+                      value={placementStatus}
+                      onChange={(val) => {
+                        setPlacementStatus(val)
+                        if (val === 'not_placed') {
+                          setOfferHolders('all')
+                          setPackageMin(0)
+                          setPackageMax(100)
+                        }
+                      }}
+                      buttonPy="py-[7.5px]"
+                      fontSize="text-[12.5px]"
                     />
-                    <div className="flex justify-between text-[11px] font-semibold text-[#94a3b8] mt-1">
-                      <span>0 LPA</span>
-                      <span>100 LPA</span>
-                    </div>
                   </div>
 
-                  {/* Range Inputs */}
-                  <div className="flex items-center gap-2.5 mt-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={packageMin}
-                        onChange={(e) => {
-                          const val = Number(e.target.value)
-                          if (!isNaN(val)) {
-                            setPackageMin(Math.max(0, Math.min(val, packageMax)))
-                          }
-                        }}
-                        className="w-full h-[38px] pl-3 pr-9 bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[700] text-[#1e293b] outline-none shadow-2xs"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-[750] text-[#94a3b8]">
-                        LPA
-                      </span>
-                    </div>
+                  {/* Offer Holders & Package Range - Only shown when Placed or All is chosen */}
+                  {(placementStatus === 'all' || placementStatus === 'placed') && (
+                    <div className="flex flex-col gap-[14px] pt-3 border-t border-[#e2e8f0] animate-in fade-in duration-150">
+                      {/* 6.2 Offer Holders */}
+                      <div>
+                        <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b] mb-2">
+                          <Award size={15} className="text-[#2563eb]" />
+                          <span>Offer Holders</span>
+                        </label>
+                        <GlassSegmentedControl
+                          options={[
+                            { id: 'all', label: 'All' },
+                            { id: 'one_offer', label: 'One Offer' },
+                            { id: 'multiple_offers', label: 'Multiple Offers' }
+                          ]}
+                          value={offerHolders}
+                          onChange={setOfferHolders}
+                          buttonPy="py-[7.5px]"
+                          fontSize="text-[12.5px]"
+                        />
+                      </div>
 
-                    <span className="text-[#94a3b8] font-bold text-[15px]">–</span>
+                      {/* 6.3 Package Range (LPA) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b]">
+                            <IndianRupee size={15} className="text-[#2563eb]" />
+                            <span>Package Range (LPA)</span>
+                          </label>
+                          <span className="text-[12px] font-[700] text-[#64748b]">
+                            {packageMin} - {packageMax} LPA ({packageMax >= 100 ? '1 Cr' : `${packageMax}L`})
+                          </span>
+                        </div>
 
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={packageMax}
-                        onChange={(e) => {
-                          const val = Number(e.target.value)
-                          if (!isNaN(val)) {
-                            setPackageMax(Math.min(100, Math.max(val, packageMin)))
-                          }
-                        }}
-                        className="w-full h-[38px] pl-3 pr-9 bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[700] text-[#1e293b] outline-none shadow-2xs"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-[750] text-[#94a3b8]">
-                        LPA
-                      </span>
+                        {/* Dual-Thumb Range Slider */}
+                        <div className="px-1 py-1">
+                          <DualRangeSlider
+                            min={0}
+                            max={100}
+                            step={1}
+                            minValue={packageMin}
+                            maxValue={packageMax}
+                            onChangeMin={setPackageMin}
+                            onChangeMax={setPackageMax}
+                          />
+                          <div className="flex justify-between text-[11px] font-semibold text-[#94a3b8] mt-1">
+                            <span>0 LPA</span>
+                            <span>100 LPA</span>
+                          </div>
+                        </div>
+
+                        {/* Range Inputs */}
+                        <div className="flex items-center gap-2.5 mt-2">
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={packageMin}
+                              onChange={(e) => {
+                                const val = Number(e.target.value)
+                                if (!isNaN(val)) {
+                                  setPackageMin(Math.max(0, Math.min(val, packageMax)))
+                                }
+                              }}
+                              className="w-full h-[38px] pl-3 pr-9 bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[700] text-[#1e293b] outline-none shadow-2xs"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-[750] text-[#94a3b8]">
+                              LPA
+                            </span>
+                          </div>
+
+                          <span className="text-[#94a3b8] font-bold text-[15px]">–</span>
+
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={packageMax}
+                              onChange={(e) => {
+                                const val = Number(e.target.value)
+                                if (!isNaN(val)) {
+                                  setPackageMax(Math.min(100, Math.max(val, packageMin)))
+                                }
+                              }}
+                              className="w-full h-[38px] pl-3 pr-9 bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[8px] text-[13px] font-[700] text-[#1e293b] outline-none shadow-2xs"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-[750] text-[#94a3b8]">
+                              LPA
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* 6.4 Final Round Failures */}
                 <div>
-                  <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b] mb-2">
-                    <XCircle size={15} className="text-[#ef4444]" />
-                    <span>Final Round Failures</span>
-                  </label>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b]">
+                      <XCircle size={15} className="text-[#ef4444]" />
+                      <span>Final Round Failures</span>
+                    </label>
+                    {finalFailures !== null && (
+                      <button
+                        type="button"
+                        onClick={() => setFinalFailures(null)}
+                        className="text-[11.5px] font-[750] text-[#2563eb] hover:text-[#1d4ed8] cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
                     {[
-                      { id: 'all', label: 'All' },
                       { id: '1', label: '1' },
                       { id: '2', label: '2' },
                       { id: 'more', label: 'More' }
@@ -505,7 +607,7 @@ export default function ReviewFiltersPanel({
                       <button
                         key={opt.id}
                         type="button"
-                        onClick={() => setFinalFailures(opt.id)}
+                        onClick={() => setFinalFailures(finalFailures === opt.id ? null : opt.id)}
                         className={`py-[7px] rounded-[8px] text-[12.5px] font-[750] text-center transition cursor-pointer border ${finalFailures === opt.id
                           ? 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe] shadow-2xs font-[800]'
                           : 'bg-white text-[#475569] border-[#cbd5e1] hover:border-[#94a3b8]'
@@ -519,10 +621,21 @@ export default function ReviewFiltersPanel({
 
                 {/* 6.5 Needs Next Opportunity */}
                 <div>
-                  <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b] mb-2">
-                    <BarChart3 size={15} className="text-[#2563eb]" />
-                    <span>Needs Next Opportunity</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b]">
+                      <BarChart3 size={15} className="text-[#2563eb]" />
+                      <span>Needs Next Opportunity</span>
+                    </label>
+                    {opportunityPriority !== null && (
+                      <button
+                        type="button"
+                        onClick={() => setOpportunityPriority(null)}
+                        className="text-[11.5px] font-[750] text-[#2563eb] hover:text-[#1d4ed8] cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -574,20 +687,30 @@ export default function ReviewFiltersPanel({
 
                 {/* 6.6 Active Recruitment Process */}
                 <div>
-                  <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b] mb-2">
-                    <FileCheck2 size={15} className="text-[#2563eb]" />
-                    <span>Active Recruitment Process</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="flex items-center gap-1.5 text-[13px] font-[750] text-[#1e293b]">
+                      <FileCheck2 size={15} className="text-[#2563eb]" />
+                      <span>Active Recruitment Process</span>
+                    </label>
+                    {activeProcess !== null && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveProcess(null)}
+                        className="text-[11.5px] font-[750] text-[#2563eb] hover:text-[#1d4ed8] cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
                     {[
-                      { id: 'all', label: 'All' },
                       { id: 'yes', label: 'Yes' },
                       { id: 'no', label: 'No' }
                     ].map((opt) => (
                       <button
                         key={opt.id}
                         type="button"
-                        onClick={() => setActiveProcess(opt.id)}
+                        onClick={() => setActiveProcess(activeProcess === opt.id ? null : opt.id)}
                         className={`py-[7px] rounded-[8px] text-[12.5px] font-[750] text-center transition cursor-pointer border ${activeProcess === opt.id
                           ? 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe] shadow-2xs font-[800]'
                           : 'bg-white text-[#475569] border-[#cbd5e1] hover:border-[#94a3b8]'
