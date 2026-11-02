@@ -86,24 +86,31 @@ func (r *StudentReviewRepository) GetStudentReviewDetail(userID uint64) (*models
 		return nil, err
 	}
 
-	// 1. Invitations: how many times his data repeated in placement_drive_students
+	// 1. Invitations: how many distinct placement drives the student was invited to
 	var invitations int64
 	r.db.Table("placement_drive_students").
-		Where("user_id = ?", userID).
+		Where("user_id = ? AND drive_status != 'excluded'", userID).
+		Distinct("drive_id").
 		Count(&invitations)
 
-	// 2. Accepted: in his row the outcome is cleared or not_cleared in placement_stage_results
+	// 2. Attended (Accepted): how many distinct placement drives the student attended
 	var accepted int64
 	r.db.Table("placement_stage_results psr").
 		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
-		Where("pds.user_id = ? AND psr.outcome IN ('cleared', 'not_cleared')", userID).
+		Where("pds.user_id = ? AND psr.outcome IN ('cleared', 'not_cleared', 'absent', 'withdrawn')", userID).
+		Distinct("pds.drive_id").
 		Count(&accepted)
 
-	// 3. Processes: if the outcome status is pending
+	if accepted > invitations && invitations > 0 {
+		accepted = invitations
+	}
+
+	// 3. Processes: how many distinct placement drives are currently in process (pending)
 	var processes int64
 	r.db.Table("placement_stage_results psr").
 		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
 		Where("pds.user_id = ? AND psr.outcome = 'pending'", userID).
+		Distinct("pds.drive_id").
 		Count(&processes)
 
 	// 4. Final Misses: reached highest/final stage of the drive but was not cleared or drive completed without offer
