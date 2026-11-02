@@ -46,6 +46,10 @@ export default function ModuleNavigationTabs({
   }
 
   useEffect(() => {
+    setCurrentModule(activeModule)
+  }, [activeModule])
+
+  useEffect(() => {
     updatePill()
     window.addEventListener('resize', updatePill)
     return () => window.removeEventListener('resize', updatePill)
@@ -113,74 +117,78 @@ export default function ModuleNavigationTabs({
         })}
       </nav>
 
-      {/* Right Section: Workspace context & Interactive Batch Dropdown */}
+      {/* Right Section: Workspace context & Interactive Batch Dropdown (Only for Placement Drive tab) */}
       <div className="flex items-center gap-3.5">
         <div className="text-[13.5px] font-[600] text-[#64748b] hidden xl:block">
           Placement Team Workspace
         </div>
 
-        <div className="hidden xl:block h-4 w-[1px] bg-[#e2e8f0]" />
+        {currentModule === 'Placement Drive' && (
+          <>
+            <div className="hidden xl:block h-4 w-[1px] bg-[#e2e8f0]" />
 
-        {/* Batch Choosing Dropdown */}
-        <div className="relative" ref={batchRef}>
-          <button
-            type="button"
-            onClick={() => setIsBatchOpen((prev) => !prev)}
-            className="h-[40px] px-3.5 bg-[#f8fafc] hover:bg-white border border-[#cbd5e1] hover:border-[#2563eb] rounded-[10px] text-[13.5px] font-[750] text-[#1e293b] flex items-center gap-2.5 transition cursor-pointer shadow-2xs active:scale-[0.98]"
-          >
-            <GraduationCap size={16} className="text-[#2563eb]" />
-            <span>{currentBatchLabel}</span>
-            <ChevronDown
-              size={15}
-              className={`text-[#64748b] transition-transform duration-200 ${
-                isBatchOpen ? 'rotate-180 text-[#2563eb]' : ''
-              }`}
-            />
-          </button>
-
-          {isBatchOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-white border border-[#dbe5f1] rounded-[12px] shadow-[0_12px_36px_rgba(15,23,42,0.14)] p-1.5 flex flex-col gap-1 z-50 text-[#1e293b] animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-1.5 text-[11px] font-[800] uppercase tracking-wider text-[#94a3b8] border-b border-[#f1f5f9] mb-1">
-                Filter By Batch
-              </div>
-
+            {/* Batch Choosing Dropdown */}
+            <div className="relative" ref={batchRef}>
               <button
                 type="button"
-                onClick={() => {
-                  onBatchChange('all')
-                  setIsBatchOpen(false)
-                }}
-                className={`w-full px-3 py-2 rounded-[8px] text-[13px] font-[650] flex items-center justify-between text-left transition cursor-pointer ${
-                  selectedBatch === 'all'
-                    ? 'bg-[#eff6ff] text-[#2563eb]'
-                    : 'hover:bg-[#f8fafc] text-[#334155]'
-                }`}
+                onClick={() => setIsBatchOpen((prev) => !prev)}
+                className="h-[40px] px-3.5 bg-[#f8fafc] hover:bg-white border border-[#cbd5e1] hover:border-[#2563eb] rounded-[10px] text-[13.5px] font-[750] text-[#1e293b] flex items-center gap-2.5 transition cursor-pointer shadow-2xs active:scale-[0.98]"
               >
-                <span>All Batches</span>
-                {selectedBatch === 'all' && <Check size={14} className="text-[#2563eb]" />}
+                <GraduationCap size={16} className="text-[#2563eb]" />
+                <span>{currentBatchLabel}</span>
+                <ChevronDown
+                  size={15}
+                  className={`text-[#64748b] transition-transform duration-200 ${
+                    isBatchOpen ? 'rotate-180 text-[#2563eb]' : ''
+                  }`}
+                />
               </button>
 
-              {batches.map((batch) => (
-                <button
-                  key={batch.id}
-                  type="button"
-                  onClick={() => {
-                    onBatchChange(batch.name)
-                    setIsBatchOpen(false)
-                  }}
-                  className={`w-full px-3 py-2 rounded-[8px] text-[13px] font-[650] flex items-center justify-between text-left transition cursor-pointer ${
-                    selectedBatch === batch.name
-                      ? 'bg-[#eff6ff] text-[#2563eb]'
-                      : 'hover:bg-[#f8fafc] text-[#334155]'
-                  }`}
-                >
-                  <span>Batch {batch.name}</span>
-                  {selectedBatch === batch.name && <Check size={14} className="text-[#2563eb]" />}
-                </button>
-              ))}
+              {isBatchOpen && (
+                <div className="absolute right-0 top-[calc(100%+8px)] w-[210px] bg-white border border-[#dbe5f1] rounded-[12px] shadow-[0_12px_36px_rgba(15,23,42,0.14)] p-1.5 flex flex-col gap-1 z-50 text-[#1e293b] animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-1.5 text-[11px] font-[800] uppercase tracking-wider text-[#94a3b8] border-b border-[#f1f5f9] mb-1">
+                    Filter By Batch
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onBatchChange('all')
+                      setIsBatchOpen(false)
+                    }}
+                    className={`w-full px-3 py-2 rounded-[8px] text-[13px] font-[650] flex items-center justify-between text-left transition cursor-pointer ${
+                      selectedBatch === 'all'
+                        ? 'bg-[#eff6ff] text-[#2563eb]'
+                        : 'hover:bg-[#f8fafc] text-[#334155]'
+                    }`}
+                  >
+                    <span>All Batches</span>
+                    {selectedBatch === 'all' && <Check size={14} className="text-[#2563eb]" />}
+                  </button>
+
+                  {batches.map((batch) => (
+                    <button
+                      key={batch.id}
+                      type="button"
+                      onClick={() => {
+                        onBatchChange(batch.name)
+                        setIsBatchOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 rounded-[8px] text-[13px] font-[650] flex items-center justify-between text-left transition cursor-pointer ${
+                        selectedBatch === batch.name
+                          ? 'bg-[#eff6ff] text-[#2563eb]'
+                          : 'hover:bg-[#f8fafc] text-[#334155]'
+                      }`}
+                    >
+                      <span>Batch {batch.name}</span>
+                      {selectedBatch === batch.name && <Check size={14} className="text-[#2563eb]" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   )
