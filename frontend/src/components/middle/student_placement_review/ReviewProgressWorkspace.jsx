@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { ChevronRight, ChevronDown, Loader2, Check, Download } from 'lucide-react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { ChevronRight, ChevronDown, Loader2, Check, Download, Search, X } from 'lucide-react'
 import { getReviewAnalytics, getReviewStudents, exportReviewStudentsExcel } from '../../../services/api'
 
 /**
@@ -48,6 +48,7 @@ export default function ReviewProgressWorkspace({
   // 2. Students List State
   const [students, setStudents] = useState([])
   const [isLoadingStudents, setIsLoadingStudents] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // 3. Sorting & Selection State
   const [sortBy, setSortBy] = useState('opportunity_priority')
@@ -56,31 +57,44 @@ export default function ReviewProgressWorkspace({
   const [isExporting, setIsExporting] = useState(false)
   const sortRef = useRef(null)
 
+  // Filter students by search query (matching name, roll_no, department_name, or department_code)
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return students
+    const q = searchQuery.toLowerCase().trim()
+    return students.filter((s) => {
+      const name = (s.name || '').toLowerCase()
+      const roll = (s.roll_no || '').toLowerCase()
+      const deptCode = (s.department_code || '').toLowerCase()
+      const deptName = (s.department_name || '').toLowerCase()
+      return name.includes(q) || roll.includes(q) || deptCode.includes(q) || deptName.includes(q)
+    })
+  }, [students, searchQuery])
+
   // Dynamic Card 1: Students in current review (directly from students listed below)
-  const studentsInReviewCount = students.length
+  const studentsInReviewCount = filteredStudents.length
 
   // Dynamic Card 2: Invitation acceptance rate (calculated from students listed below)
-  const visibleAcceptanceRate = React.useMemo(() => {
-    if (!students || students.length === 0) return 0
+  const visibleAcceptanceRate = useMemo(() => {
+    if (!filteredStudents || filteredStudents.length === 0) return 0
     let attended = 0
     let eligible = 0
-    students.forEach((s) => {
+    filteredStudents.forEach((s) => {
       attended += (s.companies_attended || 0)
       eligible += (s.companies_eligible || 0)
     })
     if (eligible > 0) {
       return Math.min(100, Math.round((attended / eligible) * 100))
     }
-    const avgPct = students.reduce((acc, s) => acc + (s.attendance_pct || 0), 0) / students.length
+    const avgPct = filteredStudents.reduce((acc, s) => acc + (s.attendance_pct || 0), 0) / filteredStudents.length
     return Math.min(100, Math.round(avgPct))
-  }, [students])
+  }, [filteredStudents])
 
-  // Handle Export Excel
+  // Handle Export Excel - only exported if students are explicitly selected
   const handleExportExcel = async () => {
+    if (selectedStudentIds.length === 0) return
     try {
       setIsExporting(true)
-      const targetIds = selectedStudentIds.length > 0 ? selectedStudentIds : students.map((s) => s.id)
-      await exportReviewStudentsExcel(targetIds, filters)
+      await exportReviewStudentsExcel(selectedStudentIds, filters)
     } catch (err) {
       console.error('Failed to export students Excel:', err)
     } finally {
@@ -162,12 +176,12 @@ export default function ReviewProgressWorkspace({
   }, [filters, sortBy])
 
   // Checkbox: toggle select all visible students
-  const isAllSelected = students.length > 0 && selectedStudentIds.length === students.length
+  const isAllSelected = filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length
   const handleToggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedStudentIds([])
     } else {
-      setSelectedStudentIds(students.map((s) => s.id))
+      setSelectedStudentIds(filteredStudents.map((s) => s.id))
     }
   }
 
@@ -250,10 +264,10 @@ export default function ReviewProgressWorkspace({
 
       {/* 3. Student Table Card Workspace (incorporating toolbar + table) */}
       <div className="bg-white border border-[#e2e8f0] rounded-[16px] shadow-[0_1px_3px_rgba(15,23,42,0.03)] overflow-hidden flex flex-col flex-1 mt-5">
-        {/* Card Header Toolbar: Select all visible students & Sort Dropdown */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#f1f5f9] bg-white">
+        {/* Card Header Toolbar: Select all visible students, Search Bar, Export button & Sort Dropdown */}
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-[#f1f5f9] bg-white">
           {/* Left: Select all visible students */}
-          <label className="flex items-center gap-2.5 text-[13px] font-semibold text-[#475569] cursor-pointer select-none">
+          <label className="flex items-center gap-2.5 text-[13px] font-semibold text-[#475569] cursor-pointer select-none shrink-0">
             <input
               type="checkbox"
               checked={isAllSelected}
@@ -266,14 +280,37 @@ export default function ReviewProgressWorkspace({
             </span>
           </label>
 
-          {/* Right: Export button & Sort Dropdown */}
+          {/* Right: Search Input + Export button + Sort Dropdown */}
           <div className="flex items-center gap-2.5">
+            {/* Search Input for student name / roll no */}
+            <div className="relative w-[210px] group">
+              <span className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[#94a3b8] group-focus-within:text-[#2563eb] transition-colors pointer-events-none">
+                <Search size={15} />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search student or roll no..."
+                className="w-full h-[34px] pl-[32px] pr-[28px] bg-[#f8fafc] hover:bg-white focus:bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[10px] text-[12.5px] text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition-all shadow-2xs font-medium"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#475569] p-0.5 rounded cursor-pointer"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleExportExcel}
-              disabled={isExporting || students.length === 0}
-              className="h-[34px] px-3.5 rounded-[10px] bg-[#eff6ff] hover:bg-[#dbeafe] text-[#2563eb] border border-[#bfdbfe] font-[700] text-[13px] flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
-              title={selectedStudentIds.length > 0 ? `Export ${selectedStudentIds.length} selected student(s) to Excel` : 'Export all visible students to Excel'}
+              disabled={isExporting || selectedStudentIds.length === 0}
+              className="h-[34px] px-3.5 rounded-[10px] bg-[#eff6ff] hover:bg-[#dbeafe] text-[#2563eb] border border-[#bfdbfe] font-[700] text-[13px] flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+              title={selectedStudentIds.length > 0 ? `Export ${selectedStudentIds.length} selected student(s) to Excel` : 'Please select at least one student checkbox to export'}
             >
               {isExporting ? <Loader2 size={15} className="animate-spin text-[#2563eb]" /> : <Download size={15} className="text-[#2563eb]" />}
               <span>Export{selectedStudentIds.length > 0 ? ` (${selectedStudentIds.length})` : ''}</span>
@@ -338,14 +375,18 @@ export default function ReviewProgressWorkspace({
             <Loader2 className="w-6 h-6 animate-spin text-[#3b82f6] mb-2" />
             <span className="text-[13px] font-medium">Loading student list...</span>
           </div>
-        ) : students.length === 0 ? (
+        ) : filteredStudents.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-[#94a3b8]">
-            <p className="text-[14px] font-semibold text-[#475569]">No students match the current filters</p>
-            <p className="text-[12px] text-[#94a3b8] mt-1">Try resetting or adjusting the filters in the left panel.</p>
+            <p className="text-[14px] font-semibold text-[#475569]">
+              {searchQuery ? `No students found matching "${searchQuery}"` : 'No students match the current filters'}
+            </p>
+            <p className="text-[12px] text-[#94a3b8] mt-1">
+              {searchQuery ? 'Check your spelling or clear the search query.' : 'Try resetting or adjusting the filters in the left panel.'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-[#f1f5f9] overflow-y-auto">
-            {students.map((st) => {
+            {filteredStudents.map((st) => {
               const isSelectedRow = selectedStudentId === st.id
               const isChecked = selectedStudentIds.includes(st.id)
 

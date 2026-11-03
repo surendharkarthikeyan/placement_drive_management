@@ -262,7 +262,7 @@ func (c *StudentReviewController) GetReviewStudents(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, students)
 }
 
-// ExportReviewStudentsExcel generates an Excel spreadsheet for the selected or filtered students
+// ExportReviewStudentsExcel generates an Excel spreadsheet for the selected students
 func (c *StudentReviewController) ExportReviewStudentsExcel(ctx *gin.Context) {
 	type ExportRequest struct {
 		StudentIDs []uint64                     `json:"student_ids"`
@@ -274,13 +274,8 @@ func (c *StudentReviewController) ExportReviewStudentsExcel(ctx *gin.Context) {
 
 	targetIDs := body.StudentIDs
 	if len(targetIDs) == 0 {
-		// If no specific student IDs were selected, export all students matching the current filter
-		students, err := c.repo.GetReviewStudents(body.Filter, "opportunity_priority")
-		if err == nil {
-			for _, st := range students {
-				targetIDs = append(targetIDs, st.ID)
-			}
-		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "No students selected for export. Please select at least one student."})
+		return
 	}
 
 	excelData, err := c.repo.ExportStudentsExcel(targetIDs)

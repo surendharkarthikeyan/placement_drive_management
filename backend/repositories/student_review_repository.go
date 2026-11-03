@@ -69,13 +69,16 @@ func (r *StudentReviewRepository) GetStudentReviewDetail(userID uint64) (*models
 		HistoryArrearCount int      `gorm:"column:history_arrear_count"`
 		NIP                string   `gorm:"column:nip"`
 		IP                 string   `gorm:"column:ip"`
+		HigherStudies      string   `gorm:"column:higher_studies"`
+		Startup            string   `gorm:"column:startup"`
+		Business           string   `gorm:"column:business"`
 		CoreCompany        string   `gorm:"column:core_company"`
 		SoftwareCompany    string   `gorm:"column:software_company"`
 	}
 
 	var row studentRow
 	err := r.db.Table("master_users u").
-		Select("u.id as user_id, u.name, u.roll_no, d.name as dept_name, b.name as batch_name, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count, COALESCE(s.nip, '0') as nip, COALESCE(s.ip, '0') as ip, COALESCE(s.core_company, '0') as core_company, COALESCE(s.software_company, '0') as software_company").
+		Select("u.id as user_id, u.name, u.roll_no, d.name as dept_name, b.name as batch_name, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count, COALESCE(s.nip, '0') as nip, COALESCE(s.ip, '0') as ip, COALESCE(s.higher_studies, '0') as higher_studies, COALESCE(s.startup, '0') as startup, COALESCE(s.business, '0') as business, COALESCE(s.core_company, '0') as core_company, COALESCE(s.software_company, '0') as software_company").
 		Joins("LEFT JOIN departments d ON u.department_id = d.id").
 		Joins("LEFT JOIN batches b ON u.batch_id = b.id").
 		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
@@ -351,6 +354,15 @@ func (r *StudentReviewRepository) GetStudentReviewDetail(userID uint64) (*models
 	studentType := "ip"
 	if row.NIP == "1" {
 		categoryBadge = "NIP"
+		if row.HigherStudies == "1" {
+			categoryBadge = "Higher Studies"
+		} else if row.Startup == "1" && row.Business == "1" {
+			categoryBadge = "Business & Startup"
+		} else if row.Startup == "1" {
+			categoryBadge = "Startup"
+		} else if row.Business == "1" {
+			categoryBadge = "Business"
+		}
 		studentType = "nip"
 	} else if row.IP == "1" {
 		if row.CoreCompany == "1" && row.SoftwareCompany == "1" {
@@ -1022,6 +1034,13 @@ func (r *StudentReviewRepository) GetReviewAnalytics(filter models.ReviewAnalyti
 	// 3. Student Category (placement_interested vs nip)
 	if filter.StudentCategory == "nip" {
 		query = query.Where("(COALESCE(s.nip, '0') = '1' OR COALESCE(s.ip, '1') = '0')")
+
+		// NIP Category: "all", "higher_studies", "business_startup"
+		if filter.NipCategory == "higher_studies" {
+			query = query.Where("COALESCE(s.higher_studies, '0') = '1'")
+		} else if filter.NipCategory == "business_startup" {
+			query = query.Where("(COALESCE(s.startup, '0') = '1' OR COALESCE(s.business, '0') = '1')")
+		}
 	} else if filter.StudentCategory == "placement_interested" {
 		query = query.Where("COALESCE(s.nip, '0') = '0' AND COALESCE(s.ip, '1') = '1'")
 
@@ -1252,6 +1271,13 @@ func (r *StudentReviewRepository) GetReviewStudents(filter models.ReviewAnalytic
 	// 3. Student Category (placement_interested vs nip)
 	if filter.StudentCategory == "nip" {
 		query = query.Where("(COALESCE(s.nip, '0') = '1' OR COALESCE(s.ip, '1') = '0')")
+
+		// NIP Category: "all", "higher_studies", "business_startup"
+		if filter.NipCategory == "higher_studies" {
+			query = query.Where("COALESCE(s.higher_studies, '0') = '1'")
+		} else if filter.NipCategory == "business_startup" {
+			query = query.Where("(COALESCE(s.startup, '0') = '1' OR COALESCE(s.business, '0') = '1')")
+		}
 	} else if filter.StudentCategory == "placement_interested" {
 		query = query.Where("COALESCE(s.nip, '0') = '0' AND COALESCE(s.ip, '1') = '1'")
 
