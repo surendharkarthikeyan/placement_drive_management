@@ -141,6 +141,7 @@ type PlacementDrive struct {
 	PendingOutcomes int64  `gorm:"-" json:"pending_outcomes"`
 	SubtitleMeta    string `gorm:"-" json:"subtitle_meta"`
 	StatusGroup     string `gorm:"-" json:"status_group"`
+	RosterConfirmed bool   `gorm:"-" json:"roster_confirmed"`
 }
 
 func (PlacementDrive) TableName() string {

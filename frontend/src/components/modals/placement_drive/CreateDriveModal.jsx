@@ -92,15 +92,14 @@ export default function CreateDriveModal({
       return
     }
 
+    if (!formData.batch_ids || formData.batch_ids.length === 0) {
+      setErrorMessage('Please choose the target academic batch option.')
+      return
+    }
+
     try {
       setIsSubmitting(true)
       const numPackage = parseFloat(formData.package_lpa.replace(/[^0-9.]/g, '')) || 0
-
-      // If open to all batches or none selected, explicitly write all existing batch IDs (never null)
-      const finalBatchIds =
-        formData.batch_ids && formData.batch_ids.length > 0
-          ? formData.batch_ids
-          : batches.map((b) => b.id)
 
       const payload = {
         company_name: formData.company_name.trim(),
@@ -110,7 +109,7 @@ export default function CreateDriveModal({
         drive_start_date: formData.drive_start_date || '',
         drive_end_date: formData.drive_end_date || '',
         drive_owner_user_id: formData.drive_owner_user_id ? Number(formData.drive_owner_user_id) : null,
-        batch_ids: finalBatchIds,
+        batch_ids: formData.batch_ids,
         job_description: formData.job_description.trim()
       }
 
@@ -278,12 +277,18 @@ export default function CreateDriveModal({
             <div>
               <MultiSelectDropdown
                 label="Target Academic Batch"
+                required
                 options={batches.map((b) => ({
                   value: b.id,
                   label: `Batch ${b.name}`
                 }))}
                 selectedValues={formData.batch_ids}
-                onChange={(vals) => setFormData((prev) => ({ ...prev, batch_ids: vals }))}
+                onChange={(vals) => {
+                  setFormData((prev) => ({ ...prev, batch_ids: vals }))
+                  if (vals && vals.length > 0) {
+                    setErrorMessage('')
+                  }
+                }}
                 placeholder="Select target batches..."
               />
             </div>

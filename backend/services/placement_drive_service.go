@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -123,11 +124,8 @@ func (s *DriveService) CreateDrive(companyName, jobRole, placementType string, p
 		}
 	}
 
-	// If no batch was selected ("Open to All"), explicitly write all existing batch IDs (never null)
 	if len(batchIDs) == 0 {
-		if allIDs, err := s.repo.GetAllBatchIDs(); err == nil && len(allIDs) > 0 {
-			batchIDs = allIDs
-		}
+		return nil, fmt.Errorf("please choose the target academic batch option")
 	}
 
 	newDrive := models.PlacementDrive{
@@ -168,6 +166,10 @@ func (s *DriveService) UpdateDriveDetails(id string, jobRole, placementType stri
 	drive, err := s.repo.GetDriveByID(id)
 	if err != nil {
 		return nil, err
+	}
+
+	if drive.OverallStatus == "completed" {
+		return nil, errors.New("cannot edit drive details: placement drive is completed and locked")
 	}
 
 	// Track changes to detect if actual data changed and if owner changed
@@ -335,6 +337,11 @@ func (s *DriveService) GetDriveActivities(driveID string) ([]models.PlacementDri
 
 // UpdateDriveEligibility updates or creates eligibility criteria and logs the change
 func (s *DriveService) UpdateDriveEligibility(driveID uint64, minCGPA, minTenth, minTwelfth *float64, maxCurrentArr, maxHistArr *int, maxOfferLPA *float64) (*models.PlacementDriveEligibility, error) {
+	drive, errDrive := s.repo.GetDriveByID(fmt.Sprintf("%d", driveID))
+	if errDrive == nil && drive.OverallStatus == "completed" {
+		return nil, errors.New("cannot edit eligibility: placement drive is completed and locked")
+	}
+
 	eligibility, err := s.repo.GetEligibility(driveID)
 	isNew := err != nil
 
@@ -391,6 +398,11 @@ func (s *DriveService) GetDriveEligibleStudents(driveID uint64) ([]models.Studen
 // UpdateDriveStudentsRoster manages inclusion, exclusion and special entries
 func (s *DriveService) UpdateDriveStudentsRoster(driveID uint64, updates []repositories.StudentRosterUpdateItem) error {
 	return s.repo.UpdateDriveStudentsRoster(driveID, updates)
+}
+
+// ConfirmDriveStudentRoster confirms student roster and moves included and special entry students to Stage 1
+func (s *DriveService) ConfirmDriveStudentRoster(driveID uint64, officerUserID *uint64) (*repositories.ConfirmRosterResult, error) {
+	return s.repo.ConfirmDriveStudentRoster(driveID, officerUserID)
 }
 
 // GetDriveStages returns all stages for a drive

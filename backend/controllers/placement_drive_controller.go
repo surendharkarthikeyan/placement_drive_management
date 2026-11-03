@@ -112,6 +112,11 @@ func (ctrl *DriveController) CreateDrive(c *gin.Context) {
 		batchIDs = []uint64{*req.BatchID}
 	}
 
+	if len(batchIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Please choose the target academic batch option."})
+		return
+	}
+
 	drive, err := ctrl.service.CreateDrive(
 		req.CompanyName,
 		req.JobRole,
@@ -162,6 +167,11 @@ func (ctrl *DriveController) UpdateDriveDetails(c *gin.Context) {
 	batchIDs := req.BatchIDs
 	if len(batchIDs) == 0 && req.BatchID != nil {
 		batchIDs = []uint64{*req.BatchID}
+	}
+
+	if len(batchIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Please choose the target academic batch option."})
+		return
 	}
 
 	drive, err := ctrl.service.UpdateDriveDetails(
@@ -335,6 +345,37 @@ func (ctrl *DriveController) UpdateDriveStudentsRoster(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Student roster updated successfully",
 		"data":    updatedList,
+	})
+}
+
+// ConfirmDriveStudentsRoster confirms student list and moves included/special entry students to Stage 1
+func (ctrl *DriveController) ConfirmDriveStudentsRoster(c *gin.Context) {
+	if config.DB == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Database not connected"})
+		return
+	}
+
+	driveID := c.Param("id")
+	driveIDUint, err := strconv.ParseUint(driveID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid drive id"})
+		return
+	}
+
+	var req struct {
+		OfficerUserID *uint64 `json:"officer_user_id"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	result, err := ctrl.service.ConfirmDriveStudentRoster(driveIDUint, req.OfficerUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": result.Message,
+		"data":    result,
 	})
 }
 

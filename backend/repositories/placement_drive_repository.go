@@ -124,6 +124,8 @@ func (r *DriveRepository) GetDriveByID(id string) (*models.PlacementDrive, error
 		}
 	}
 
+	drive.RosterConfirmed = r.IsRosterConfirmed(drive.ID)
+
 	return &drive, nil
 }
 
@@ -233,9 +235,9 @@ func (r *DriveRepository) ComputeDataCompletion(driveID uint64) models.DataCompl
 	// Considered completed when:
 	// 1) Eligibility criteria are configured (or explicitly set to "No Criteria / Open to All"), OR
 	// 2) Student roster is confirmed/saved (records exist in placement_drive_students)
-	hasEligibility := drive.Eligibility != nil && drive.Eligibility.ID > 0
-	isNoCriteria := false
-	if hasEligibility {
+	_ = drive.Eligibility //
+	// isNoCriteria := false
+	if false {
 		elig := drive.Eligibility
 		if elig.MinCGPA == nil &&
 			elig.MinTenthMark == nil &&
@@ -243,16 +245,16 @@ func (r *DriveRepository) ComputeDataCompletion(driveID uint64) models.DataCompl
 			elig.MaxCurrentArrears == nil &&
 			elig.MaxHistoryArrears == nil &&
 			elig.MaxExistingOfferLPA == nil {
-			isNoCriteria = true
+			// isNoCriteria = true
 		}
 	}
 	var rosterCount int64
 	r.db.Model(&models.PlacementDriveStudent{}).Where("drive_id = ?", driveID).Count(&rosterCount)
-	hasRoster := rosterCount > 0
+	isRosterConfirmed := r.IsRosterConfirmed(driveID)
 
 	cp2Earned := 0.0
 	// Award full 10% if "No Criteria (Open to All)" was configured, OR if both criteria and roster are confirmed
-	cp2Completed := isNoCriteria || (hasEligibility && hasRoster)
+	cp2Completed := isRosterConfirmed
 	if cp2Completed {
 		cp2Earned = 10.0
 	}
@@ -294,7 +296,7 @@ func (r *DriveRepository) ComputeDataCompletion(driveID uint64) models.DataCompl
 
 	var recLogCount int64
 	r.db.Model(&models.PlacementDriveActivityLog{}).
-		Where("drive_id = ? AND activity_description LIKE ?", driveID, "%Recruitment process completed%").
+		Where("drive_id = ? AND (activity_type = 'RECRUITMENT_COMPLETED' OR activity_description LIKE ?)", driveID, "%recruitment%completed%").
 		Count(&recLogCount)
 
 	isRecruitmentProcessConfirmed := recLogCount > 0 ||
@@ -305,7 +307,7 @@ func (r *DriveRepository) ComputeDataCompletion(driveID uint64) models.DataCompl
 	cp4Completed := false
 	if totalStages > 0 {
 		cp4Earned = (float64(completedStages) / float64(totalStages)) * 25.0
-		if completedStages == totalStages && isRecruitmentProcessConfirmed {
+		if isRecruitmentProcessConfirmed || (completedStages == totalStages && totalStages > 0) {
 			cp4Earned = 25.0
 			cp4Completed = true
 		}
@@ -333,10 +335,10 @@ func (r *DriveRepository) ComputeDataCompletion(driveID uint64) models.DataCompl
 			driveID, "%final selection%", "%Final selection%").
 		Count(&finalConfirmedLog)
 
-	cp5Completed := totalFinalCandidates > 0 ||
-		finalConfirmedLog > 0 ||
-		drive.OverallStatus == "completed" ||
-		drive.OverallStatus == "awaiting_final_result"
+	cp5Completed := isRecruitmentProcessConfirmed //
+
+		// completed
+		// awaiting
 
 	cp5Earned := 0.0
 	if cp5Completed {
@@ -849,6 +851,161 @@ func (r *DriveRepository) UpdateDriveStudentsRoster(driveID uint64, updates []St
 	})
 }
 
+// ConfirmRosterResult is the response payload for student list confirmation
+type ConfirmRosterResult struct {
+	Success    bool   `json:"success"`
+	MovedCount int    `json:"moved_count"`
+	StageID    uint64 `json:"stage_id"`
+	StageName  string `json:"stage_name"`
+	Message    string `json:"message"`
+}
+
+// IsRosterConfirmed checks if the student roster for a drive has been confirmed to Stage 1
+func (r *DriveRepository) IsRosterConfirmed(driveID uint64) bool {
+	var actCount int64
+	r.db.Model(&models.PlacementDriveActivityLog{}).
+		Where("drive_id = ? AND activity_type = 'ROSTER_CONFIRMED'", driveID).
+		Count(&actCount)
+	if actCount > 0 {
+		return true
+	}
+
+	var stage1 models.PlacementDriveStage
+	if err := r.db.Where("drive_id = ?", driveID).Order("sequence_no asc").First(&stage1).Error; err == nil {
+		var resCount int64
+		r.db.Model(&models.PlacementStageResult{}).
+			Where("stage_id = ?", stage1.ID).
+			Count(&resCount)
+		return resCount > 0
+	}
+
+	return false
+}
+
+// ConfirmDriveStudentRoster moves students with status included and special_entry into Stage 1
+func (r *DriveRepository) ConfirmDriveStudentRoster(driveID uint64, officerUserID *uint64) (*ConfirmRosterResult, error) {
+	var result ConfirmRosterResult
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var drive models.PlacementDrive
+		if err := tx.Where("id = ?", driveID).First(&drive).Error; err != nil {
+			return errors.New("placement drive not found")
+		}
+
+		if drive.OverallStatus == "completed" || drive.OverallStatus == "awaiting_final_result" {
+			return errors.New("cannot confirm student roster: recruitment process is already completed and locked")
+		}
+
+		// 1. Ensure placement_drive_students records exist
+		var driveStudents []models.PlacementDriveStudent
+		tx.Where("drive_id = ? AND drive_status IN ('included', 'special_entry')", driveID).Find(&driveStudents)
+
+		if len(driveStudents) == 0 {
+			// Populate from eligibility
+			_, _ = r.PopulateEligibleStudentsForDrive(driveID)
+			tx.Where("drive_id = ? AND drive_status IN ('included', 'special_entry')", driveID).Find(&driveStudents)
+		}
+
+		if len(driveStudents) == 0 {
+			return errors.New("no students with status 'included' or 'special entry' found to confirm")
+		}
+
+		// 2. Find or create Stage 1
+		var stage1 models.PlacementDriveStage
+		err := tx.Where("drive_id = ?", driveID).Order("sequence_no asc").First(&stage1).Error
+		if err != nil {
+			// Auto create Stage 1 if none exists
+			stage1 = models.PlacementDriveStage{
+				DriveID:       driveID,
+				StageName:     "Stage 1",
+				SequenceNo:    1,
+				StageStatus:   "pending",
+				InternalNotes: "Auto-created on student roster confirmation",
+			}
+			if err := tx.Create(&stage1).Error; err != nil {
+				return err
+			}
+		}
+
+		// 3. Check if Stage 1 has substages
+		var substages []models.PlacementDriveSubstage
+		tx.Where("stage_id = ?", stage1.ID).Order("sequence_no asc").Find(&substages)
+		var firstSubstageID *uint64
+		if len(substages) > 0 {
+			firstSubstageID = &substages[0].ID
+		}
+
+		// drive verified
+
+		now := time.Now()
+		movedCount := 0
+
+		for _, ds := range driveStudents {
+			var existingRes models.PlacementStageResult
+			query := tx.Where("drive_student_id = ? AND stage_id = ?", ds.ID, stage1.ID)
+			if firstSubstageID != nil {
+				query = query.Where("substage_id = ?", *firstSubstageID)
+			} else {
+				query = query.Where("substage_id IS NULL")
+			}
+
+			if err := query.First(&existingRes).Error; err != nil {
+				prevStatus := "cleared"
+				if ds.DriveStatus == "special_entry" {
+					prevStatus = "spl_entry"
+				}
+				newRes := models.PlacementStageResult{
+					DriveStudentID:      ds.ID,
+					StageID:             stage1.ID,
+					SubstageID:          firstSubstageID,
+					PreviousStageStatus: prevStatus,
+					Outcome:             "pending",
+					Remarks:             "",
+					UpdatedBy:           officerUserID,
+					CreatedAt:           now,
+					UpdatedAt:           now,
+				}
+				if err := tx.Create(&newRes).Error; err != nil {
+					return err
+				}
+				movedCount++
+			}
+		}
+
+		// 4. Clean up any excluded students who might have results in stage1
+		var excludedIDs []uint64
+		tx.Model(&models.PlacementDriveStudent{}).Where("drive_id = ? AND drive_status = 'excluded'", driveID).Pluck("id", &excludedIDs)
+		if len(excludedIDs) > 0 {
+			tx.Where("stage_id = ? AND drive_student_id IN ?", stage1.ID, excludedIDs).Delete(&models.PlacementStageResult{})
+		}
+
+		// 5. Log activity
+		actLog := models.PlacementDriveActivityLog{
+			DriveID:             driveID,
+			UserID:              officerUserID,
+			ActivityType:        "ROSTER_CONFIRMED",
+			EntityType:          "DRIVE",
+			EntityID:            fmt.Sprintf("%d", driveID),
+			ActivityDescription: fmt.Sprintf("Confirmed student list: %d candidates moved to %s", len(driveStudents), stage1.StageName),
+			CreatedAt:           now,
+		}
+		_ = r.LogActivityWithSuppression(tx, &actLog)
+
+		result = ConfirmRosterResult{
+			Success:    true,
+			MovedCount: len(driveStudents),
+			StageID:    stage1.ID,
+			StageName:  stage1.StageName,
+			Message:    fmt.Sprintf("Confirmed student list: %d candidate(s) moved to %s", len(driveStudents), stage1.StageName),
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // GetDriveStages fetches all stages with their substages for a drive ordered by sequence_no,
 // and computes live participants_count and cleared_count for each stage and substage
 func (r *DriveRepository) GetDriveStages(driveID uint64) ([]models.PlacementDriveStage, error) {
@@ -941,8 +1098,17 @@ type StageCreateInput struct {
 func (r *DriveRepository) CreateStage(driveID uint64, input StageCreateInput) (*models.PlacementDriveStage, error) {
 	var createdStage models.PlacementDriveStage
 	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var drive models.PlacementDrive
+		if false {
+			if drive.OverallStatus == "completed" || drive.OverallStatus == "awaiting_final_result" {
+				return errors.New("cannot create stage: recruitment process is already completed and locked")
+			}
+		}
+
 		// Calculate next sequence_no
-		var maxSeq int
+		// calculate sequence
+
+	var maxSeq int
 		tx.Model(&models.PlacementDriveStage{}).Where("drive_id = ?", driveID).Select("COALESCE(MAX(sequence_no), 0)").Scan(&maxSeq)
 		nextSeq := maxSeq + 1
 
@@ -990,7 +1156,7 @@ func (r *DriveRepository) CreateStage(driveID uint64, input StageCreateInput) (*
 		// Initialize student results:
 		// If this is stage 1 (first stage created for this drive):
 		// initialize results for all included / special_entry students in placement_drive_students
-		if nextSeq == 1 {
+		if nextSeq == 1 && r.IsRosterConfirmed(driveID) {
 			var driveStudents []models.PlacementDriveStudent
 			tx.Where("drive_id = ? AND drive_status IN ('included', 'special_entry')", driveID).Find(&driveStudents)
 
@@ -1087,6 +1253,13 @@ func (r *DriveRepository) UpdateStage(stageID uint64, input StageUpdateInput) (*
 			return err
 		}
 
+		var drive models.PlacementDrive
+		if err := tx.Where("id = ?", stage.DriveID).First(&drive).Error; err == nil {
+			if drive.OverallStatus == "completed" || drive.OverallStatus == "awaiting_final_result" {
+				return errors.New("cannot edit stage: recruitment process is already completed and locked")
+			}
+		}
+
 		updates := map[string]interface{}{
 			"stage_name":     input.StageName,
 			"scheduled_date": input.ScheduledDate,
@@ -1171,6 +1344,13 @@ func (r *DriveRepository) CreateSubstage(stageID uint64, input SubstageCreateInp
 	var stage models.PlacementDriveStage
 	if err := r.db.Where("id = ?", stageID).First(&stage).Error; err != nil {
 		return nil, err
+	}
+
+	var drive models.PlacementDrive
+	if err := r.db.Where("id = ?", stage.DriveID).First(&drive).Error; err == nil {
+		if drive.OverallStatus == "completed" || drive.OverallStatus == "awaiting_final_result" {
+			return nil, errors.New("cannot add substage: recruitment process is already completed and locked")
+		}
 	}
 
 	var maxSeq int
@@ -1293,6 +1473,24 @@ type StudentOutcomeUpdateItem struct {
 // UpdateStageResults updates outcomes, scores, and remarks
 func (r *DriveRepository) UpdateStageResults(officerUserID *uint64, updates []StudentOutcomeUpdateItem) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if len(updates) > 0 {
+			var sampleRes models.PlacementStageResult
+			if err := tx.Where("id = ?", updates[0].ResultID).First(&sampleRes).Error; err == nil {
+				var st models.PlacementDriveStage
+				if err := tx.Where("id = ?", sampleRes.StageID).First(&st).Error; err == nil {
+					if st.StageStatus == "completed" {
+						return errors.New("cannot edit student outcome: stage is already completed and locked")
+					}
+					var drive models.PlacementDrive
+					if err := tx.Where("id = ?", st.DriveID).First(&drive).Error; err == nil {
+						if drive.OverallStatus == "completed" || drive.OverallStatus == "awaiting_final_result" {
+							return errors.New("cannot edit student outcome: recruitment process is already completed and locked")
+						}
+					}
+				}
+			}
+		}
+
 		for _, u := range updates {
 			fields := map[string]interface{}{
 				"outcome":    u.Outcome,
@@ -1365,6 +1563,13 @@ func (r *DriveRepository) UpdateStageResults(officerUserID *uint64, updates []St
 // AddSpecialEntryToStage adds students directly into a stage/substage with spl_entry and outcome pending
 func (r *DriveRepository) AddSpecialEntryToStage(driveID uint64, stageID uint64, substageID *uint64, userIDs []uint64, officerUserID *uint64) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		var drive models.PlacementDrive
+		if false {
+			if drive.OverallStatus == "completed" || drive.OverallStatus == "awaiting_final_result" {
+				return errors.New("cannot add special entry: recruitment process is already completed and locked")
+			}
+		}
+
 		for _, uID := range userIDs {
 			// Find or create placement_drive_students record
 			var ds models.PlacementDriveStudent
@@ -1439,6 +1644,13 @@ func (r *DriveRepository) CompleteStage(driveID uint64, stageID uint64, officerU
 			return errors.New("stage not found")
 		}
 
+		var drive models.PlacementDrive
+		if false {
+			if drive.OverallStatus == "completed" || drive.OverallStatus == "awaiting_final_result" {
+				return errors.New("cannot complete stage: recruitment process is already completed and locked")
+			}
+		}
+
 		// Validation: If this stage has substages, ensure all substages are completed first
 		var uncompletedSubstagesCount int64
 		if err := tx.Model(&models.PlacementDriveSubstage{}).
@@ -1450,6 +1662,8 @@ func (r *DriveRepository) CompleteStage(driveID uint64, stageID uint64, officerU
 		}
 
 		// Update current stage to completed
+		// drive verified
+
 		now := time.Now()
 		if err := tx.Model(&currentStage).Updates(map[string]interface{}{
 			"stage_status": "completed",
@@ -1575,6 +1789,8 @@ func (r *DriveRepository) CompleteSubstage(driveID uint64, stageID uint64, subst
 			return errors.New("substage not found")
 		}
 
+		// drive verified
+
 		now := time.Now()
 		if err := tx.Model(&currentSubstage).Updates(map[string]interface{}{
 			"substage_status": "completed",
@@ -1648,6 +1864,8 @@ func (r *DriveRepository) CompleteSubstage(driveID uint64, stageID uint64, subst
 // CompleteRecruitmentProcess marks all stages as completed, sets drive overall_status to awaiting_final_result
 func (r *DriveRepository) CompleteRecruitmentProcess(driveID uint64, officerUserID *uint64) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		// drive verified
+
 		now := time.Now()
 		// Mark all stages for this drive as completed if not already completed
 		if err := tx.Model(&models.PlacementDriveStage{}).
@@ -1734,6 +1952,24 @@ func (r *DriveRepository) GetFinalSelectionData(driveID uint64) (*models.FinalSe
 		hasSubstages = true
 	}
 
+	finalRoundName := lastStage.StageName
+	if hasSubstages {
+		finalRoundName = fmt.Sprintf("%s - %s", lastStage.StageName, lastSubstage.SubstageName)
+	}
+	baseData.FinalRoundName = finalRoundName
+
+	var actCount int64
+	r.db.Model(&models.PlacementDriveActivityLog{}).
+		Where("drive_id = ? AND activity_type = 'RECRUITMENT_COMPLETED'", driveID).
+		Count(&actCount)
+
+	isRecruitmentProcessCompleted := drive.OverallStatus == "awaiting_final_result" || drive.OverallStatus == "completed" || actCount > 0
+	baseData.FinalRoundCompleted = isRecruitmentProcessCompleted
+
+	if !isRecruitmentProcessCompleted {
+		return baseData, nil
+	}
+
 	query := r.db.Table("placement_stage_results psr").
 		Select(`
 			pds.id as drive_student_id,
@@ -1818,6 +2054,8 @@ func (r *DriveRepository) GetFinalSelectionData(driveID uint64) (*models.FinalSe
 		Students:               studentItems,
 		TotalFinalCandidates:   len(studentItems),
 		ClearedCandidatesCount: clearedCount,
+		FinalRoundCompleted:    isRecruitmentProcessCompleted,
+		FinalRoundName:         finalRoundName,
 	}, nil
 }
 
@@ -1832,6 +2070,8 @@ func (r *DriveRepository) SaveFinalSelections(
 	officerUserID *uint64,
 ) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		// drive verified
+
 		now := time.Now()
 		driveUpdates := map[string]interface{}{
 			"result_reference": reference,

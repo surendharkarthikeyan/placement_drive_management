@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Loader2, CheckCircle2, AlertCircle, Trophy, Sparkles, Building2, SlidersHorizontal, PlusCircle, AlertTriangle, Pencil, User } from 'lucide-react'
+import { Save, Loader2, CheckCircle2, AlertCircle, Trophy, Sparkles, Building2, SlidersHorizontal, PlusCircle, AlertTriangle, Pencil, User, Lock } from 'lucide-react'
 import { getDriveById, updateDriveDetails, getPlacementOfficers, getBatches } from '../../../services/api'
 import EditEligibilityModal from '../../modals/placement_drive/EditEligibilityModal'
 import EditDriveModal from '../../modals/placement_drive/EditDriveModal'
@@ -30,6 +30,7 @@ export default function CenterWorkspacePanel({
   refreshKey = 0
 }) {
   const [drive, setDrive] = useState(null)
+  const isDriveCompleted = drive?.overall_status === 'completed'
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -151,6 +152,10 @@ export default function CenterWorkspacePanel({
   // Save changes to backend via PUT /api/drives/:id
   const handleSaveChanges = async () => {
     if (!selectedDriveId) return
+    if (!formData.batch_ids || formData.batch_ids.length === 0) {
+      alert('Please choose the target academic batch option.')
+      return false
+    }
     try {
       setIsSaving(true)
       const numPackage = parseFloat(formData.package_lpa.replace(/[^0-9.]/g, '')) || 0
@@ -162,7 +167,7 @@ export default function CenterWorkspacePanel({
         drive_start_date: formData.drive_start_date,
         drive_end_date: formData.drive_end_date,
         drive_owner_user_id: formData.drive_owner_user_id ? Number(formData.drive_owner_user_id) : null,
-        batch_ids: formData.batch_ids && formData.batch_ids.length > 0 ? formData.batch_ids : batches.map(b => b.id),
+        batch_ids: formData.batch_ids,
         job_description: formData.job_description
       }
 
@@ -332,6 +337,15 @@ export default function CenterWorkspacePanel({
       {/* 4. Tab 1: Drive Setup Content */}
       {activeTab === 'setup' && (
         <div className="flex flex-col gap-[18px]">
+          {isDriveCompleted && (
+            <div className="flex items-center gap-2.5 p-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-[12px] text-[#475569] text-[13px] font-medium shadow-2xs">
+              <Lock size={16} className="text-[#64748b] shrink-0" />
+              <span>
+                This placement drive is marked as completed. Drive setup, student roster, and stages are finalized and locked. (Offer letters can still be managed in the <strong>4. Final Selection</strong> tab).
+              </span>
+            </div>
+          )}
+
           {/* Card: Company and Drive Information with Premium Styling */}
           <div className="p-[24px] bg-white border border-[#dbe5f1] border-t-4 border-t-[#2563eb] rounded-[16px] shadow-[0_2px_8px_rgba(15,23,42,0.04)] relative">
             <div className="flex items-center justify-between mb-[22px]">
@@ -378,8 +392,13 @@ export default function CenterWorkspacePanel({
                   name="job_role"
                   value={formData.job_role}
                   onChange={handleInputChange}
+                  disabled={isDriveCompleted}
                   placeholder="Job role"
-                  className="w-full h-[48px] px-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[15px] font-[600] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition shadow-xs"
+                  className={`w-full h-[48px] px-[14px] rounded-[10px] text-[15px] font-[600] outline-none shadow-xs transition ${
+                    isDriveCompleted
+                      ? 'bg-[#f8fafc] text-[#64748b] border border-[#cbd5e1] cursor-not-allowed'
+                      : 'bg-white text-[#1e293b] border border-[#cbd5e1] focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/15'
+                  }`}
                 />
               </div>
 
@@ -396,7 +415,8 @@ export default function CenterWorkspacePanel({
                     { value: 'Apprenticeship', label: 'Apprenticeship' }
                   ]}
                   value={formData.placement_type}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, placement_type: val }))}
+                  onChange={(val) => !isDriveCompleted && setFormData((prev) => ({ ...prev, placement_type: val }))}
+                  disabled={isDriveCompleted}
                   placeholder="Select type"
                 />
               </div>
@@ -411,8 +431,13 @@ export default function CenterWorkspacePanel({
                   name="package_lpa"
                   value={formData.package_lpa}
                   onChange={handleInputChange}
+                  disabled={isDriveCompleted}
                   placeholder="e.g. 18.5 LPA"
-                  className="w-full h-[48px] px-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[15px] font-[600] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition shadow-xs"
+                  className={`w-full h-[48px] px-[14px] rounded-[10px] text-[15px] font-[600] outline-none shadow-xs transition ${
+                    isDriveCompleted
+                      ? 'bg-[#f8fafc] text-[#64748b] border border-[#cbd5e1] cursor-not-allowed'
+                      : 'bg-white text-[#1e293b] border border-[#cbd5e1] focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/15'
+                  }`}
                 />
               </div>
 
@@ -428,7 +453,12 @@ export default function CenterWorkspacePanel({
                   max="2099-12-31"
                   value={formData.drive_start_date}
                   onChange={handleInputChange}
-                  className="w-full h-[48px] px-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[15px] font-[600] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition cursor-pointer shadow-xs"
+                  disabled={isDriveCompleted}
+                  className={`w-full h-[48px] px-[14px] rounded-[10px] text-[15px] font-[600] outline-none shadow-xs transition ${
+                    isDriveCompleted
+                      ? 'bg-[#f8fafc] text-[#64748b] border border-[#cbd5e1] cursor-not-allowed'
+                      : 'bg-white text-[#1e293b] border border-[#cbd5e1] focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/15 cursor-pointer'
+                  }`}
                 />
               </div>
 
@@ -444,7 +474,12 @@ export default function CenterWorkspacePanel({
                   max="2099-12-31"
                   value={formData.drive_end_date}
                   onChange={handleInputChange}
-                  className="w-full h-[48px] px-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[10px] text-[15px] font-[600] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition cursor-pointer shadow-xs"
+                  disabled={isDriveCompleted}
+                  className={`w-full h-[48px] px-[14px] rounded-[10px] text-[15px] font-[600] outline-none shadow-xs transition ${
+                    isDriveCompleted
+                      ? 'bg-[#f8fafc] text-[#64748b] border border-[#cbd5e1] cursor-not-allowed'
+                      : 'bg-white text-[#1e293b] border border-[#cbd5e1] focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/15 cursor-pointer'
+                  }`}
                 />
               </div>
 
@@ -460,7 +495,8 @@ export default function CenterWorkspacePanel({
                     subtext: officer.email || 'Placement Team'
                   }))}
                   value={formData.drive_owner_user_id}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, drive_owner_user_id: val }))}
+                  onChange={(val) => !isDriveCompleted && setFormData((prev) => ({ ...prev, drive_owner_user_id: val }))}
+                  disabled={isDriveCompleted}
                   placeholder="Select placement officer"
                   searchPlaceholder="Search officer..."
                   icon={User}
@@ -471,12 +507,14 @@ export default function CenterWorkspacePanel({
               <div className="col-span-2">
                 <MultiSelectDropdown
                   label="Target Academic Batch"
+                  required
                   options={batches.map((b) => ({
                     value: b.id,
                     label: `Batch ${b.name}`
                   }))}
                   selectedValues={formData.batch_ids}
-                  onChange={(ids) => setFormData((prev) => ({ ...prev, batch_ids: ids }))}
+                  onChange={(ids) => !isDriveCompleted && setFormData((prev) => ({ ...prev, batch_ids: ids }))}
+                  disabled={isDriveCompleted}
                   placeholder="Choose batch(es)..."
                 />
               </div>
@@ -490,9 +528,14 @@ export default function CenterWorkspacePanel({
                   name="job_description"
                   value={formData.job_description}
                   onChange={handleInputChange}
+                  disabled={isDriveCompleted}
                   rows={3}
                   placeholder="Software development role requiring strong DSA, problem-solving, and communication skills."
-                  className="w-full p-[14px] bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[11px] text-[15px] font-[500] text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-[#2563eb]/15 transition leading-relaxed resize-y shadow-xs"
+                  className={`w-full p-[14px] rounded-[11px] text-[15px] font-[500] leading-relaxed resize-y shadow-xs outline-none transition ${
+                    isDriveCompleted
+                      ? 'bg-[#f8fafc] text-[#64748b] border border-[#cbd5e1] cursor-not-allowed'
+                      : 'bg-white text-[#1e293b] border border-[#cbd5e1] focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/15'
+                  }`}
                 />
               </div>
             </div>
@@ -506,15 +549,22 @@ export default function CenterWorkspacePanel({
                 </span>
               )}
 
-              <button
-                type="button"
-                onClick={handleSaveChanges}
-                disabled={isSaving}
-                className="py-[9px] px-[20px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[10px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-2 active:scale-98 disabled:opacity-75"
-              >
-                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-              </button>
+              {isDriveCompleted ? (
+                <div className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-[#64748b] bg-[#f1f5f9] border border-[#e2e8f0] rounded-[10px] shadow-2xs select-none">
+                  <Lock size={15} />
+                  <span>Drive Completed (Locked)</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSaveChanges}
+                  disabled={isSaving}
+                  className="py-[9px] px-[20px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[10px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-2 active:scale-98 disabled:opacity-75"
+                >
+                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -532,27 +582,29 @@ export default function CenterWorkspacePanel({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsEligibilityModalOpen(true)}
-                className={`py-[8px] px-[16px] text-[13px] font-[800] rounded-[8px] transition cursor-pointer flex items-center gap-1.5 shadow-xs ${
-                  eligibility
-                    ? 'text-[#2563eb] bg-[#eff6ff] hover:bg-[#dbeafe] border border-[#bfdbfe]'
-                    : 'text-white bg-[#2563eb] hover:bg-[#1d4ed8]'
-                }`}
-              >
-                {eligibility ? (
-                  <>
-                    <SlidersHorizontal size={14} />
-                    <span>Edit Conditions</span>
-                  </>
-                ) : (
-                  <>
-                    <PlusCircle size={15} />
-                    <span>Set Criteria</span>
-                  </>
-                )}
-              </button>
+              {!isDriveCompleted && (
+                <button
+                  type="button"
+                  onClick={() => setIsEligibilityModalOpen(true)}
+                  className={`py-[8px] px-[16px] text-[13px] font-[800] rounded-[8px] transition cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                    eligibility
+                      ? 'text-[#2563eb] bg-[#eff6ff] hover:bg-[#dbeafe] border border-[#bfdbfe]'
+                      : 'text-white bg-[#2563eb] hover:bg-[#1d4ed8]'
+                  }`}
+                >
+                  {eligibility ? (
+                    <>
+                      <SlidersHorizontal size={14} />
+                      <span>Edit Conditions</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle size={15} />
+                      <span>Set Criteria</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
             {/* If criteria not set yet */}
@@ -569,13 +621,15 @@ export default function CenterWorkspacePanel({
                     </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsEligibilityModalOpen(true)}
-                  className="py-1.5 px-3 text-[12px] font-bold text-[#b45309] bg-white border border-[#fde68a] hover:bg-[#fef9c3] rounded-[7px] cursor-pointer shadow-xs"
-                >
-                  Configure Now
-                </button>
+                {!isDriveCompleted && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEligibilityModalOpen(true)}
+                    className="py-1.5 px-3 text-[12px] font-bold text-[#b45309] bg-white border border-[#fde68a] hover:bg-[#fef9c3] rounded-[7px] cursor-pointer shadow-xs"
+                  >
+                    Configure Now
+                  </button>
+                )}
               </div>
             ) : (
               /* Eligibility Condition Tags */
@@ -658,8 +712,13 @@ export default function CenterWorkspacePanel({
               key={studentsRosterKey}
               driveId={selectedDriveId}
               eligibility={eligibility}
-              onOpenFilterModal={() => setIsIncludeStudentsModalOpen(true)}
-              onConfigureCriteria={() => setIsEligibilityModalOpen(true)}
+              isDriveCompleted={isDriveCompleted}
+              officerUserId={formData.drive_owner_user_id ? parseInt(formData.drive_owner_user_id, 10) : 6}
+              isRosterConfirmed={drive?.roster_confirmed}
+              onDriveUpdated={onDriveUpdated}
+              onNavigateToStages={() => setActiveTab('stages')}
+              onOpenFilterModal={() => !isDriveCompleted && setIsIncludeStudentsModalOpen(true)}
+              onConfigureCriteria={() => !isDriveCompleted && setIsEligibilityModalOpen(true)}
             />
           )}
         </div>
@@ -670,7 +729,11 @@ export default function CenterWorkspacePanel({
         <DriveStagesAndOutcomes
           driveId={selectedDriveId}
           officerUserId={formData.drive_owner_user_id ? parseInt(formData.drive_owner_user_id, 10) : 6}
+          isDriveCompleted={isDriveCompleted}
+          overallStatus={drive?.overall_status}
+          isRosterConfirmed={drive?.roster_confirmed}
           onDriveUpdated={onDriveUpdated}
+          onNavigateToRoster={() => setActiveTab('students')}
           onNavigateToFinalSelection={() => setActiveTab('final')}
         />
       )}

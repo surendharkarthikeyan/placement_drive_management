@@ -12,7 +12,8 @@ import {
   Check,
   ChevronRight,
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  Clock
 } from 'lucide-react'
 import {
   getFinalSelection,
@@ -54,6 +55,8 @@ export default function FinalSelectionWorkspace({
   const [students, setStudents] = useState([])
   const [defaultRole, setDefaultRole] = useState('')
   const [defaultPackage, setDefaultPackage] = useState('')
+  const [finalRoundCompleted, setFinalRoundCompleted] = useState(false)
+  const [finalRoundName, setFinalRoundName] = useState('')
 
   // Upload feedback state
   const [uploadFeedback, setUploadFeedback] = useState({})
@@ -73,6 +76,8 @@ export default function FinalSelectionWorkspace({
     setCompanyName('')
     setDefaultRole('')
     setDefaultPackage('')
+    setFinalRoundCompleted(false)
+    setFinalRoundName('')
     setUploadFeedback({})
 
     try {
@@ -86,6 +91,8 @@ export default function FinalSelectionWorkspace({
         setCompanyName(data.company_name || '')
         setDefaultRole(data.default_role || '')
         setDefaultPackage(data.default_package_lpa || '')
+        setFinalRoundCompleted(Boolean(data.final_round_completed))
+        setFinalRoundName(data.final_round_name || '')
 
         const studentList = (data.students || []).map((s) => ({
           ...s,
@@ -272,9 +279,30 @@ export default function FinalSelectionWorkspace({
 
           {/* Candidates List */}
           <div className="flex flex-col gap-4 mt-1">
-            {students.length === 0 ? (
+            {!finalRoundCompleted ? (
+              <div className="py-12 px-5 text-center bg-[#f8fafc] border border-dashed border-[#cbd5e1] rounded-[14px] flex flex-col items-center justify-center gap-2.5">
+                <div className="w-11 h-11 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#64748b]">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <h4 className="text-[14.5px] font-bold text-[#1e293b] m-0">Recruitment Process Not Completed</h4>
+                  <p className="text-[12.5px] text-[#64748b] mt-1 mb-0 max-w-[420px] leading-relaxed">
+                    Cleared students will show in this final selection tab after clicking the "Recruitment Process Completion" button in Stages &amp; Outcomes.
+                  </p>
+                </div>
+                {onNavigateToTab && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToTab('stages')}
+                    className="mt-1 px-4 py-1.5 text-[12.5px] font-bold text-[#2563eb] bg-[#eff6ff] hover:bg-[#dbeafe] border border-[#bfdbfe] rounded-[8px] transition cursor-pointer"
+                  >
+                    Go to Stages &amp; Outcomes
+                  </button>
+                )}
+              </div>
+            ) : students.length === 0 ? (
               <div className="py-12 text-center text-[#94a3b8] text-[13.5px]">
-                No students offered yet. Mark candidates as Cleared in the final round to see them listed here.
+                No students cleared the final recruitment round.
               </div>
             ) : (
               students.map((student) => {

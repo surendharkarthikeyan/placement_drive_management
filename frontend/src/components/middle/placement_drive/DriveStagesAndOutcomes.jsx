@@ -17,7 +17,9 @@ import {
   Layers,
   Hourglass,
   Users,
-  FileText
+  FileText,
+  Lock,
+  ArrowRight
 } from 'lucide-react'
 import {
   getDriveStages,
@@ -82,7 +84,11 @@ const OUTCOME_OPTIONS = [
 export default function DriveStagesAndOutcomes({
   driveId,
   officerUserId = 6,
+  isDriveCompleted = false,
+  overallStatus = 'draft',
+  isRosterConfirmed = false,
   onDriveUpdated = () => { },
+  onNavigateToRoster = () => { },
   onNavigateToFinalSelection = () => { },
 }) {
   const [stages, setStages] = useState([])
@@ -363,15 +369,22 @@ export default function DriveStagesAndOutcomes({
     return clearedCountInCurrentStage > nextParticipants
   }, [currentStage, nextStage, clearedCountInCurrentStage])
 
+  const isRecruitmentCompleted =
+    isDriveCompleted ||
+    overallStatus === 'awaiting_final_result' ||
+    overallStatus === 'completed'
+
+  // Completed or locked stage status
+  const isStageLocked =
+    isRecruitmentCompleted ||
+    currentStage?.stage_status === 'completed' ||
+    isDriveCompleted
+
   // Open complete confirmation modal
   const handleOpenCompleteModal = () => {
-    if (!selectedStageId) return
+    if (!selectedStageId || isStageLocked) return
     if (hasSubstages && !allSubstagesCompleted) {
       alert('Cannot mark this stage as completed until all of its substages have been completed.')
-      return
-    }
-    if (currentStage?.stage_status === 'completed' && !hasUnsyncedStudents) {
-      alert('All cleared students from this stage are already synced to the next stage. No changes to update.')
       return
     }
     setIsConfirmCompleteOpen(true)
@@ -506,6 +519,15 @@ export default function DriveStagesAndOutcomes({
 
   return (
     <div className="flex flex-col gap-5">
+      {isRecruitmentCompleted && (
+        <div className="flex items-center gap-2.5 p-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-[12px] text-[#475569] text-[13px] font-medium shadow-2xs">
+          <Lock size={16} className="text-[#64748b] shrink-0" />
+          <span>
+            Recruitment process is marked as completed. All stages and student outcomes are finalized and locked.
+          </span>
+        </div>
+      )}
+
       {/* 2. Recruitment Process Title & Add Stage Button */}
       <div className="flex items-center justify-between">
         <div>
@@ -518,24 +540,38 @@ export default function DriveStagesAndOutcomes({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setIsConfirmRecruitmentCompleteOpen(true)}
-            className="py-[7.5px] px-[14px] bg-[#16a34a] hover:bg-[#15803d] text-white rounded-[9px] text-[13px] font-semibold shadow-xs hover:shadow-sm transition cursor-pointer flex items-center gap-1.5 active:scale-98"
-            title="Complete all recruitment stages and move cleared candidates to Final Selection"
-          >
-            <CheckCircle2 size={15} strokeWidth={2.3} />
-            <span>Recruitment Process Completion</span>
-          </button>
+          {isDriveCompleted ? (
+            <div className="py-[7.5px] px-[14px] bg-[#ecfdf5] text-[#16a34a] border border-[#bbf7d0] rounded-[9px] text-[13px] font-semibold flex items-center gap-1.5 shadow-2xs select-none">
+              <CheckCircle2 size={15} strokeWidth={2.3} />
+              <span>Drive Completed</span>
+            </div>
+          ) : isRecruitmentCompleted ? (
+            <div className="py-[7.5px] px-[14px] bg-[#ecfdf5] text-[#16a34a] border border-[#bbf7d0] rounded-[9px] text-[13px] font-semibold flex items-center gap-1.5 shadow-2xs select-none">
+              <CheckCircle2 size={15} strokeWidth={2.3} />
+              <span>Recruitment Process Completed</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsConfirmRecruitmentCompleteOpen(true)}
+              className="py-[7.5px] px-[14px] bg-[#16a34a] hover:bg-[#15803d] text-white rounded-[9px] text-[13px] font-semibold shadow-xs hover:shadow-sm transition cursor-pointer flex items-center gap-1.5 active:scale-98"
+              title="Complete all recruitment stages and move cleared candidates to Final Selection"
+            >
+              <CheckCircle2 size={15} strokeWidth={2.3} />
+              <span>Recruitment Process Completion</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setIsAddStageOpen(true)}
-            className="py-[7.5px] px-[15px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[9px] text-[13px] font-semibold shadow-xs hover:shadow-sm transition cursor-pointer flex items-center gap-1.5 active:scale-98"
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            <span>Add Stage</span>
-          </button>
+          {!isRecruitmentCompleted && !isDriveCompleted && (
+            <button
+              type="button"
+              onClick={() => setIsAddStageOpen(true)}
+              className="py-[7.5px] px-[15px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[9px] text-[13px] font-semibold shadow-xs hover:shadow-sm transition cursor-pointer flex items-center gap-1.5 active:scale-98"
+            >
+              <Plus size={15} strokeWidth={2.5} />
+              <span>Add Stage</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -632,7 +668,7 @@ export default function DriveStagesAndOutcomes({
           )}
 
           {/* "+ Add Stage" Dashed Interactive Card */}
-          {stages.length > 0 && (
+          {stages.length > 0 && !isRecruitmentCompleted && !isDriveCompleted && (
             <>
               <div className="flex items-center shrink-0 w-[20px]">
                 <div className="w-full h-[1.5px] bg-[#dbe5f1]" />
@@ -737,14 +773,16 @@ export default function DriveStagesAndOutcomes({
             </div>
 
             <div className="flex items-center gap-2.5 self-start pt-0.5">
-              <button
-                type="button"
-                onClick={() => setIsEditStageOpen(true)}
-                className="py-[7.5px] px-[14px] bg-white hover:bg-[#f8fafc] text-[#334155] border border-[#cbd5e1] rounded-[9px] text-[13px] font-medium transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-              >
-                <Edit3 size={14} />
-                <span>Edit Stage</span>
-              </button>
+              {!isStageLocked && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditStageOpen(true)}
+                  className="py-[7.5px] px-[14px] bg-white hover:bg-[#f8fafc] text-[#334155] border border-[#cbd5e1] rounded-[9px] text-[13px] font-medium transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Edit3 size={14} />
+                  <span>Edit Stage</span>
+                </button>
+              )}
 
               {currentStage.stage_status !== 'completed' ? (
                 <button
@@ -758,36 +796,17 @@ export default function DriveStagesAndOutcomes({
                   title={
                     hasSubstages && !allSubstagesCompleted
                       ? 'Complete all substages before marking this stage as completed'
-                      : 'Mark stage as completed and progress cleared students'
+                      : 'Mark stage as completed and finalize student outcomes'
                   }
                 >
                   {isCompleting ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} strokeWidth={2.4} />}
                   <span>Mark as Completed</span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleOpenCompleteModal}
-                  disabled={isCompleting || !hasUnsyncedStudents}
-                  className={`py-[7.5px] px-[16px] rounded-[9px] text-[13px] font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-98 ${hasUnsyncedStudents
-                    ? 'bg-[#2563eb] hover:bg-[#1d4ed8] text-white'
-                    : 'bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed border border-[#e2e8f0]'
-                    }`}
-                  title={
-                    hasUnsyncedStudents
-                      ? 'Sync newly cleared students to the next stage'
-                      : 'All cleared students are already synced to the next stage'
-                  }
-                >
-                  {isCompleting ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <CheckCircle2 size={15} strokeWidth={2.4} />
-                  )}
-                  <span>
-                    {hasUnsyncedStudents ? 'Update & Sync Next Stage' : 'All Students Synced'}
-                  </span>
-                </button>
+                <div className="py-[7.5px] px-[16px] rounded-[9px] text-[13px] font-semibold bg-[#ecfdf5] text-[#16a34a] border border-[#bbf7d0] flex items-center gap-1.5 shadow-2xs select-none">
+                  <CheckCircle2 size={15} strokeWidth={2.4} />
+                  <span>Stage Completed</span>
+                </div>
               )}
             </div>
           </div>
@@ -827,14 +846,16 @@ export default function DriveStagesAndOutcomes({
                       </button>
                     )
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setIsEditStageOpen(true)}
-                    className="py-1.5 px-3 bg-white hover:bg-[#f1f5f9] text-[#2563eb] border border-[#bfdbfe] rounded-[8px] text-[12.5px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                  >
-                    <Plus size={14} />
-                    <span>Add Substage</span>
-                  </button>
+                  {!isStageLocked && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditStageOpen(true)}
+                      className="py-1.5 px-3 bg-white hover:bg-[#f1f5f9] text-[#2563eb] border border-[#bfdbfe] rounded-[8px] text-[12.5px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                    >
+                      <Plus size={14} />
+                      <span>Add Substage</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -927,6 +948,16 @@ export default function DriveStagesAndOutcomes({
             </div>
           )}
 
+          {/* Lock notice when stage is completed */}
+          {isStageLocked && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-[10px] text-[13px] text-[#475569] font-medium shadow-2xs">
+              <Lock size={15} className="text-[#64748b] shrink-0" />
+              <span>
+                This stage is marked as completed. All student outcomes and scores are finalized and locked.
+              </span>
+            </div>
+          )}
+
           {/* Controls Bar: Search Box, Bulk Actions, Special Entry */}
           <div className="flex flex-wrap items-center justify-between gap-3.5 pt-3 border-t border-[#f1f5f9]">
             {/* Expanded Search Bar */}
@@ -946,44 +977,46 @@ export default function DriveStagesAndOutcomes({
               </div>
             </div>
 
-            {/* Action buttons matching exact design: Mark Cleared, Mark Not Cleared, Mark Pending + Special Entry */}
-            <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleBulkOutcome('cleared')}
-                disabled={selectedResultIds.size === 0}
-                className="py-[7.5px] px-[14px] bg-[#f0fdf4] hover:bg-[#dcfce7] text-[#16a34a] border border-[#bbf7d0] rounded-[9px] text-[13px] font-semibold transition cursor-pointer disabled:opacity-50"
-              >
-                Mark Cleared
-              </button>
+            {/* Action buttons: Mark Cleared, Mark Not Cleared, Mark Pending + Special Entry */}
+            {!isStageLocked && (
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleBulkOutcome('cleared')}
+                  disabled={selectedResultIds.size === 0}
+                  className="py-[7.5px] px-[14px] bg-[#f0fdf4] hover:bg-[#dcfce7] text-[#16a34a] border border-[#bbf7d0] rounded-[9px] text-[13px] font-semibold transition cursor-pointer disabled:opacity-50"
+                >
+                  Mark Cleared
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleBulkOutcome('not_cleared')}
-                disabled={selectedResultIds.size === 0}
-                className="py-[7.5px] px-[14px] bg-[#fef2f2] hover:bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] rounded-[9px] text-[13px] font-semibold transition cursor-pointer disabled:opacity-50"
-              >
-                Mark Not Cleared
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkOutcome('not_cleared')}
+                  disabled={selectedResultIds.size === 0}
+                  className="py-[7.5px] px-[14px] bg-[#fef2f2] hover:bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] rounded-[9px] text-[13px] font-semibold transition cursor-pointer disabled:opacity-50"
+                >
+                  Mark Not Cleared
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleBulkOutcome('pending')}
-                disabled={selectedResultIds.size === 0}
-                className="py-[7.5px] px-[14px] bg-[#f8fafc] hover:bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1] rounded-[9px] text-[13px] font-semibold transition cursor-pointer disabled:opacity-50"
-              >
-                Mark Pending
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkOutcome('pending')}
+                  disabled={selectedResultIds.size === 0}
+                  className="py-[7.5px] px-[14px] bg-[#f8fafc] hover:bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1] rounded-[9px] text-[13px] font-semibold transition cursor-pointer disabled:opacity-50"
+                >
+                  Mark Pending
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setIsSpecialEntryOpen(true)}
-                className="py-[7.5px] px-[16px] bg-[#fffbeb] hover:bg-[#fef3c7] text-[#b45309] border border-[#fde68a] rounded-[9px] text-[13px] font-bold transition cursor-pointer flex items-center gap-1.5 shadow-2xs ml-1"
-              >
-                <Sparkles size={15} className="text-[#d97706]" />
-                <span>Special Entry</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSpecialEntryOpen(true)}
+                  className="py-[7.5px] px-[16px] bg-[#fffbeb] hover:bg-[#fef3c7] text-[#b45309] border border-[#fde68a] rounded-[9px] text-[13px] font-bold transition cursor-pointer flex items-center gap-1.5 shadow-2xs ml-1"
+                >
+                  <Sparkles size={15} className="text-[#d97706]" />
+                  <span>Special Entry</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Student Results Table */}
@@ -995,9 +1028,12 @@ export default function DriveStagesAndOutcomes({
                     <th className="py-3 px-3.5 w-[38px]">
                       <input
                         type="checkbox"
+                        disabled={isStageLocked}
                         checked={isAllChecked}
                         onChange={handleSelectAll}
-                        className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
+                        className={`w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 ${
+                          isStageLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
                       />
                     </th>
                     <th className="py-3 px-3.5">STUDENT</th>
@@ -1018,7 +1054,36 @@ export default function DriveStagesAndOutcomes({
                   ) : filteredResults.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-12 text-center text-[#64748b] text-[13.5px]">
-                        {isLoadingResults ? 'Loading stage results...' : 'No participating students found for this stage.'}
+                        {isLoadingResults ? (
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Loader2 size={24} className="animate-spin text-[#2563eb]" />
+                            <span>Loading stage results...</span>
+                          </div>
+                        ) : currentStage?.sequence_no === 1 && !isRosterConfirmed ? (
+                          <div className="flex flex-col items-center justify-center gap-2.5 max-w-md mx-auto py-3">
+                            <div className="w-10 h-10 rounded-full bg-[#f8fafc] border border-[#e2e8f0] flex items-center justify-center text-[#64748b]">
+                              <Users size={20} />
+                            </div>
+                            <div className="font-[750] text-[#1e293b] text-[15px]">
+                              No students in Stage 1 yet
+                            </div>
+                            <p className="text-[13px] text-[#64748b] m-0">
+                              Please confirm the student list in <span className="font-semibold text-[#0f172a]">"2. Student List"</span> tab to move included and special entry candidates into Stage 1.
+                            </p>
+                            {!isDriveCompleted && (
+                              <button
+                                type="button"
+                                onClick={onNavigateToRoster}
+                                className="mt-1 px-4 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[8px] text-[13px] font-[750] transition cursor-pointer flex items-center gap-1.5"
+                              >
+                                <span>Go to Student List</span>
+                                <ArrowRight size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          'No participating students found for this stage.'
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -1036,9 +1101,12 @@ export default function DriveStagesAndOutcomes({
                           <td className="py-3 px-3.5">
                             <input
                               type="checkbox"
+                              disabled={isStageLocked}
                               checked={isChecked}
-                              onChange={() => handleToggleCheck(r.result_id)}
-                              className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
+                              onChange={() => !isStageLocked && handleToggleCheck(r.result_id)}
+                              className={`w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 ${
+                                isStageLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                              }`}
                             />
                           </td>
 
@@ -1076,24 +1144,49 @@ export default function DriveStagesAndOutcomes({
 
                           {/* Outcome dropdown */}
                           <td className="py-3 px-3.5">
-                            <select
-                              value={r.outcome}
-                              onChange={(e) => handleOutcomeChange(r.result_id, e.target.value)}
-                              className={`h-[34px] px-2.5 rounded-[8px] text-[12.5px] font-[750] border outline-none cursor-pointer ${r.outcome === 'cleared'
-                                ? 'bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]'
-                                : r.outcome === 'not_cleared'
-                                  ? 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]'
-                                  : r.outcome === 'absent' || r.outcome === 'withdrawn'
-                                    ? 'bg-[#f8fafc] text-[#64748b] border-[#cbd5e1]'
-                                    : 'bg-[#fefce8] text-[#ca8a04] border-[#fef08a]'
+                            {isStageLocked ? (
+                              <span
+                                className={`inline-block py-1 px-3 rounded-[8px] text-[12px] font-[750] border select-none ${
+                                  r.outcome === 'cleared'
+                                    ? 'bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]'
+                                    : r.outcome === 'not_cleared'
+                                      ? 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]'
+                                      : r.outcome === 'absent' || r.outcome === 'withdrawn'
+                                        ? 'bg-[#f8fafc] text-[#64748b] border-[#cbd5e1]'
+                                        : 'bg-[#fefce8] text-[#ca8a04] border-[#fef08a]'
                                 }`}
-                            >
-                              {OUTCOME_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
+                              >
+                                {r.outcome === 'cleared'
+                                  ? 'Cleared'
+                                  : r.outcome === 'not_cleared'
+                                    ? 'Not Cleared'
+                                    : r.outcome === 'absent'
+                                      ? 'Absent'
+                                      : r.outcome === 'withdrawn'
+                                        ? 'Withdrawn'
+                                        : 'Pending'}
+                              </span>
+                            ) : (
+                              <select
+                                value={r.outcome}
+                                onChange={(e) => handleOutcomeChange(r.result_id, e.target.value)}
+                                className={`h-[34px] px-2.5 rounded-[8px] text-[12.5px] font-[750] border outline-none cursor-pointer ${
+                                  r.outcome === 'cleared'
+                                    ? 'bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]'
+                                    : r.outcome === 'not_cleared'
+                                      ? 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]'
+                                      : r.outcome === 'absent' || r.outcome === 'withdrawn'
+                                        ? 'bg-[#f8fafc] text-[#64748b] border-[#cbd5e1]'
+                                        : 'bg-[#fefce8] text-[#ca8a04] border-[#fef08a]'
+                                }`}
+                              >
+                                {OUTCOME_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </td>
 
                           {/* Score / Remark */}
@@ -1103,16 +1196,26 @@ export default function DriveStagesAndOutcomes({
                                 type="number"
                                 step="1"
                                 placeholder="Score"
+                                disabled={isStageLocked}
                                 defaultValue={r.score !== null ? r.score : ''}
-                                onBlur={(e) => handleScoreBlur(r.result_id, e.target.value)}
-                                className="w-[70px] h-[32px] px-2 bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[7px] text-[12.5px] font-[600] text-[#1e293b] outline-none"
+                                onBlur={(e) => !isStageLocked && handleScoreBlur(r.result_id, e.target.value)}
+                                className={`w-[70px] h-[32px] px-2 border rounded-[7px] text-[12.5px] font-[600] outline-none transition ${
+                                  isStageLocked
+                                    ? 'bg-[#f8fafc] text-[#64748b] border-[#e2e8f0] cursor-not-allowed shadow-inner'
+                                    : 'bg-white border-[#cbd5e1] focus:border-[#2563eb] text-[#1e293b]'
+                                }`}
                               />
                               <input
                                 type="text"
                                 placeholder="Remarks..."
+                                disabled={isStageLocked}
                                 defaultValue={r.remarks || ''}
-                                onBlur={(e) => handleRemarksBlur(r.result_id, e.target.value)}
-                                className="flex-1 min-w-[140px] h-[32px] px-2.5 bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[7px] text-[12.5px] text-[#1e293b] outline-none"
+                                onBlur={(e) => !isStageLocked && handleRemarksBlur(r.result_id, e.target.value)}
+                                className={`flex-1 min-w-[140px] h-[32px] px-2.5 border rounded-[7px] text-[12.5px] outline-none transition ${
+                                  isStageLocked
+                                    ? 'bg-[#f8fafc] text-[#64748b] border-[#e2e8f0] cursor-not-allowed shadow-inner'
+                                    : 'bg-white border-[#cbd5e1] focus:border-[#2563eb] text-[#1e293b]'
+                                }`}
                               />
                             </div>
                           </td>
@@ -1182,7 +1285,9 @@ export default function DriveStagesAndOutcomes({
               </div>
               <div>
                 <h3 className="text-[19px] font-bold text-[#172554] m-0 leading-tight">
-                  {currentStage?.stage_status === 'completed' ? 'Update & Sync Next Stage' : `Complete Stage: ${currentStage?.stage_name}`}
+                  {currentStage?.stage_status === 'completed'
+                    ? (!nextStage ? 'Sync Cleared to Final Selection' : 'Update & Sync Next Stage')
+                    : (!nextStage ? `Complete Final Stage: ${currentStage?.stage_name}` : `Complete Stage: ${currentStage?.stage_name}`)}
                 </h3>
                 <span className="text-[12.5px] font-medium text-[#64748b]">
                   Recruitment Progression
@@ -1192,8 +1297,18 @@ export default function DriveStagesAndOutcomes({
 
             <p className="text-[14.5px] text-[#475569] leading-relaxed mb-7 font-normal">
               {currentStage?.stage_status === 'completed' ? (
+                !nextStage ? (
+                  <>
+                    Sync newly <span className="font-bold text-[#16a34a]">Cleared</span> students in <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> to the <strong>4. Final Selection</strong> tab?
+                  </>
+                ) : (
+                  <>
+                    Sync newly <span className="font-bold text-[#16a34a]">Cleared</span> students in <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> to the next stage? Any students who have newly cleared will automatically progress to the next round with their status initialized to Pending.
+                  </>
+                )
+              ) : !nextStage ? (
                 <>
-                  Sync newly <span className="font-bold text-[#16a34a]">Cleared</span> students in <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> to the next stage? Any students who have newly cleared will automatically progress to the next round with their status initialized to Pending.
+                  Are you sure you want to mark the final stage <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> as completed? All students marked as <span className="font-bold text-[#16a34a]">Cleared</span> will automatically move to the <strong>4. Final Selection</strong> tab.
                 </>
               ) : (
                 <>
@@ -1221,7 +1336,11 @@ export default function DriveStagesAndOutcomes({
                   }`}
               >
                 {isCompleting && <Loader2 size={16} className="animate-spin" />}
-                <span>{currentStage?.stage_status === 'completed' ? 'Confirm & Sync' : 'Confirm & Complete Stage'}</span>
+                <span>
+                  {currentStage?.stage_status === 'completed'
+                    ? (!nextStage ? 'Confirm & Sync Final' : 'Confirm & Sync')
+                    : (!nextStage ? 'Confirm & Complete Final Stage' : 'Confirm & Complete Stage')}
+                </span>
               </button>
             </div>
           </div>

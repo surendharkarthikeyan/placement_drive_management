@@ -1,0 +1,11746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>InstiPortal · Placement Intelligence</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+/* =========================================================
+   INSTIPORTAL DESIGN SYSTEM
+   Matched to Placement Drive Data Capture page
+   ========================================================= */
+
+:root{
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --primary-soft:#eff6ff;
+
+  --navy:#172554;
+  --navy-2:#1e3a8a;
+
+  --text:#1e293b;
+  --text-2:#334155;
+  --muted:#64748b;
+  --muted-2:#94a3b8;
+
+  --border:#dbe5f1;
+  --border-soft:#edf2f7;
+
+  --background:#f5f8fc;
+  --panel:#ffffff;
+  --panel-soft:#fbfdff;
+
+  --success:#16a34a;
+  --success-soft:#ecfdf3;
+
+  --warning:#d97706;
+  --warning-soft:#fff7ed;
+
+  --danger:#dc2626;
+  --danger-soft:#fef2f2;
+
+  --purple:#7c3aed;
+  --purple-soft:#f5f3ff;
+
+  --cyan:#0891b2;
+  --cyan-soft:#ecfeff;
+
+  --shadow:0 8px 28px rgba(15,23,42,.08);
+  --shadow-small:0 2px 8px rgba(15,23,42,.06);
+}
+
+
+*{
+  box-sizing:border-box;
+}
+
+
+html,
+body{
+  width:100%;
+  height:100%;
+  margin:0;
+}
+
+
+body{
+  color:var(--text);
+  background:var(--background);
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  font-size:14px;
+  overflow:hidden;
+}
+
+
+button,
+input,
+select,
+textarea{
+  font:inherit;
+}
+
+
+button{
+  cursor:pointer;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.app-header{
+  height:66px;
+  padding:0 20px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  color:white;
+
+  background:
+    linear-gradient(
+      115deg,
+      #172554,
+      #1d4ed8
+    );
+
+  box-shadow:
+    0 3px 14px
+    rgba(30,64,175,.18);
+}
+
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+
+.brand-logo{
+  width:40px;
+  height:40px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:12px;
+
+  background:
+    rgba(255,255,255,.17);
+
+  border:
+    1px solid
+    rgba(255,255,255,.25);
+
+  font-weight:850;
+}
+
+
+.brand-title{
+  font-size:18px;
+  font-weight:800;
+}
+
+
+.brand-subtitle{
+  margin-top:2px;
+  font-size:11px;
+  opacity:.76;
+}
+
+
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+
+.header-button{
+  padding:9px 13px;
+
+  color:white;
+
+  border:
+    1px solid
+    rgba(255,255,255,.25);
+
+  border-radius:9px;
+
+  background:
+    rgba(255,255,255,.11);
+}
+
+
+.user-avatar{
+  width:37px;
+  height:37px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:50%;
+
+  color:var(--primary);
+  background:white;
+
+  font-weight:850;
+}
+
+
+/* =========================================================
+   GLOBAL MODULE NAVIGATION
+   ========================================================= */
+
+.mode-bar{
+  min-height:58px;
+  padding:9px 20px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:15px;
+
+  background:white;
+  border-bottom:1px solid var(--border);
+}
+
+
+.mode-tabs{
+  padding:4px;
+
+  display:flex;
+  gap:4px;
+
+  border-radius:10px;
+  background:#f1f5f9;
+}
+
+
+.mode-tab{
+  padding:8px 14px;
+
+  color:var(--muted);
+
+  border:0;
+  border-radius:8px;
+
+  background:transparent;
+
+  font-weight:700;
+}
+
+
+.mode-tab.active{
+  color:var(--primary);
+  background:white;
+
+  box-shadow:
+    0 2px 7px
+    rgba(15,23,42,.09);
+}
+
+
+.page-context{
+  color:var(--muted);
+  font-size:12px;
+}
+
+
+/* =========================================================
+   MAIN LAYOUT
+   ========================================================= */
+
+.layout{
+  height:calc(100vh - 124px);
+
+  display:grid;
+
+  grid-template-columns:
+    300px
+    minmax(700px,1fr)
+    390px;
+
+  overflow:hidden;
+}
+
+
+.left-panel,
+.middle-panel,
+.right-panel{
+  min-height:0;
+}
+
+
+.left-panel{
+  display:flex;
+  flex-direction:column;
+
+  background:#fbfdff;
+
+  border-right:
+    1px solid
+    var(--border);
+}
+
+
+.middle-panel{
+  display:flex;
+  flex-direction:column;
+
+  background:var(--background);
+}
+
+
+.right-panel{
+  display:flex;
+  flex-direction:column;
+
+  background:white;
+
+  border-left:
+    1px solid
+    var(--border);
+}
+
+
+/* =========================================================
+   LEFT PANEL
+   ========================================================= */
+
+.left-top{
+  padding:15px 15px 11px;
+}
+
+
+.analysis-label{
+  margin-bottom:8px;
+
+  color:#64748b;
+
+  font-size:10px;
+  font-weight:850;
+
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+
+
+/* =========================================================
+   ANALYSIS VIEW SELECTOR
+   ========================================================= */
+
+.analysis-tabs{
+  margin-bottom:13px;
+
+  display:grid;
+  grid-template-columns:1fr 1fr;
+
+  gap:6px;
+}
+
+
+.analysis-tab{
+  min-height:58px;
+  padding:9px 10px;
+
+  text-align:left;
+
+  color:#526177;
+
+  border:1px solid var(--border);
+  border-radius:9px;
+
+  background:white;
+
+  transition:.16s;
+}
+
+
+.analysis-tab:hover{
+  border-color:#93c5fd;
+  transform:translateY(-1px);
+}
+
+
+.analysis-tab.active{
+  color:var(--primary);
+
+  border-color:#60a5fa;
+
+  background:var(--primary-soft);
+
+  box-shadow:
+    inset 3px 0
+    var(--primary);
+}
+
+
+.analysis-tab-title{
+  font-size:10px;
+  font-weight:800;
+}
+
+
+.analysis-tab-sub{
+  margin-top:4px;
+
+  color:#7b8ba1;
+
+  font-size:8px;
+  line-height:1.3;
+}
+
+
+.analysis-tab.active .analysis-tab-sub{
+  color:#4f6e9c;
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.search-box{
+  position:relative;
+}
+
+
+.search-box span{
+  position:absolute;
+
+  top:10px;
+  left:11px;
+
+  color:#94a3b8;
+}
+
+
+.search-box input{
+  width:100%;
+
+  padding:
+    10px
+    10px
+    10px
+    34px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:9px;
+
+  outline:none;
+
+  background:white;
+}
+
+
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:#93c5fd!important;
+
+  box-shadow:
+    0 0 0 3px
+    #dbeafe;
+
+  outline:none;
+}
+
+
+/* =========================================================
+   LEFT SEGMENT FILTER
+   ========================================================= */
+
+.filter-tabs{
+  margin:12px 0;
+
+  padding:4px;
+
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+
+  gap:3px;
+
+  border-radius:9px;
+
+  background:#eef2f7;
+}
+
+
+.filter-tab{
+  padding:7px 3px;
+
+  color:#64748b;
+
+  border:0;
+  border-radius:7px;
+
+  background:transparent;
+
+  font-size:10px;
+  font-weight:750;
+}
+
+
+.filter-tab.active{
+  color:var(--primary);
+  background:white;
+
+  box-shadow:
+    0 2px 6px
+    rgba(15,23,42,.07);
+}
+
+
+/* =========================================================
+   LEFT CONTENT
+   ========================================================= */
+
+.left-scroll{
+  flex:1;
+  min-height:0;
+
+  overflow-y:auto;
+
+  padding:
+    0
+    15px
+    18px;
+}
+
+
+.group-label{
+  margin:
+    15px
+    0
+    7px;
+
+  color:#64748b;
+
+  font-size:10px;
+  font-weight:850;
+
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+
+
+.left-card{
+  width:100%;
+
+  margin-bottom:8px;
+  padding:11px;
+
+  text-align:left;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:10px;
+
+  background:white;
+
+  cursor:pointer;
+
+  transition:.16s;
+}
+
+
+.left-card:hover{
+  border-color:#93c5fd;
+  transform:translateY(-1px);
+}
+
+
+.left-card.active{
+  border-color:#60a5fa;
+
+  background:var(--primary-soft);
+
+  box-shadow:
+    inset 3px 0
+    var(--primary);
+}
+
+
+.left-card-top{
+  display:flex;
+
+  align-items:flex-start;
+  justify-content:space-between;
+
+  gap:7px;
+}
+
+
+.left-card-title{
+  color:#25344a;
+
+  font-size:12px;
+  font-weight:800;
+}
+
+
+.left-card-sub{
+  margin-top:4px;
+
+  color:var(--muted);
+
+  font-size:10px;
+  line-height:1.35;
+}
+
+
+.left-card-meta{
+  margin-top:9px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:space-between;
+
+  gap:8px;
+
+  color:#64748b;
+
+  font-size:9px;
+}
+
+
+/* =========================================================
+   BADGES
+   ========================================================= */
+
+.status-badge{
+  padding:5px 7px;
+
+  display:inline-block;
+
+  border-radius:20px;
+
+  white-space:nowrap;
+
+  font-size:9px;
+  font-weight:850;
+}
+
+
+.badge-progress{
+  color:#1d4ed8;
+  background:#dbeafe;
+}
+
+
+.badge-awaiting{
+  color:#b45309;
+  background:#fef3c7;
+}
+
+
+.badge-completed{
+  color:#15803d;
+  background:#dcfce7;
+}
+
+
+.badge-scheduled{
+  color:#6d28d9;
+  background:#ede9fe;
+}
+
+
+.badge-danger{
+  color:#b91c1c;
+  background:#fee2e2;
+}
+
+
+.badge-draft{
+  color:#475569;
+  background:#e2e8f0;
+}
+
+
+.badge-cyan{
+  color:#0e7490;
+  background:#cffafe;
+}
+
+
+/* =========================================================
+   MIDDLE HEADER
+   ========================================================= */
+
+.middle-header{
+  padding:
+    18px
+    19px
+    12px;
+}
+
+
+.top-row{
+  display:flex;
+
+  align-items:flex-start;
+  justify-content:space-between;
+
+  gap:15px;
+}
+
+
+.page-title{
+  margin:0;
+
+  color:var(--navy);
+
+  font-size:21px;
+  font-weight:800;
+}
+
+
+.page-subtitle{
+  margin:5px 0 0;
+
+  color:var(--muted);
+
+  font-size:11px;
+  line-height:1.45;
+}
+
+
+.top-actions{
+  display:flex;
+  gap:7px;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.primary-button,
+.secondary-button,
+.danger-button{
+  padding:9px 13px;
+
+  border-radius:9px;
+
+  font-weight:750;
+}
+
+
+.primary-button{
+  color:white;
+
+  border:
+    1px solid
+    var(--primary);
+
+  background:var(--primary);
+}
+
+
+.primary-button:hover{
+  background:var(--primary-dark);
+}
+
+
+.secondary-button{
+  color:#475569;
+
+  border:
+    1px solid
+    var(--border);
+
+  background:white;
+}
+
+
+.danger-button{
+  color:white;
+
+  border:
+    1px solid
+    var(--danger);
+
+  background:var(--danger);
+}
+
+
+.small-button{
+  padding:7px 9px;
+
+  color:#475569;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:7px;
+
+  background:white;
+
+  font-size:10px;
+  font-weight:700;
+}
+
+
+.small-button.blue{
+  color:var(--primary);
+
+  border-color:#bfdbfe;
+
+  background:var(--primary-soft);
+}
+
+
+/* =========================================================
+   TOP FILTER BAR
+   ========================================================= */
+
+.filter-bar{
+  padding:
+    0
+    19px
+    12px;
+
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  flex-wrap:wrap;
+}
+
+
+.filter-group{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+
+.filter-label{
+  color:#64748b;
+
+  font-size:9px;
+  font-weight:800;
+}
+
+
+.filter-control{
+  height:34px;
+
+  padding:0 9px;
+
+  color:#475569;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:8px;
+
+  background:white;
+
+  font-size:10px;
+}
+
+
+.filter-spacer{
+  flex:1;
+}
+
+
+/* =========================================================
+   INFO BANNER / SIGNAL BAR
+   ========================================================= */
+
+.info-banner{
+  margin:
+    0
+    19px
+    13px;
+
+  padding:
+    10px
+    12px;
+
+  display:flex;
+  align-items:center;
+
+  gap:18px;
+
+  flex-wrap:wrap;
+
+  color:#1e40af;
+
+  border:
+    1px solid
+    #bfdbfe;
+
+  border-radius:9px;
+
+  background:var(--primary-soft);
+
+  font-size:10px;
+}
+
+
+.signal-item{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+
+.signal-dot{
+  width:8px;
+  height:8px;
+
+  border-radius:50%;
+}
+
+
+.signal-number{
+  color:var(--navy);
+
+  font-weight:850;
+}
+
+
+/* =========================================================
+   MIDDLE SCROLL
+   ========================================================= */
+
+.middle-scroll{
+  flex:1;
+  min-height:0;
+
+  overflow:auto;
+
+  padding:
+    0
+    19px
+    24px;
+}
+
+
+/* =========================================================
+   SECTION
+   ========================================================= */
+
+.section{
+  margin-bottom:19px;
+}
+
+
+.section-header{
+  margin-bottom:9px;
+
+  display:flex;
+
+  align-items:flex-end;
+  justify-content:space-between;
+
+  gap:10px;
+}
+
+
+.section-title{
+  color:#334155;
+
+  font-size:13px;
+  font-weight:850;
+}
+
+
+.section-subtitle{
+  margin-top:3px;
+
+  color:var(--muted);
+
+  font-size:10px;
+}
+
+
+.section-meta{
+  color:#64748b;
+
+  font-size:9px;
+}
+
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+.table-card{
+  overflow:auto;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:11px;
+
+  background:white;
+
+  box-shadow:
+    0 2px 9px
+    rgba(15,23,42,.035);
+}
+
+
+.data-table{
+  width:100%;
+
+  min-width:1050px;
+
+  border-collapse:collapse;
+}
+
+
+.data-table th{
+  padding:
+    10px
+    10px;
+
+  color:#64748b;
+
+  background:#f8fafc;
+
+  border-bottom:
+    1px solid
+    var(--border);
+
+  text-align:left;
+
+  font-size:9px;
+  font-weight:850;
+
+  letter-spacing:.35px;
+
+  text-transform:uppercase;
+}
+
+
+.data-table th.center,
+.data-table td.center{
+  text-align:center;
+}
+
+
+.data-table td{
+  padding:
+    11px
+    10px;
+
+  border-bottom:
+    1px solid
+    #edf2f7;
+
+  color:#475569;
+
+  font-size:10px;
+}
+
+
+.data-table tr:last-child td{
+  border-bottom:0;
+}
+
+
+.data-table tbody tr:hover td{
+  background:#fbfdff;
+}
+
+
+.click-cell{
+  color:var(--primary)!important;
+
+  font-weight:850;
+
+  cursor:pointer;
+}
+
+
+.click-cell:hover{
+  background:#eff6ff!important;
+
+  text-decoration:underline;
+}
+
+
+/* =========================================================
+   STUDENT IDENTITY
+   ========================================================= */
+
+.student-identity{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+
+.mini-avatar{
+  width:32px;
+  height:32px;
+
+  flex:none;
+
+  display:grid;
+  place-items:center;
+
+  color:var(--primary);
+
+  border-radius:8px;
+
+  background:#dbeafe;
+
+  font-size:9px;
+  font-weight:850;
+}
+
+
+.student-name{
+  color:#27364a;
+
+  font-weight:800;
+}
+
+
+.student-meta{
+  margin-top:2px;
+
+  color:#94a3b8;
+
+  font-size:8px;
+}
+
+
+/* =========================================================
+   INDUSTRY MATRIX
+   ========================================================= */
+
+.metric-name{
+  color:#334155;
+
+  font-size:10px;
+  font-weight:800;
+}
+
+
+.metric-description{
+  margin-top:4px;
+
+  color:#94a3b8;
+
+  font-size:8px;
+  line-height:1.4;
+}
+
+
+/* =========================================================
+   YEAR / DRIVE SECTIONS
+   ========================================================= */
+
+.year-section{
+  margin-bottom:16px;
+}
+
+
+.year-header{
+  padding:
+    11px
+    13px;
+
+  display:flex;
+  justify-content:space-between;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    11px
+    11px
+    0
+    0;
+
+  background:#f8fafc;
+}
+
+
+.year-title{
+  color:#334155;
+
+  font-size:12px;
+  font-weight:850;
+}
+
+
+.year-meta{
+  color:#64748b;
+
+  font-size:9px;
+}
+
+
+.drive-process-card{
+  padding:13px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-top:0;
+
+  background:white;
+}
+
+
+.drive-process-card:last-child{
+  border-radius:
+    0
+    0
+    11px
+    11px;
+}
+
+
+.drive-process-top{
+  display:flex;
+
+  justify-content:space-between;
+
+  gap:10px;
+}
+
+
+.drive-process-title{
+  color:#263449;
+
+  font-size:13px;
+  font-weight:850;
+}
+
+
+.drive-process-meta{
+  margin-top:4px;
+
+  color:var(--muted);
+
+  font-size:10px;
+}
+
+
+/* =========================================================
+   RECRUITMENT PIPELINE
+   ========================================================= */
+
+.pipeline{
+  margin-top:13px;
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(6,1fr);
+
+  gap:7px;
+}
+
+
+.stage-box{
+  min-height:76px;
+
+  padding:9px;
+
+  position:relative;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:10px;
+
+  background:#fbfdff;
+
+  cursor:pointer;
+}
+
+
+.stage-box:hover{
+  border-color:#93c5fd;
+}
+
+
+.stage-box.active{
+  border-color:var(--primary);
+
+  background:var(--primary-soft);
+
+  box-shadow:
+    inset 0 0 0 1px
+    #93c5fd;
+}
+
+
+.stage-number{
+  width:22px;
+  height:22px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:50%;
+
+  color:#64748b;
+
+  background:#e2e8f0;
+
+  font-size:9px;
+  font-weight:850;
+}
+
+
+.stage-box.active .stage-number{
+  color:white;
+  background:var(--primary);
+}
+
+
+.stage-label{
+  margin-top:7px;
+
+  color:#334155;
+
+  font-size:9px;
+  font-weight:800;
+}
+
+
+.stage-value{
+  margin-top:4px;
+
+  color:var(--navy);
+
+  font-size:17px;
+  font-weight:850;
+}
+
+
+.stage-foot{
+  margin-top:2px;
+
+  color:#94a3b8;
+
+  font-size:7px;
+}
+
+
+/* =========================================================
+   RIGHT PANEL
+   ========================================================= */
+
+.right-header{
+  padding:
+    17px
+    17px
+    14px;
+
+  border-bottom:
+    1px solid
+    var(--border);
+}
+
+
+.panel-title{
+  margin:0;
+
+  color:var(--navy);
+
+  font-size:16px;
+  font-weight:850;
+}
+
+
+.panel-description{
+  margin:5px 0 0;
+
+  color:var(--muted);
+
+  font-size:11px;
+  line-height:1.5;
+}
+
+
+.right-scroll{
+  flex:1;
+  min-height:0;
+
+  overflow-y:auto;
+
+  padding:16px 17px 22px;
+}
+
+
+.right-section{
+  margin-bottom:16px;
+}
+
+
+.right-heading{
+  margin-bottom:8px;
+
+  color:#334155;
+
+  font-size:11px;
+  font-weight:850;
+}
+
+
+/* =========================================================
+   COMPLETION / SUMMARY CARD
+   ========================================================= */
+
+.completion-card{
+  padding:13px;
+
+  border:
+    1px solid
+    #bfdbfe;
+
+  border-radius:11px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #eff6ff,
+      #f5f3ff
+    );
+}
+
+
+.completion-top{
+  display:flex;
+
+  align-items:center;
+  justify-content:space-between;
+}
+
+
+.completion-label{
+  color:#334155;
+
+  font-size:11px;
+  font-weight:850;
+}
+
+
+.completion-meta{
+  margin-top:3px;
+
+  color:#64748b;
+
+  font-size:9px;
+}
+
+
+.completion-score{
+  color:var(--navy);
+
+  font-size:26px;
+  font-weight:850;
+}
+
+
+.progress-track{
+  height:7px;
+
+  margin-top:9px;
+
+  overflow:hidden;
+
+  border-radius:20px;
+
+  background:#dbe5f1;
+}
+
+
+.progress-fill{
+  height:100%;
+
+  border-radius:20px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #2563eb,
+      #60a5fa
+    );
+}
+
+
+/* =========================================================
+   RIGHT DETAIL GRID
+   ========================================================= */
+
+.detail-card{
+  padding:
+    11px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:10px;
+
+  background:white;
+}
+
+
+.detail-row{
+  padding:
+    8px
+    0;
+
+  display:grid;
+
+  grid-template-columns:
+    125px
+    1fr;
+
+  gap:8px;
+
+  border-top:
+    1px solid
+    var(--border-soft);
+
+  font-size:10px;
+}
+
+
+.detail-row:first-child{
+  border-top:0;
+}
+
+
+.detail-label{
+  color:#64748b;
+}
+
+
+.detail-value{
+  color:#334155;
+
+  font-weight:700;
+}
+
+
+/* =========================================================
+   ALERT BOXES
+   ========================================================= */
+
+.warning-box,
+.success-box,
+.info-box,
+.danger-box{
+  padding:11px;
+
+  border-radius:9px;
+
+  font-size:10px;
+  line-height:1.5;
+}
+
+
+.warning-box{
+  color:#92400e;
+
+  border:
+    1px solid
+    #fed7aa;
+
+  background:var(--warning-soft);
+}
+
+
+.success-box{
+  color:#166534;
+
+  border:
+    1px solid
+    #bbf7d0;
+
+  background:var(--success-soft);
+}
+
+
+.info-box{
+  color:#1e40af;
+
+  border:
+    1px solid
+    #bfdbfe;
+
+  background:var(--primary-soft);
+}
+
+
+.danger-box{
+  color:#991b1b;
+
+  border:
+    1px solid
+    #fecaca;
+
+  background:var(--danger-soft);
+}
+
+
+/* =========================================================
+   RIGHT MINI STATS
+   ========================================================= */
+
+.mini-stat-grid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap:7px;
+}
+
+
+.mini-stat{
+  padding:
+    10px
+    6px;
+
+  text-align:center;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:9px;
+
+  background:#fbfdff;
+}
+
+
+.mini-stat strong{
+  display:block;
+
+  color:var(--navy);
+
+  font-size:18px;
+}
+
+
+.mini-stat span{
+  color:#64748b;
+
+  font-size:8px;
+}
+
+
+/* =========================================================
+   PERSON / RECRUITER CARDS
+   ========================================================= */
+
+.person-card{
+  margin-bottom:7px;
+
+  padding:10px;
+
+  display:grid;
+
+  grid-template-columns:
+    34px
+    1fr
+    auto;
+
+  gap:8px;
+
+  align-items:center;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:9px;
+
+  background:white;
+
+  cursor:pointer;
+}
+
+
+.person-card:hover{
+  border-color:#93c5fd;
+  background:#fbfdff;
+}
+
+
+.person-icon{
+  width:34px;
+  height:34px;
+
+  display:grid;
+  place-items:center;
+
+  color:var(--primary);
+
+  border-radius:8px;
+
+  background:#dbeafe;
+
+  font-size:8px;
+  font-weight:850;
+}
+
+
+.person-title{
+  color:#334155;
+
+  font-size:10px;
+  font-weight:800;
+}
+
+
+.person-subtitle{
+  margin-top:3px;
+
+  color:#94a3b8;
+
+  font-size:8px;
+}
+
+
+.person-side{
+  text-align:right;
+}
+
+
+.person-package{
+  color:#15803d;
+
+  font-size:10px;
+  font-weight:850;
+}
+
+
+/* =========================================================
+   TIMELINE
+   ========================================================= */
+
+.activity-item{
+  position:relative;
+
+  margin-left:7px;
+
+  padding:
+    0
+    0
+    15px
+    17px;
+
+  border-left:
+    2px solid
+    #dbeafe;
+}
+
+
+.activity-item:last-child{
+  border-left-color:transparent;
+}
+
+
+.activity-dot{
+  position:absolute;
+
+  top:0;
+  left:-7px;
+
+  width:12px;
+  height:12px;
+
+  border:
+    2px solid
+    white;
+
+  border-radius:50%;
+
+  background:var(--primary);
+
+  box-shadow:
+    0 0 0 1px
+    #93c5fd;
+}
+
+
+.activity-dot.green{
+  background:var(--success);
+}
+
+
+.activity-dot.red{
+  background:var(--danger);
+}
+
+
+.activity-dot.orange{
+  background:var(--warning);
+}
+
+
+.activity-title{
+  color:#334155;
+
+  font-size:10px;
+  font-weight:800;
+}
+
+
+.activity-meta{
+  margin-top:3px;
+
+  color:var(--muted);
+
+  font-size:9px;
+  line-height:1.4;
+}
+
+
+/* =========================================================
+   EMPTY
+   ========================================================= */
+
+.empty{
+  padding:18px;
+
+  color:#64748b;
+
+  border:
+    1px dashed
+    var(--border);
+
+  border-radius:9px;
+
+  background:#fbfdff;
+
+  font-size:10px;
+  text-align:center;
+}
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.modal-overlay{
+  position:fixed;
+
+  inset:0;
+
+  z-index:100;
+
+  padding:25px;
+
+  display:none;
+
+  align-items:center;
+  justify-content:center;
+
+  background:
+    rgba(15,23,42,.55);
+}
+
+
+.modal-overlay.open{
+  display:flex;
+}
+
+
+.modal{
+  width:min(760px,96vw);
+
+  max-height:90vh;
+
+  overflow:auto;
+
+  border-radius:15px;
+
+  background:white;
+
+  box-shadow:
+    0 25px 70px
+    rgba(15,23,42,.3);
+}
+
+
+.modal-header{
+  padding:
+    17px
+    19px;
+
+  display:flex;
+
+  align-items:flex-start;
+  justify-content:space-between;
+
+  border-bottom:
+    1px solid
+    var(--border);
+}
+
+
+.modal-header h2{
+  margin:0;
+
+  color:var(--navy);
+
+  font-size:17px;
+}
+
+
+.modal-header p{
+  margin:5px 0 0;
+
+  color:var(--muted);
+
+  font-size:10px;
+}
+
+
+.modal-body{
+  padding:
+    18px
+    19px;
+}
+
+
+.modal-footer{
+  padding:
+    13px
+    19px;
+
+  display:flex;
+  justify-content:flex-end;
+
+  gap:8px;
+
+  border-top:
+    1px solid
+    var(--border);
+}
+
+
+.close-button{
+  width:32px;
+  height:32px;
+
+  color:#64748b;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:8px;
+
+  background:white;
+
+  font-size:18px;
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+.toast{
+  position:fixed;
+
+  right:22px;
+  bottom:22px;
+
+  z-index:200;
+
+  padding:
+    12px
+    16px;
+
+  color:white;
+
+  border-radius:10px;
+
+  background:#172554;
+
+  box-shadow:var(--shadow);
+
+  opacity:0;
+
+  transform:
+    translateY(12px);
+
+  pointer-events:none;
+
+  transition:.25s;
+}
+
+
+.toast.show{
+  opacity:1;
+
+  transform:
+    translateY(0);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width:1200px){
+
+  .layout{
+    grid-template-columns:
+      270px
+      1fr
+      350px;
+  }
+
+}
+
+
+@media(max-width:950px){
+
+  body{
+    overflow:auto;
+  }
+
+  .layout{
+    height:auto;
+
+    display:block;
+
+    overflow:visible;
+  }
+
+  .left-panel,
+  .middle-panel,
+  .right-panel{
+    min-height:500px;
+    border:0;
+  }
+
+}
+
+
+/* =========================================================
+   SCROLL
+   ========================================================= */
+
+::-webkit-scrollbar{
+  width:6px;
+  height:6px;
+}
+
+
+::-webkit-scrollbar-thumb{
+  border-radius:10px;
+  background:#cbd5e1;
+}
+
+</style>
+</head>
+
+<body>
+
+
+<!-- =====================================================
+     APP HEADER
+     ===================================================== -->
+
+<header class="app-header">
+
+  <div class="brand">
+
+    <div class="brand-logo">
+      IP
+    </div>
+
+    <div>
+
+      <div class="brand-title">
+        InstiPortal
+      </div>
+
+      <div class="brand-subtitle">
+        Placement Intelligence
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="header-actions">
+
+    <button class="header-button">
+      Placement Year 2026–27
+    </button>
+
+    <button class="header-button">
+      Notifications 6
+    </button>
+
+    <div class="user-avatar">
+      PO
+    </div>
+
+  </div>
+
+</header>
+
+
+
+<!-- =====================================================
+     MODULE NAVIGATION
+     ===================================================== -->
+
+<div class="mode-bar">
+
+  <div class="mode-tabs">
+
+    <button
+      class="mode-tab"
+      onclick="showToast('Today & Communications module')">
+
+      Today & Communications
+
+    </button>
+
+
+    <button class="mode-tab active">
+      Placement Intelligence
+    </button>
+
+
+    <button
+      class="mode-tab"
+      onclick="showToast('Drive Data Capture opens as the operational placement module')">
+
+      Drive Data Capture
+
+    </button>
+
+  </div>
+
+
+  <div class="page-context">
+    Placement Team Workspace · Analytics updated 10:42 AM
+  </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     LAYOUT
+     ===================================================== -->
+
+<main class="layout">
+
+
+<!-- =====================================================
+     LEFT PANEL
+     ===================================================== -->
+
+<aside class="left-panel">
+
+
+  <div class="left-top">
+
+    <div class="analysis-label">
+      Placement Analysis
+    </div>
+
+
+    <div class="analysis-tabs">
+
+      <button
+        id="view_overall"
+        class="analysis-tab active"
+        onclick="setView('overall')">
+
+        <div class="analysis-tab-title">
+          Overall Statistics
+        </div>
+
+        <div class="analysis-tab-sub">
+          Batch & outcome view
+        </div>
+
+      </button>
+
+
+      <button
+        id="view_industries"
+        class="analysis-tab"
+        onclick="setView('industries')">
+
+        <div class="analysis-tab-title">
+          Industries
+        </div>
+
+        <div class="analysis-tab-sub">
+          Recruiter history
+        </div>
+
+      </button>
+
+
+      <button
+        id="view_companies"
+        class="analysis-tab"
+        onclick="setView('companies')">
+
+        <div class="analysis-tab-title">
+          Company Statistics
+        </div>
+
+        <div class="analysis-tab-sub">
+          Offer performance
+        </div>
+
+      </button>
+
+
+      <button
+        id="view_students"
+        class="analysis-tab"
+        onclick="setView('students')">
+
+        <div class="analysis-tab-title">
+          Students
+        </div>
+
+        <div class="analysis-tab-sub">
+          Placement intelligence
+        </div>
+
+      </button>
+
+    </div>
+
+
+    <div class="search-box">
+
+      <span>
+        ⌕
+      </span>
+
+      <input
+        id="leftSearch"
+        type="text"
+        placeholder="Search"
+        oninput="handleLeftSearch()"
+      >
+
+    </div>
+
+
+    <div
+      class="filter-tabs"
+      id="leftFilterTabs">
+    </div>
+
+  </div>
+
+
+  <div
+    class="left-scroll"
+    id="leftContent">
+  </div>
+
+</aside>
+
+
+
+<!-- =====================================================
+     MIDDLE PANEL
+     ===================================================== -->
+
+<section class="middle-panel">
+
+
+  <div class="middle-header">
+
+    <div class="top-row">
+
+      <div>
+
+        <h1
+          class="page-title"
+          id="pageTitle">
+        </h1>
+
+        <p
+          class="page-subtitle"
+          id="pageSubtitle">
+        </p>
+
+      </div>
+
+
+      <div class="top-actions">
+
+        <button
+          class="secondary-button"
+          onclick="showToast('Current view exported')">
+
+          Export
+
+        </button>
+
+        <button
+          class="primary-button"
+          onclick="showToast('Placement intelligence refreshed')">
+
+          Refresh Data
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div
+    class="filter-bar"
+    id="topFilters">
+  </div>
+
+
+  <div
+    class="info-banner"
+    id="signalBar">
+  </div>
+
+
+  <div
+    class="middle-scroll"
+    id="middleContent">
+  </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     RIGHT PANEL
+     ===================================================== -->
+
+<aside class="right-panel">
+
+  <div
+    class="right-header"
+    id="rightHeader">
+  </div>
+
+  <div
+    class="right-scroll"
+    id="rightContent">
+  </div>
+
+</aside>
+
+
+</main>
+
+
+
+<!-- =====================================================
+     SIMPLE DETAIL MODAL
+     ===================================================== -->
+
+<div
+  class="modal-overlay"
+  id="detailModal">
+
+  <div class="modal">
+
+    <div class="modal-header">
+
+      <div>
+
+        <h2 id="modalTitle">
+          Details
+        </h2>
+
+        <p id="modalSubtitle">
+          Placement intelligence
+        </p>
+
+      </div>
+
+      <button
+        class="close-button"
+        onclick="closeModal()">
+
+        ×
+
+      </button>
+
+    </div>
+
+
+    <div
+      class="modal-body"
+      id="modalBody">
+    </div>
+
+
+    <div class="modal-footer">
+
+      <button
+        class="secondary-button"
+        onclick="closeModal()">
+
+        Close
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<div
+  class="toast"
+  id="toast">
+</div>
+
+
+
+<script>
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let currentView =
+  "overall";
+
+
+let selectedIndustry =
+  "__overall__";
+
+
+let leftSegment =
+  "all";
+
+
+let companySort =
+  "offers";
+
+
+let studentSort =
+  "intervention";
+
+
+let filters = {
+
+  batch:"2027",
+
+  department:"All",
+
+  sector:"All",
+
+  companyStatus:"All",
+
+  specialization:"All",
+
+  studentFocus:"All"
+
+};
+
+
+/* =========================================================
+   MASTER DATA
+   ========================================================= */
+
+const departments = [
+
+  "CSE",
+  "IT",
+  "AI & ML",
+  "ECE",
+  "EEE",
+  "MECH",
+  "CIVIL"
+
+];
+
+
+const specializations = [
+
+  "Product Development",
+  "Full Stack Development",
+  "Machine Learning",
+  "Data Engineering",
+  "Cloud Computing",
+  "Embedded Systems",
+  "VLSI",
+  "Automotive",
+  "Product Design",
+  "Manufacturing",
+  "Power Systems",
+  "Structural Engineering"
+
+];
+
+
+/* =========================================================
+   STUDENT DATA
+   ========================================================= */
+
+const students = [
+
+{
+  id:"26CSE041",
+  name:"Ananya P",
+  batch:"2027",
+  dept:"CSE",
+  specialization:"Product Development",
+
+  invitations:9,
+  appeared:6,
+  prelim:5,
+  finals:2,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"TCS Digital",
+      package:7,
+      status:"Declined"
+    },
+    {
+      company:"Autodesk",
+      package:44,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Autodesk",
+  bestPackage:44,
+
+  cgpa:9.12,
+  tenth:96.1,
+  twelfth:95.4,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Zoho","Coding Round","Not Selected"],
+    ["TCS Digital","Final Interview","Selected"],
+    ["TCS Digital","Offer","Declined"],
+    ["Autodesk","Technical Interview","Cleared"],
+    ["Autodesk","Final Interview","Selected"],
+    ["Autodesk","Offer","Accepted"]
+  ]
+},
+
+{
+  id:"26CSE073",
+  name:"Janani M",
+  batch:"2027",
+  dept:"CSE",
+  specialization:"Full Stack Development",
+
+  invitations:11,
+  appeared:8,
+  prelim:6,
+  finals:3,
+  finalMisses:1,
+  notHonoured:1,
+
+  offers:[
+    {
+      company:"TCS Digital",
+      package:7,
+      status:"Declined"
+    },
+    {
+      company:"PayPal",
+      package:46,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"PayPal",
+  bestPackage:46,
+
+  cgpa:8.91,
+  tenth:94.2,
+  twelfth:92.8,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Zoho","Technical Round","Not Selected"],
+    ["Autodesk","Final Interview","Not Selected"],
+    ["TCS Digital","Final Interview","Selected"],
+    ["PayPal","Final Interview","Selected"],
+    ["PayPal","Offer","Accepted"]
+  ]
+},
+
+{
+  id:"26AIML019",
+  name:"Deepak R",
+  batch:"2027",
+  dept:"AI & ML",
+  specialization:"Machine Learning",
+
+  invitations:8,
+  appeared:6,
+  prelim:5,
+  finals:2,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"TCS Digital",
+      package:7,
+      status:"Declined"
+    },
+    {
+      company:"Autodesk",
+      package:44,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Autodesk",
+  bestPackage:44,
+
+  cgpa:9.02,
+  tenth:95,
+  twelfth:93.4,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["TCS Digital","Final Interview","Selected"],
+    ["Autodesk","Technical Process","Cleared"],
+    ["Autodesk","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26IT046",
+  name:"Harini R",
+  batch:"2027",
+  dept:"IT",
+  specialization:"Cloud Computing",
+
+  invitations:6,
+  appeared:5,
+  prelim:4,
+  finals:1,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Autodesk",
+      package:38,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Autodesk",
+  bestPackage:38,
+
+  cgpa:8.72,
+  tenth:92.4,
+  twelfth:90.8,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Zoho","Technical Round","Not Selected"],
+    ["Autodesk","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26IT067",
+  name:"Kavin S",
+  batch:"2027",
+  dept:"IT",
+  specialization:"Cloud Computing",
+
+  invitations:9,
+  appeared:7,
+  prelim:6,
+  finals:2,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"TCS Digital",
+      package:7,
+      status:"Declined"
+    },
+    {
+      company:"Autodesk",
+      package:38,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Autodesk",
+  bestPackage:38,
+
+  cgpa:8.88,
+  tenth:93.4,
+  twelfth:91.3,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["TCS Digital","Final Interview","Selected"],
+    ["Autodesk","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26AIML041",
+  name:"Sowmya V",
+  batch:"2027",
+  dept:"AI & ML",
+  specialization:"Machine Learning",
+
+  invitations:8,
+  appeared:6,
+  prelim:5,
+  finals:2,
+  finalMisses:1,
+  notHonoured:1,
+
+  offers:[
+    {
+      company:"Autodesk",
+      package:38,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Autodesk",
+  bestPackage:38,
+
+  cgpa:8.67,
+  tenth:92.3,
+  twelfth:90.6,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["PayPal","Final Interview","Not Selected"],
+    ["Autodesk","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26ECE028",
+  name:"Nithya S",
+  batch:"2027",
+  dept:"ECE",
+  specialization:"Embedded Systems",
+
+  invitations:7,
+  appeared:5,
+  prelim:4,
+  finals:2,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Bosch",
+      package:12,
+      status:"Declined"
+    },
+    {
+      company:"Texas Instruments",
+      package:28,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Texas Instruments",
+  bestPackage:28,
+
+  cgpa:8.74,
+  tenth:93.8,
+  twelfth:91.2,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Bosch","Final Interview","Selected"],
+    ["Bosch","Offer","Declined"],
+    ["Texas Instruments","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26ECE081",
+  name:"Varun P",
+  batch:"2027",
+  dept:"ECE",
+  specialization:"VLSI",
+
+  invitations:6,
+  appeared:5,
+  prelim:5,
+  finals:1,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Texas Instruments",
+      package:28,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Texas Instruments",
+  bestPackage:28,
+
+  cgpa:8.81,
+  tenth:94.1,
+  twelfth:92,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Texas Instruments","Technical Round","Cleared"],
+    ["Texas Instruments","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26CSE092",
+  name:"Meena R",
+  batch:"2027",
+  dept:"CSE",
+  specialization:"Full Stack Development",
+
+  invitations:12,
+  appeared:9,
+  prelim:6,
+  finals:3,
+  finalMisses:2,
+  notHonoured:2,
+
+  offers:[
+    {
+      company:"Zoho",
+      package:14,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Zoho",
+  bestPackage:14,
+
+  cgpa:8.18,
+  tenth:90.4,
+  twelfth:88.2,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Autodesk","Coding Round","Not Selected"],
+    ["PayPal","Technical Round","Not Selected"],
+    ["Freshworks","Final Interview","Not Selected"],
+    ["Zoho","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26ME052",
+  name:"Akash M",
+  batch:"2027",
+  dept:"MECH",
+  specialization:"Automotive",
+
+  invitations:8,
+  appeared:6,
+  prelim:4,
+  finals:2,
+  finalMisses:1,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Bosch",
+      package:12,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Bosch",
+  bestPackage:12,
+
+  cgpa:8.21,
+  tenth:89.4,
+  twelfth:87.5,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Caterpillar","Final Interview","Not Selected"],
+    ["Bosch","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26EEE035",
+  name:"Arjun K",
+  batch:"2027",
+  dept:"EEE",
+  specialization:"Power Systems",
+
+  invitations:7,
+  appeared:5,
+  prelim:4,
+  finals:1,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Bosch",
+      package:12,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Bosch",
+  bestPackage:12,
+
+  cgpa:8.04,
+  tenth:88.1,
+  twelfth:84.6,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["L&T","Technical Round","Not Selected"],
+    ["Bosch","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26ME077",
+  name:"Gokul P",
+  batch:"2027",
+  dept:"MECH",
+  specialization:"Product Design",
+
+  invitations:7,
+  appeared:6,
+  prelim:5,
+  finals:2,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"L&T",
+      package:8.5,
+      status:"Declined"
+    },
+    {
+      company:"Caterpillar",
+      package:11,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Caterpillar",
+  bestPackage:11,
+
+  cgpa:8.34,
+  tenth:88.8,
+  twelfth:86.1,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["L&T","Final Interview","Selected"],
+    ["L&T","Offer","Declined"],
+    ["Caterpillar","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26CIV021",
+  name:"Madhumitha S",
+  batch:"2027",
+  dept:"CIVIL",
+  specialization:"Structural Engineering",
+
+  invitations:5,
+  appeared:4,
+  prelim:3,
+  finals:1,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"L&T",
+      package:8.5,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"L&T",
+  bestPackage:8.5,
+
+  cgpa:8.37,
+  tenth:91.1,
+  twelfth:88.9,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["L&T","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"26CSE121",
+  name:"Rahul S",
+  batch:"2027",
+  dept:"CSE",
+  specialization:"Data Engineering",
+
+  invitations:13,
+  appeared:10,
+  prelim:7,
+  finals:4,
+  finalMisses:4,
+  notHonoured:1,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:7.81,
+  tenth:86.2,
+  twelfth:84.7,
+  arrears:0,
+
+  outcome:"Not Placed",
+
+  journey:[
+    ["Zoho","Final Interview","Not Selected"],
+    ["TCS Digital","Final Interview","Not Selected"],
+    ["Autodesk","Technical Interview","Not Selected"],
+    ["Freshworks","Final Interview","Not Selected"],
+    ["PayPal","Final Interview","Not Selected"]
+  ]
+},
+
+{
+  id:"26ECE109",
+  name:"Priyadharshini K",
+  batch:"2027",
+  dept:"ECE",
+  specialization:"Embedded Systems",
+
+  invitations:11,
+  appeared:8,
+  prelim:5,
+  finals:3,
+  finalMisses:3,
+  notHonoured:2,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:7.62,
+  tenth:87.4,
+  twelfth:82.6,
+  arrears:0,
+
+  outcome:"Not Placed",
+
+  journey:[
+    ["Bosch","Final Interview","Not Selected"],
+    ["Texas Instruments","Final Interview","Not Selected"],
+    ["L&T","Final Interview","Not Selected"]
+  ]
+},
+
+{
+  id:"26IT096",
+  name:"Naveen K",
+  batch:"2027",
+  dept:"IT",
+  specialization:"Full Stack Development",
+
+  invitations:9,
+  appeared:3,
+  prelim:1,
+  finals:0,
+  finalMisses:0,
+  notHonoured:4,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:7.18,
+  tenth:84.6,
+  twelfth:81.2,
+  arrears:0,
+
+  outcome:"Not Placed",
+
+  journey:[
+    ["TCS Digital","Assessment","Not Selected"],
+    ["Zoho","Coding Round","Not Selected"],
+    ["Freshworks","Invitation","Not Honoured"],
+    ["Bosch","Invitation","Not Honoured"]
+  ]
+},
+
+{
+  id:"26CSE147",
+  name:"Saran V",
+  batch:"2027",
+  dept:"CSE",
+  specialization:"Product Development",
+
+  invitations:10,
+  appeared:2,
+  prelim:1,
+  finals:0,
+  finalMisses:0,
+  notHonoured:5,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:7.44,
+  tenth:86,
+  twelfth:83.7,
+  arrears:0,
+
+  outcome:"Not Placed",
+
+  journey:[
+    ["Zoho","Invitation","Not Honoured"],
+    ["TCS Digital","Invitation","Not Honoured"],
+    ["Freshworks","Assessment","Not Selected"]
+  ]
+},
+
+{
+  id:"26EEE057",
+  name:"Karthik R",
+  batch:"2027",
+  dept:"EEE",
+  specialization:"Power Systems",
+
+  invitations:5,
+  appeared:1,
+  prelim:0,
+  finals:0,
+  finalMisses:0,
+  notHonoured:1,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:6.11,
+  tenth:78.4,
+  twelfth:71.2,
+  arrears:3,
+
+  outcome:"Not Eligible",
+
+  restriction:
+    "Three standing arrears currently restrict eligibility for most placement drives.",
+
+  journey:[
+    ["L&T","Eligibility Screening","Not Eligible"]
+  ]
+},
+
+{
+  id:"26ECE061",
+  name:"Vijay S",
+  batch:"2027",
+  dept:"ECE",
+  specialization:"VLSI",
+
+  invitations:7,
+  appeared:4,
+  prelim:2,
+  finals:1,
+  finalMisses:1,
+  notHonoured:1,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:6.92,
+  tenth:81.5,
+  twelfth:76.8,
+  arrears:1,
+
+  outcome:"Eligibility Restricted",
+
+  restriction:
+    "One active arrear and company-specific CGPA criteria restrict current eligibility.",
+
+  journey:[
+    ["Bosch","Technical Round","Not Selected"],
+    ["Texas Instruments","Eligibility Screening","Not Eligible"]
+  ]
+},
+
+{
+  id:"26IT018",
+  name:"Harish V",
+  batch:"2027",
+  dept:"IT",
+  specialization:"Cloud Computing",
+
+  invitations:0,
+  appeared:0,
+  prelim:0,
+  finals:0,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:8.42,
+  tenth:91.4,
+  twelfth:89.1,
+  arrears:0,
+
+  outcome:"Higher Studies",
+
+  higherStudy:"MS Computer Science",
+
+  institution:
+    "Arizona State University",
+
+  evidence:
+    "Verified admission offer letter",
+
+  journey:[]
+},
+
+{
+  id:"26ME099",
+  name:"Sanjay P",
+  batch:"2027",
+  dept:"MECH",
+  specialization:"Manufacturing",
+
+  invitations:0,
+  appeared:0,
+  prelim:0,
+  finals:0,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:7.88,
+  tenth:85.2,
+  twelfth:82.7,
+  arrears:0,
+
+  outcome:"Entrepreneurship",
+
+  startup:
+    "AgriMech Automation Pvt Ltd",
+
+  evidence:
+    "Company incorporation and TBI incubation records verified",
+
+  journey:[]
+},
+
+{
+  id:"25CSE024",
+  name:"Aishwarya S",
+  batch:"2026",
+  dept:"CSE",
+  specialization:"Full Stack Development",
+
+  invitations:8,
+  appeared:6,
+  prelim:5,
+  finals:1,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Microsoft",
+      package:32,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Microsoft",
+  bestPackage:32,
+
+  cgpa:8.96,
+  tenth:94.8,
+  twelfth:93.1,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Microsoft","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"25ECE043",
+  name:"Dhanya S",
+  batch:"2026",
+  dept:"ECE",
+  specialization:"VLSI",
+
+  invitations:8,
+  appeared:7,
+  prelim:5,
+  finals:3,
+  finalMisses:2,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Qualcomm",
+      package:22,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Qualcomm",
+  bestPackage:22,
+
+  cgpa:8.54,
+  tenth:91.3,
+  twelfth:90,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Qualcomm","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"25ME066",
+  name:"Bharathi V",
+  batch:"2026",
+  dept:"MECH",
+  specialization:"Automotive",
+
+  invitations:7,
+  appeared:5,
+  prelim:4,
+  finals:2,
+  finalMisses:1,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"TVS Motors",
+      package:9,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"TVS Motors",
+  bestPackage:9,
+
+  cgpa:8.10,
+  tenth:88,
+  twelfth:85.1,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["TVS Motors","Final Interview","Selected"]
+  ]
+},
+
+{
+  id:"25CSE084",
+  name:"Deepika M",
+  batch:"2026",
+  dept:"CSE",
+  specialization:"Data Engineering",
+
+  invitations:12,
+  appeared:9,
+  prelim:6,
+  finals:3,
+  finalMisses:3,
+  notHonoured:1,
+
+  offers:[],
+
+  bestCompany:null,
+  bestPackage:0,
+
+  cgpa:7.69,
+  tenth:86.7,
+  twelfth:84.2,
+  arrears:0,
+
+  outcome:"Not Placed",
+
+  journey:[
+    ["Zoho","Final Interview","Not Selected"],
+    ["Freshworks","Final Interview","Not Selected"]
+  ]
+},
+
+{
+  id:"24IT039",
+  name:"Karthik S",
+  batch:"2025",
+  dept:"IT",
+  specialization:"Cloud Computing",
+
+  invitations:8,
+  appeared:6,
+  prelim:5,
+  finals:1,
+  finalMisses:0,
+  notHonoured:0,
+
+  offers:[
+    {
+      company:"Amazon",
+      package:32,
+      status:"Accepted"
+    }
+  ],
+
+  bestCompany:"Amazon",
+  bestPackage:32,
+
+  cgpa:8.89,
+  tenth:93.2,
+  twelfth:91.8,
+  arrears:0,
+
+  outcome:"Placed",
+
+  journey:[
+    ["Amazon","Final Interview","Selected"]
+  ]
+}
+
+];
+
+
+/* =========================================================
+   INSTITUTIONAL BATCH STATISTICS
+   ========================================================= */
+
+const batchStats = [
+
+{
+  batch:"2027",
+  total:1560,
+
+  offers:{
+    gt40:18,
+    p30_40:31,
+    p20_30:61,
+    p10_20:302,
+    p6_10:492,
+    p4_6:348,
+    p3_4:126
+  },
+
+  unique:{
+    gt40:12,
+    p30_40:24,
+    p20_30:46,
+    p10_20:238,
+    p6_10:401,
+    p4_6:276,
+    p3_4:94
+  },
+
+  notEligible:137,
+  entrepreneur:64,
+  higherStudies:109,
+  notPlaced:132
+},
+
+{
+  batch:"2026",
+  total:1498,
+
+  offers:{
+    gt40:12,
+    p30_40:26,
+    p20_30:51,
+    p10_20:276,
+    p6_10:466,
+    p4_6:362,
+    p3_4:139
+  },
+
+  unique:{
+    gt40:8,
+    p30_40:19,
+    p20_30:39,
+    p10_20:211,
+    p6_10:386,
+    p4_6:291,
+    p3_4:101
+  },
+
+  notEligible:144,
+  entrepreneur:58,
+  higherStudies:96,
+  notPlaced:145
+},
+
+{
+  batch:"2025",
+  total:1452,
+
+  offers:{
+    gt40:7,
+    p30_40:21,
+    p20_30:43,
+    p10_20:248,
+    p6_10:431,
+    p4_6:378,
+    p3_4:148
+  },
+
+  unique:{
+    gt40:4,
+    p30_40:15,
+    p20_30:31,
+    p10_20:194,
+    p6_10:361,
+    p4_6:304,
+    p3_4:112
+  },
+
+  notEligible:151,
+  entrepreneur:49,
+  higherStudies:84,
+  notPlaced:147
+},
+
+{
+  batch:"2024",
+  total:1388,
+
+  offers:{
+    gt40:4,
+    p30_40:14,
+    p20_30:36,
+    p10_20:221,
+    p6_10:412,
+    p4_6:365,
+    p3_4:159
+  },
+
+  unique:{
+    gt40:2,
+    p30_40:9,
+    p20_30:27,
+    p10_20:171,
+    p6_10:345,
+    p4_6:298,
+    p3_4:120
+  },
+
+  notEligible:159,
+  entrepreneur:42,
+  higherStudies:71,
+  notPlaced:144
+},
+
+{
+  batch:"2023",
+  total:1324,
+
+  offers:{
+    gt40:2,
+    p30_40:9,
+    p20_30:29,
+    p10_20:191,
+    p6_10:377,
+    p4_6:354,
+    p3_4:171
+  },
+
+  unique:{
+    gt40:1,
+    p30_40:5,
+    p20_30:22,
+    p10_20:149,
+    p6_10:318,
+    p4_6:302,
+    p3_4:128
+  },
+
+  notEligible:164,
+  entrepreneur:38,
+  higherStudies:64,
+  notPlaced:133
+}
+
+];
+
+
+/* =========================================================
+   INDUSTRIES / RECRUITERS
+   ========================================================= */
+
+const industries = [
+
+{
+  id:"autodesk",
+  name:"Autodesk",
+  role:"Software Engineer",
+  sector:"Software",
+  category:"Product",
+  status:"Completed",
+  relationship:"Strategic",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Product Engineering · Phase 1",
+      date:"18 Aug 2026",
+      package:44,
+
+      registered:186,
+      eligible:142,
+      assessment:92,
+      technical:38,
+      interview:12,
+      offers:8,
+
+      result:"Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML",
+        "ECE"
+      ],
+
+      selected:[
+        "Ananya P",
+        "Deepak R"
+      ]
+    },
+
+    {
+      year:"2027",
+      phase:"Design Automation · Phase 2",
+      date:"03 Oct 2026",
+      package:38,
+
+      registered:94,
+      eligible:78,
+      assessment:51,
+      technical:24,
+      interview:9,
+      offers:5,
+
+      result:"Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML"
+      ],
+
+      selected:[
+        "Harini R",
+        "Kavin S",
+        "Sowmya V"
+      ]
+    },
+
+    {
+      year:"2026",
+      phase:"Campus Hiring",
+      date:"22 Sep 2025",
+      package:36,
+
+      registered:210,
+      eligible:164,
+      assessment:101,
+      technical:44,
+      interview:14,
+      offers:9,
+
+      result:"Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML",
+        "ECE"
+      ],
+
+      selected:[]
+    }
+  ]
+},
+
+{
+  id:"paypal",
+  name:"PayPal",
+  role:"Software Engineer",
+  sector:"Software",
+  category:"Product",
+  status:"Completed",
+  relationship:"Strategic",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Engineering Hiring",
+      date:"02 Sep 2026",
+      package:46,
+
+      registered:171,
+      eligible:129,
+      assessment:88,
+      technical:32,
+      interview:8,
+      offers:4,
+
+      result:"Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML"
+      ],
+
+      selected:[
+        "Janani M"
+      ]
+    }
+  ]
+},
+
+{
+  id:"ti",
+  name:"Texas Instruments",
+  role:"Embedded / Analog Engineer",
+  sector:"Electronics",
+  category:"Semiconductor",
+  status:"Completed",
+  relationship:"Strategic",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Analog / Embedded Hiring",
+      date:"06 Oct 2026",
+      package:28,
+
+      registered:126,
+      eligible:97,
+      assessment:68,
+      technical:31,
+      interview:10,
+      offers:6,
+
+      result:"Completed",
+
+      departments:[
+        "ECE",
+        "EEE"
+      ],
+
+      selected:[
+        "Nithya S",
+        "Varun P"
+      ]
+    }
+  ]
+},
+
+{
+  id:"bosch",
+  name:"Bosch",
+  role:"Graduate Engineer Trainee",
+  sector:"Core",
+  category:"Automotive",
+  status:"Completed",
+  relationship:"Active",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Graduate Engineer Hiring",
+      date:"11 Sep 2026",
+      package:12,
+
+      registered:236,
+      eligible:204,
+      assessment:148,
+      technical:91,
+      interview:47,
+      offers:24,
+
+      result:"Completed",
+
+      departments:[
+        "MECH",
+        "EEE",
+        "ECE"
+      ],
+
+      selected:[
+        "Akash M",
+        "Arjun K"
+      ]
+    }
+  ]
+},
+
+{
+  id:"cat",
+  name:"Caterpillar",
+  role:"Graduate Engineer",
+  sector:"Core",
+  category:"Manufacturing",
+  status:"Completed",
+  relationship:"Active",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Engineering Graduate Programme",
+      date:"19 Sep 2026",
+      package:11,
+
+      registered:164,
+      eligible:142,
+      assessment:98,
+      technical:54,
+      interview:31,
+      offers:18,
+
+      result:"Completed",
+
+      departments:[
+        "MECH",
+        "EEE"
+      ],
+
+      selected:[
+        "Gokul P"
+      ]
+    }
+  ]
+},
+
+{
+  id:"zoho",
+  name:"Zoho",
+  role:"Member Technical Staff",
+  sector:"Software",
+  category:"Product",
+  status:"Completed",
+  relationship:"Active",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Software Developer Hiring",
+      date:"07 Aug 2026",
+      package:14,
+
+      registered:476,
+      eligible:431,
+      assessment:288,
+      technical:144,
+      interview:49,
+      offers:31,
+
+      result:"Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML",
+        "ECE",
+        "EEE"
+      ],
+
+      selected:[
+        "Meena R"
+      ]
+    }
+  ]
+},
+
+{
+  id:"tcs",
+  name:"TCS Digital",
+  role:"Digital Engineer",
+  sector:"Software",
+  category:"Service",
+  status:"Completed",
+  relationship:"Active",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Digital Hiring",
+      date:"24 Aug 2026",
+      package:7,
+
+      registered:582,
+      eligible:524,
+      assessment:391,
+      technical:248,
+      interview:112,
+      offers:82,
+
+      result:"Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML",
+        "ECE",
+        "EEE"
+      ],
+
+      selected:[
+        "Ananya P",
+        "Deepak R",
+        "Kavin S"
+      ]
+    }
+  ]
+},
+
+{
+  id:"lt",
+  name:"L&T",
+  role:"Graduate Engineer Trainee",
+  sector:"Core",
+  category:"Engineering",
+  status:"Completed",
+  relationship:"Active",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Graduate Engineer Hiring",
+      date:"27 Sep 2026",
+      package:8.5,
+
+      registered:318,
+      eligible:278,
+      assessment:187,
+      technical:103,
+      interview:65,
+      offers:41,
+
+      result:"Completed",
+
+      departments:[
+        "CIVIL",
+        "MECH",
+        "EEE",
+        "ECE"
+      ],
+
+      selected:[
+        "Gokul P",
+        "Madhumitha S"
+      ]
+    }
+  ]
+},
+
+{
+  id:"freshworks",
+  name:"Freshworks",
+  role:"Software Engineer",
+  sector:"Software",
+  category:"Product",
+  status:"Ongoing",
+  relationship:"Active",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Software Engineer Hiring",
+      date:"20 Oct 2026",
+      package:18,
+
+      registered:241,
+      eligible:206,
+      assessment:132,
+      technical:58,
+      interview:0,
+      offers:0,
+
+      result:"Technical Round Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML"
+      ],
+
+      selected:[]
+    }
+  ]
+},
+
+{
+  id:"qualcomm",
+  name:"Qualcomm",
+  role:"Embedded Software Engineer",
+  sector:"Electronics",
+  category:"Semiconductor",
+  status:"Awaiting Result",
+  relationship:"Reactivated",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Embedded / VLSI Hiring",
+      date:"21 Oct 2026",
+      package:24,
+
+      registered:112,
+      eligible:86,
+      assessment:57,
+      technical:24,
+      interview:8,
+      offers:0,
+
+      result:"Final Result Awaited",
+
+      departments:[
+        "ECE",
+        "EEE"
+      ],
+
+      selected:[]
+    }
+  ]
+},
+
+{
+  id:"tvs",
+  name:"TVS Motors",
+  role:"Graduate Engineer",
+  sector:"Core",
+  category:"Automotive",
+  status:"Confirmed",
+  relationship:"Active",
+
+  history:[
+
+    {
+      year:"2027",
+      phase:"Graduate Engineer Hiring",
+      date:"Nov 2026",
+      package:9,
+
+      registered:0,
+      eligible:0,
+      assessment:0,
+      technical:0,
+      interview:0,
+      offers:0,
+
+      result:"Visit Confirmed",
+
+      departments:[
+        "MECH",
+        "EEE",
+        "ECE"
+      ],
+
+      selected:[]
+    },
+
+    {
+      year:"2026",
+      phase:"Graduate Engineer Hiring",
+      date:"18 Oct 2025",
+      package:9,
+
+      registered:282,
+      eligible:247,
+      assessment:174,
+      technical:98,
+      interview:52,
+      offers:27,
+
+      result:"Completed",
+
+      departments:[
+        "MECH",
+        "EEE",
+        "ECE"
+      ],
+
+      selected:[]
+    }
+  ]
+},
+
+{
+  id:"schneider",
+  name:"Schneider Electric",
+  role:"Graduate Engineer",
+  sector:"Core",
+  category:"Electrical",
+  status:"Not Confirmed",
+  relationship:"Target",
+
+  history:[
+
+    {
+      year:"2026",
+      phase:"Graduate Engineer Programme",
+      date:"06 Nov 2025",
+      package:10,
+
+      registered:198,
+      eligible:164,
+      assessment:118,
+      technical:63,
+      interview:34,
+      offers:16,
+
+      result:"Completed",
+
+      departments:[
+        "EEE",
+        "ECE",
+        "MECH"
+      ],
+
+      selected:[]
+    }
+  ]
+},
+
+{
+  id:"siemens",
+  name:"Siemens",
+  role:"Engineering Graduate",
+  sector:"Core",
+  category:"Engineering",
+  status:"Not Visiting",
+  relationship:"Missed",
+
+  history:[
+
+    {
+      year:"2026",
+      phase:"Engineering Hiring",
+      date:"08 Sep 2025",
+      package:11,
+
+      registered:201,
+      eligible:170,
+      assessment:111,
+      technical:61,
+      interview:33,
+      offers:18,
+
+      result:"Completed",
+
+      departments:[
+        "EEE",
+        "ECE",
+        "MECH"
+      ],
+
+      selected:[]
+    }
+  ]
+},
+
+{
+  id:"amazon",
+  name:"Amazon",
+  role:"Software Development Engineer",
+  sector:"Software",
+  category:"Product",
+  status:"Not Confirmed",
+  relationship:"Target",
+
+  history:[
+
+    {
+      year:"2025",
+      phase:"Software Development Engineer",
+      date:"09 Aug 2024",
+      package:32,
+
+      registered:152,
+      eligible:119,
+      assessment:74,
+      technical:29,
+      interview:9,
+      offers:4,
+
+      result:"Completed",
+
+      departments:[
+        "CSE",
+        "IT",
+        "AI & ML"
+      ],
+
+      selected:[]
+    }
+  ]
+}
+
+];
+
+
+/* =========================================================
+   COMPANY STATISTICS
+   ========================================================= */
+
+const companyStats = [
+
+{
+  company:"TCS Digital",
+  sector:"Software",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:82,
+  lastYear:75,
+  max3:79,
+  package:7,
+  departments:["CSE","IT","AI & ML","ECE","EEE"]
+},
+
+{
+  company:"L&T",
+  sector:"Core",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:41,
+  lastYear:38,
+  max3:40,
+  package:8.5,
+  departments:["CIVIL","MECH","EEE","ECE"]
+},
+
+{
+  company:"Zoho",
+  sector:"Software",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:31,
+  lastYear:29,
+  max3:29,
+  package:14,
+  departments:["CSE","IT","AI & ML","ECE","EEE"]
+},
+
+{
+  company:"Bosch",
+  sector:"Core",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:24,
+  lastYear:22,
+  max3:24,
+  package:12,
+  departments:["MECH","EEE","ECE"]
+},
+
+{
+  company:"Caterpillar",
+  sector:"Core",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:18,
+  lastYear:17,
+  max3:19,
+  package:11,
+  departments:["MECH","EEE"]
+},
+
+{
+  company:"Autodesk",
+  sector:"Software",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:13,
+  lastYear:9,
+  max3:9,
+  package:44,
+  departments:["CSE","IT","AI & ML","ECE"]
+},
+
+{
+  company:"Texas Instruments",
+  sector:"Electronics",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:6,
+  lastYear:5,
+  max3:5,
+  package:28,
+  departments:["ECE","EEE"]
+},
+
+{
+  company:"PayPal",
+  sector:"Software",
+  status:"Completed",
+  stage:"Offers Released",
+  offers:4,
+  lastYear:5,
+  max3:5,
+  package:46,
+  departments:["CSE","IT","AI & ML"]
+},
+
+{
+  company:"Freshworks",
+  sector:"Software",
+  status:"Ongoing",
+  stage:"Technical Round Completed",
+  offers:0,
+  lastYear:18,
+  max3:21,
+  package:18,
+  departments:["CSE","IT","AI & ML"]
+},
+
+{
+  company:"Qualcomm",
+  sector:"Electronics",
+  status:"Awaiting Result",
+  stage:"Final Result Awaited",
+  offers:0,
+  lastYear:0,
+  max3:8,
+  package:24,
+  departments:["ECE","EEE"]
+},
+
+{
+  company:"TVS Motors",
+  sector:"Core",
+  status:"Confirmed",
+  stage:"Visit Confirmed · November",
+  offers:0,
+  lastYear:27,
+  max3:31,
+  package:9,
+  departments:["MECH","EEE","ECE"]
+},
+
+{
+  company:"Schneider Electric",
+  sector:"Core",
+  status:"Not Confirmed",
+  stage:"Industry Relations Follow-up",
+  offers:0,
+  lastYear:16,
+  max3:18,
+  package:10,
+  departments:["EEE","ECE","MECH"]
+},
+
+{
+  company:"Siemens",
+  sector:"Core",
+  status:"Not Visiting",
+  stage:"Missed This Year",
+  offers:0,
+  lastYear:18,
+  max3:20,
+  package:11,
+  departments:["EEE","ECE","MECH"]
+},
+
+{
+  company:"Amazon",
+  sector:"Software",
+  status:"Not Confirmed",
+  stage:"Targeted · Yet to Confirm",
+  offers:0,
+  lastYear:0,
+  max3:4,
+  package:32,
+  departments:["CSE","IT","AI & ML"]
+}
+
+];
+
+
+/* =========================================================
+   INDUSTRY OVERALL MATRIX
+   ========================================================= */
+
+const industryMatrix = [
+
+{
+  key:"database",
+  title:"Total industries in database",
+  note:"Recruiters maintained in the institutional recruiter database.",
+  values:{
+    2027:312,
+    2026:296,
+    2025:278,
+    2024:254,
+    2023:231
+  }
+},
+
+{
+  key:"visited",
+  title:"Industries visited",
+  note:"Recruitment process conducted during the academic year.",
+  values:{
+    2027:126,
+    2026:138,
+    2025:129,
+    2024:117,
+    2023:104
+  }
+},
+
+{
+  key:"confirmed",
+  title:"Industries confirmed",
+  note:"Recruiters committed for this year's placement cycle.",
+  values:{
+    2027:151,
+    2026:"—",
+    2025:"—",
+    2024:"—",
+    2023:"—"
+  }
+},
+
+{
+  key:"new",
+  title:"New industries visited / committed",
+  note:"First-time recruiters or newly activated relationships.",
+  values:{
+    2027:34,
+    2026:29,
+    2025:26,
+    2024:22,
+    2023:19
+  }
+},
+
+{
+  key:"missed",
+  title:"Visited in previous 3 years but not this year",
+  note:"Previously active recruiters that have not participated this year.",
+  values:{
+    2027:41,
+    2026:36,
+    2025:33,
+    2024:"—",
+    2023:"—"
+  }
+},
+
+{
+  key:"equalLast",
+  title:"Offers equal to or higher than last year",
+  note:"Recruiters maintaining or improving year-on-year offer volume.",
+  values:{
+    2027:67,
+    2026:71,
+    2025:64,
+    2024:58,
+    2023:"—"
+  }
+},
+
+{
+  key:"equalMax3",
+  title:"Offers ≥ previous 3-year maximum",
+  note:"Recruiters achieving or exceeding their recent historical best.",
+  values:{
+    2027:39,
+    2026:33,
+    2025:29,
+    2024:"—",
+    2023:"—"
+  }
+},
+
+{
+  key:"lessLast",
+  title:"Offers lower than last year",
+  note:"Recruiters showing year-on-year reduction in offer volume.",
+  values:{
+    2027:26,
+    2026:31,
+    2025:28,
+    2024:25,
+    2023:"—"
+  }
+},
+
+{
+  key:"lessMax3",
+  title:"Offers below previous 3-year maximum",
+  note:"Recruiters below their recent historical peak.",
+  values:{
+    2027:54,
+    2026:49,
+    2025:43,
+    2024:"—",
+    2023:"—"
+  }
+},
+
+{
+  key:"targetPending",
+  title:"Targeted this year · yet to confirm",
+  note:"Recruiters under active engagement but not yet confirmed.",
+  values:{
+    2027:48,
+    2026:"—",
+    2025:"—",
+    2024:"—",
+    2023:"—"
+  }
+}
+
+];
+
+
+/* =========================================================
+   VIEW CONTROL
+   ========================================================= */
+
+function setView(
+  view
+){
+
+  currentView =
+    view;
+
+
+  selectedIndustry =
+    view==="industries"
+    ?
+    "__overall__"
+    :
+    selectedIndustry;
+
+
+  leftSegment =
+    "all";
+
+
+  document
+    .querySelectorAll(
+      ".analysis-tab"
+    )
+    .forEach(
+      x=>
+        x.classList.remove(
+          "active"
+        )
+    );
+
+
+  document
+    .getElementById(
+      "view_"+view
+    )
+    .classList.add(
+      "active"
+    );
+
+
+  document
+    .getElementById(
+      "leftSearch"
+    )
+    .value =
+      "";
+
+
+  renderAll();
+}
+
+
+/* =========================================================
+   LEFT FILTER TABS
+   ========================================================= */
+
+function renderLeftFilterTabs(){
+
+  const box =
+    document.getElementById(
+      "leftFilterTabs"
+    );
+
+
+  if(
+    currentView==="overall"
+  ){
+
+    box.innerHTML = `
+
+      <button
+        class="filter-tab ${leftSegment==="all"?"active":""}"
+        onclick="setLeftSegment('all')">
+        All
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="current"?"active":""}"
+        onclick="setLeftSegment('current')">
+        Current
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="previous"?"active":""}"
+        onclick="setLeftSegment('previous')">
+        Previous
+      </button>
+    `;
+
+  }
+
+
+  if(
+    currentView==="industries"
+  ){
+
+    box.innerHTML = `
+
+      <button
+        class="filter-tab ${leftSegment==="all"?"active":""}"
+        onclick="setLeftSegment('all')">
+        All
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="active"?"active":""}"
+        onclick="setLeftSegment('active')">
+        Active
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="attention"?"active":""}"
+        onclick="setLeftSegment('attention')">
+        Attention
+      </button>
+    `;
+
+  }
+
+
+  if(
+    currentView==="companies"
+  ){
+
+    box.innerHTML = `
+
+      <button
+        class="filter-tab ${leftSegment==="all"?"active":""}"
+        onclick="setLeftSegment('all')">
+        All
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="active"?"active":""}"
+        onclick="setLeftSegment('active')">
+        Active
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="completed"?"active":""}"
+        onclick="setLeftSegment('completed')">
+        Completed
+      </button>
+    `;
+
+  }
+
+
+  if(
+    currentView==="students"
+  ){
+
+    box.innerHTML = `
+
+      <button
+        class="filter-tab ${leftSegment==="all"?"active":""}"
+        onclick="setLeftSegment('all')">
+        All
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="attention"?"active":""}"
+        onclick="setLeftSegment('attention')">
+        Attention
+      </button>
+
+      <button
+        class="filter-tab ${leftSegment==="placed"?"active":""}"
+        onclick="setLeftSegment('placed')">
+        Placed
+      </button>
+    `;
+
+  }
+
+}
+
+
+function setLeftSegment(
+  segment
+){
+
+  leftSegment =
+    segment;
+
+  renderLeftFilterTabs();
+
+  renderLeft();
+}
+
+
+/* =========================================================
+   LEFT PANEL MASTER
+   ========================================================= */
+
+function renderLeft(){
+
+  renderLeftFilterTabs();
+
+
+  const search =
+    document.getElementById(
+      "leftSearch"
+    );
+
+
+  search.placeholder =
+
+    currentView==="students"
+    ?
+    "Search student or register no"
+    :
+    currentView==="industries"
+    ?
+    "Search industry or role"
+    :
+    currentView==="companies"
+    ?
+    "Search company"
+    :
+    "Search batch or outcome";
+
+
+  if(
+    currentView==="overall"
+  ){
+    renderOverallLeft();
+  }
+
+
+  if(
+    currentView==="industries"
+  ){
+    renderIndustryLeft();
+  }
+
+
+  if(
+    currentView==="companies"
+  ){
+    renderCompanyLeft();
+  }
+
+
+  if(
+    currentView==="students"
+  ){
+    renderStudentLeft();
+  }
+
+}
+
+
+/* =========================================================
+   OVERALL LEFT
+   ========================================================= */
+
+function renderOverallLeft(){
+
+  let batches =
+    [...batchStats];
+
+
+  if(
+    leftSegment==="current"
+  ){
+
+    batches =
+      batches.filter(
+        x=>x.batch==="2027"
+      );
+  }
+
+
+  if(
+    leftSegment==="previous"
+  ){
+
+    batches =
+      batches.filter(
+        x=>x.batch!=="2027"
+      );
+  }
+
+
+  document
+    .getElementById(
+      "leftContent"
+    )
+    .innerHTML = `
+
+      <div class="group-label">
+        Graduation Batches
+      </div>
+
+      ${
+        batches.map(
+          b=>`
+
+            <button
+              class="left-card"
+              onclick="
+                filters.batch='${b.batch}';
+                renderMiddle();
+              ">
+
+              <div class="left-card-top">
+
+                <div>
+
+                  <div class="left-card-title">
+                    Batch ${b.batch}
+                  </div>
+
+                  <div class="left-card-sub">
+                    Placement outcome
+                  </div>
+
+                </div>
+
+                <span class="status-badge badge-progress">
+                  ${b.total}
+                </span>
+
+              </div>
+
+              <div class="left-card-meta">
+
+                <span>
+                  ${b.notPlaced}
+                  not placed
+                </span>
+
+                <span>
+                  ${b.higherStudies}
+                  higher studies
+                </span>
+
+              </div>
+
+            </button>
+          `
+        )
+        .join("")
+      }
+
+
+      <div class="group-label">
+        Outcome Groups
+      </div>
+
+
+      ${outcomeLeftCard(
+        "Not Yet Placed",
+        "Opportunity & conversion intervention",
+        "notPlaced"
+      )}
+
+
+      ${outcomeLeftCard(
+        "Not Eligible",
+        "Academic eligibility restrictions",
+        "notEligible"
+      )}
+
+
+      ${outcomeLeftCard(
+        "Higher Studies",
+        "Programme, institution & evidence",
+        "higherStudies"
+      )}
+
+
+      ${outcomeLeftCard(
+        "Entrepreneurship",
+        "Startup and current venture status",
+        "entrepreneur"
+      )}
+    `;
+}
+
+
+function outcomeLeftCard(
+  title,
+  subtitle,
+  type
+){
+
+  return `
+
+    <button
+      class="left-card"
+      onclick="
+        showOutcome(
+          '${type}',
+          filters.batch==='All'
+          ?
+          '2027'
+          :
+          filters.batch
+        )
+      ">
+
+      <div class="left-card-title">
+        ${title}
+      </div>
+
+      <div class="left-card-sub">
+        ${subtitle}
+      </div>
+
+    </button>
+  `;
+}
+
+
+/* =========================================================
+   INDUSTRY LEFT
+   ========================================================= */
+
+function industryFilteredList(){
+
+  let list =
+    [...industries];
+
+
+  if(
+    filters.sector!=="All"
+  ){
+
+    list =
+      list.filter(
+        x=>x.sector===filters.sector
+      );
+  }
+
+
+  if(
+    leftSegment==="active"
+  ){
+
+    list =
+      list.filter(
+        x=>
+          [
+            "Completed",
+            "Ongoing",
+            "Awaiting Result",
+            "Confirmed"
+          ].includes(
+            x.status
+          )
+      );
+  }
+
+
+  if(
+    leftSegment==="attention"
+  ){
+
+    list =
+      list.filter(
+        x=>
+          [
+            "Not Confirmed",
+            "Not Visiting",
+            "Awaiting Result"
+          ].includes(
+            x.status
+          )
+      );
+  }
+
+
+  const q =
+    document
+      .getElementById(
+        "leftSearch"
+      )
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    q
+  ){
+
+    list =
+      list.filter(
+        x=>
+          x.name
+            .toLowerCase()
+            .includes(q)
+          ||
+          x.role
+            .toLowerCase()
+            .includes(q)
+          ||
+          x.sector
+            .toLowerCase()
+            .includes(q)
+      );
+  }
+
+
+  return list;
+}
+
+
+function renderIndustryLeft(){
+
+  const list =
+    industryFilteredList();
+
+
+  document
+    .getElementById(
+      "leftContent"
+    )
+    .innerHTML = `
+
+      <div class="group-label">
+        Industry View
+      </div>
+
+
+      <button
+        class="
+          left-card
+          ${
+            selectedIndustry==="__overall__"
+            ?
+            "active"
+            :
+            ""
+          }
+        "
+        onclick="
+          selectedIndustry='__overall__';
+          renderMiddle();
+          renderLeft();
+        ">
+
+        <div class="left-card-top">
+
+          <div>
+
+            <div class="left-card-title">
+              Overall
+            </div>
+
+            <div class="left-card-sub">
+              Complete recruiter network
+            </div>
+
+          </div>
+
+          <span class="status-badge badge-progress">
+            312
+          </span>
+
+        </div>
+
+      </button>
+
+
+      <div class="group-label">
+        Recruiters
+      </div>
+
+
+      ${
+        list.map(
+          company=>`
+
+            <button
+              class="
+                left-card
+                ${
+                  selectedIndustry===company.id
+                  ?
+                  "active"
+                  :
+                  ""
+                }
+              "
+              onclick="
+                selectedIndustry='${company.id}';
+                renderMiddle();
+                renderLeft();
+              ">
+
+              <div class="left-card-top">
+
+                <div>
+
+                  <div class="left-card-title">
+                    ${company.name}
+                  </div>
+
+                  <div class="left-card-sub">
+                    ${company.role}
+                  </div>
+
+                </div>
+
+                ${statusBadge(company.status)}
+
+              </div>
+
+              <div class="left-card-meta">
+
+                <span>
+                  ${company.sector}
+                </span>
+
+                <span>
+                  ${currentOffers(company)}
+                  offers
+                </span>
+
+              </div>
+
+            </button>
+          `
+        )
+        .join("")
+      }
+    `;
+}
+
+
+/* =========================================================
+   COMPANY LEFT
+   ========================================================= */
+
+function renderCompanyLeft(){
+
+  const groups = [
+
+    {
+      title:"Completed",
+      status:"Completed",
+      subtitle:"Offers released"
+    },
+
+    {
+      title:"Ongoing",
+      status:"Ongoing",
+      subtitle:"Recruitment underway"
+    },
+
+    {
+      title:"Awaiting Result",
+      status:"Awaiting Result",
+      subtitle:"Result still pending"
+    },
+
+    {
+      title:"Confirmed",
+      status:"Confirmed",
+      subtitle:"Future visit confirmed"
+    },
+
+    {
+      title:"Yet to Confirm",
+      status:"Not Confirmed",
+      subtitle:"Recruiter follow-up"
+    },
+
+    {
+      title:"Missed This Year",
+      status:"Not Visiting",
+      subtitle:"Previously active"
+    }
+
+  ];
+
+
+  let visibleGroups =
+    groups;
+
+
+  if(
+    leftSegment==="active"
+  ){
+
+    visibleGroups =
+      groups.filter(
+        x=>
+          [
+            "Ongoing",
+            "Awaiting Result",
+            "Confirmed"
+          ].includes(
+            x.status
+          )
+      );
+  }
+
+
+  if(
+    leftSegment==="completed"
+  ){
+
+    visibleGroups =
+      groups.filter(
+        x=>x.status==="Completed"
+      );
+  }
+
+
+  document
+    .getElementById(
+      "leftContent"
+    )
+    .innerHTML = `
+
+      <div class="group-label">
+        Process Position
+      </div>
+
+
+      <button
+        class="left-card"
+        onclick="
+          filters.companyStatus='All';
+          renderMiddle();
+        ">
+
+        <div class="left-card-top">
+
+          <div>
+
+            <div class="left-card-title">
+              All Companies
+            </div>
+
+            <div class="left-card-sub">
+              Complete recruiter list
+            </div>
+
+          </div>
+
+          <span class="status-badge badge-progress">
+            ${companyStats.length}
+          </span>
+
+        </div>
+
+      </button>
+
+
+      ${
+        visibleGroups.map(
+          group=>{
+
+            const count =
+              companyStats.filter(
+                x=>x.status===group.status
+              ).length;
+
+
+            return `
+
+              <button
+                class="left-card"
+                onclick="
+                  filters.companyStatus='${group.status}';
+                  renderMiddle();
+                ">
+
+                <div class="left-card-top">
+
+                  <div>
+
+                    <div class="left-card-title">
+                      ${group.title}
+                    </div>
+
+                    <div class="left-card-sub">
+                      ${group.subtitle}
+                    </div>
+
+                  </div>
+
+                  ${statusBadge(group.status)}
+
+                </div>
+
+                <div class="left-card-meta">
+
+                  <span>
+                    ${count}
+                    companies
+                  </span>
+
+                </div>
+
+              </button>
+            `;
+          }
+        )
+        .join("")
+      }
+    `;
+}
+
+
+/* =========================================================
+   STUDENT LEFT
+   ========================================================= */
+
+function renderStudentLeft(){
+
+  const current =
+    students.filter(
+      x=>x.batch==="2027"
+    );
+
+
+  let quickStudents =
+    filteredStudents();
+
+
+  if(
+    leftSegment==="attention"
+  ){
+
+    quickStudents =
+      quickStudents.filter(
+        x=>interventionScore(x)>=20
+      );
+  }
+
+
+  if(
+    leftSegment==="placed"
+  ){
+
+    quickStudents =
+      quickStudents.filter(
+        x=>x.outcome==="Placed"
+      );
+  }
+
+
+  const q =
+    document
+      .getElementById(
+        "leftSearch"
+      )
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    q
+  ){
+
+    quickStudents =
+      quickStudents.filter(
+        s=>
+          s.name
+            .toLowerCase()
+            .includes(q)
+          ||
+          s.id
+            .toLowerCase()
+            .includes(q)
+          ||
+          s.dept
+            .toLowerCase()
+            .includes(q)
+      );
+  }
+
+
+  document
+    .getElementById(
+      "leftContent"
+    )
+    .innerHTML = `
+
+      <div class="group-label">
+        Requires Attention
+      </div>
+
+
+      ${studentFocusLeft(
+        "Not Placed",
+        current.filter(
+          x=>x.outcome==="Not Placed"
+        ).length,
+        "Still without placement",
+        "Not Placed",
+        "badge-awaiting"
+      )}
+
+
+      ${studentFocusLeft(
+        "Repeated Final Misses",
+        current.filter(
+          x=>x.finalMisses>=2
+        ).length,
+        "2+ unsuccessful final rounds",
+        "Final Misses",
+        "badge-danger"
+      )}
+
+
+      ${studentFocusLeft(
+        "Invitations Not Honoured",
+        current.filter(
+          x=>x.notHonoured>0
+        ).length,
+        "Placement discipline",
+        "Not Honoured",
+        "badge-awaiting"
+      )}
+
+
+      ${studentFocusLeft(
+        "Low Exposure",
+        current.filter(
+          x=>
+            x.appeared<=3
+            &&
+            ![
+              "Higher Studies",
+              "Entrepreneurship"
+            ].includes(
+              x.outcome
+            )
+        ).length,
+        "Appeared ≤3 companies",
+        "Low Exposure",
+        "badge-scheduled"
+      )}
+
+
+      <div class="group-label">
+        Positive Outcomes
+      </div>
+
+
+      ${studentFocusLeft(
+        "Multiple Offers",
+        current.filter(
+          x=>x.offers.length>=2
+        ).length,
+        "Two or more offers",
+        "Multiple Offers",
+        "badge-completed"
+      )}
+
+
+      ${studentFocusLeft(
+        "High Exposure",
+        current.filter(
+          x=>x.appeared>=7
+        ).length,
+        "Appeared 7+ companies",
+        "High Exposure",
+        "badge-progress"
+      )}
+
+
+      <div class="group-label">
+        Students
+      </div>
+
+
+      ${
+        quickStudents
+          .slice(
+            0,
+            30
+          )
+          .map(
+            s=>`
+
+              <button
+                class="left-card"
+                onclick="
+                  showStudent(
+                    '${s.id}'
+                  )
+                ">
+
+                <div class="left-card-top">
+
+                  <div>
+
+                    <div class="left-card-title">
+                      ${s.name}
+                    </div>
+
+                    <div class="left-card-sub">
+                      ${s.id}
+                      ·
+                      ${s.dept}
+                    </div>
+
+                  </div>
+
+                  ${studentOutcomeBadge(s)}
+
+                </div>
+
+                <div class="left-card-meta">
+
+                  <span>
+                    ${s.appeared}
+                    attended
+                  </span>
+
+                  <span>
+
+                    ${
+                      s.bestPackage
+                      ?
+                      "₹"+
+                      s.bestPackage+
+                      " LPA"
+                      :
+                      s.outcome
+                    }
+
+                  </span>
+
+                </div>
+
+              </button>
+            `
+          )
+          .join("")
+      }
+    `;
+}
+
+
+function studentFocusLeft(
+  title,
+  count,
+  subtitle,
+  focus,
+  badge
+){
+
+  return `
+
+    <button
+      class="left-card"
+      onclick="
+        filters.studentFocus='${focus}';
+        renderMiddle();
+      ">
+
+      <div class="left-card-top">
+
+        <div>
+
+          <div class="left-card-title">
+            ${title}
+          </div>
+
+          <div class="left-card-sub">
+            ${subtitle}
+          </div>
+
+        </div>
+
+        <span
+          class="
+            status-badge
+            ${badge}
+          ">
+
+          ${count}
+
+        </span>
+
+      </div>
+
+    </button>
+  `;
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+function handleLeftSearch(){
+
+  renderLeft();
+
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+function renderHeader(){
+
+  let title = "";
+  let subtitle = "";
+
+
+  if(
+    currentView==="overall"
+  ){
+
+    title =
+      "Overall Placement Statistics";
+
+    subtitle =
+      "Compare offer volume, unique student outcomes and placement alternatives across graduating batches.";
+
+  }
+
+
+  if(
+    currentView==="industries"
+  ){
+
+    if(
+      selectedIndustry==="__overall__"
+    ){
+
+      title =
+        "Industry Intelligence";
+
+      subtitle =
+        "Recruiter network health, historical participation, offer performance and relationship continuity.";
+
+    }else{
+
+      const c =
+        getIndustry(
+          selectedIndustry
+        );
+
+
+      title =
+        c.name+
+        " Placement History";
+
+      subtitle =
+        c.role+
+        " · "+
+        c.sector+
+        " · "+
+        c.relationship+
+        " relationship";
+    }
+
+  }
+
+
+  if(
+    currentView==="companies"
+  ){
+
+    title =
+      "Company-wise Placement Statistics";
+
+    subtitle =
+      "Rank recruiters by offers, salary package, historical performance and live recruitment status.";
+
+  }
+
+
+  if(
+    currentView==="students"
+  ){
+
+    title =
+      "Student Placement Intelligence";
+
+    subtitle =
+      "Understand opportunity exposure, recruitment conversion, placement discipline, eligibility and final outcomes.";
+
+  }
+
+
+  document
+    .getElementById(
+      "pageTitle"
+    )
+    .textContent =
+      title;
+
+
+  document
+    .getElementById(
+      "pageSubtitle"
+    )
+    .textContent =
+      subtitle;
+
+}
+
+
+/* =========================================================
+   TOP FILTERS
+   ========================================================= */
+
+function renderTopFilters(){
+
+  let html = "";
+
+
+  if(
+    currentView==="overall"
+  ){
+
+    html += filterGroup(
+      "Batch",
+      batchSelect(true)
+    );
+
+    html += filterGroup(
+      "Department",
+      departmentSelect()
+    );
+
+  }
+
+
+  if(
+    currentView==="industries"
+  ){
+
+    html += filterGroup(
+      "Academic Year",
+      batchSelect(true)
+    );
+
+    html += filterGroup(
+      "Sector",
+      sectorSelect()
+    );
+
+    html += filterGroup(
+      "Department",
+      departmentSelect()
+    );
+
+  }
+
+
+  if(
+    currentView==="companies"
+  ){
+
+    html += filterGroup(
+      "Sector",
+      sectorSelect()
+    );
+
+    html += filterGroup(
+      "Department",
+      departmentSelect()
+    );
+
+    html += filterGroup(
+      "Status",
+      companyStatusSelect()
+    );
+
+    html += filterGroup(
+      "Sort",
+      companySortSelect()
+    );
+
+  }
+
+
+  if(
+    currentView==="students"
+  ){
+
+    html += filterGroup(
+      "Batch",
+      batchSelect(false)
+    );
+
+    html += filterGroup(
+      "Department",
+      departmentSelect()
+    );
+
+    html += filterGroup(
+      "Focus",
+      studentFocusSelect()
+    );
+
+    html += filterGroup(
+      "Specialisation",
+      specializationSelect()
+    );
+
+    html += filterGroup(
+      "Sort",
+      studentSortSelect()
+    );
+
+  }
+
+
+  html += `
+
+    <div class="filter-spacer"></div>
+
+    <button
+      class="small-button"
+      onclick="resetFilters()">
+
+      Reset Filters
+
+    </button>
+  `;
+
+
+  document
+    .getElementById(
+      "topFilters"
+    )
+    .innerHTML =
+      html;
+
+}
+
+
+function filterGroup(
+  label,
+  control
+){
+
+  return `
+
+    <div class="filter-group">
+
+      <span class="filter-label">
+        ${label}
+      </span>
+
+      ${control}
+
+    </div>
+  `;
+}
+
+
+function batchSelect(
+  historical
+){
+
+  let values =
+    [
+      ["All","All"],
+      ["2027","2026–27"],
+      ["2026","2025–26"],
+      ["2025","2024–25"]
+    ];
+
+
+  if(
+    historical
+  ){
+
+    values.push(
+      ["2024","2023–24"],
+      ["2023","2022–23"]
+    );
+
+  }
+
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        filters.batch=this.value;
+        renderMiddle();
+      ">
+
+      ${
+        values.map(
+          x=>`
+
+            <option
+              value="${x[0]}"
+              ${
+                filters.batch===x[0]
+                ?
+                "selected"
+                :
+                ""
+              }>
+
+              ${x[1]}
+
+            </option>
+          `
+        )
+        .join("")
+      }
+
+    </select>
+  `;
+}
+
+
+function departmentSelect(){
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        filters.department=this.value;
+        renderMiddle();
+      ">
+
+      <option value="All">
+        All Departments
+      </option>
+
+      ${
+        departments.map(
+          x=>`
+
+            <option
+              value="${x}"
+              ${
+                filters.department===x
+                ?
+                "selected"
+                :
+                ""
+              }>
+
+              ${x}
+
+            </option>
+          `
+        )
+        .join("")
+      }
+
+    </select>
+  `;
+}
+
+
+function sectorSelect(){
+
+  const list = [
+    "All",
+    "Software",
+    "Core",
+    "Electronics"
+  ];
+
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        filters.sector=this.value;
+        renderMiddle();
+        renderLeft();
+      ">
+
+      ${
+        list.map(
+          x=>`
+
+            <option
+              value="${x}"
+              ${
+                filters.sector===x
+                ?
+                "selected"
+                :
+                ""
+              }>
+
+              ${
+                x==="All"
+                ?
+                "All Sectors"
+                :
+                x
+              }
+
+            </option>
+          `
+        )
+        .join("")
+      }
+
+    </select>
+  `;
+}
+
+
+function companyStatusSelect(){
+
+  const list = [
+
+    "All",
+    "Completed",
+    "Ongoing",
+    "Awaiting Result",
+    "Confirmed",
+    "Not Confirmed",
+    "Not Visiting"
+
+  ];
+
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        filters.companyStatus=this.value;
+        renderMiddle();
+      ">
+
+      ${
+        list.map(
+          x=>`
+
+            <option
+              value="${x}"
+              ${
+                filters.companyStatus===x
+                ?
+                "selected"
+                :
+                ""
+              }>
+
+              ${x}
+
+            </option>
+          `
+        )
+        .join("")
+      }
+
+    </select>
+  `;
+}
+
+
+function companySortSelect(){
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        companySort=this.value;
+        renderMiddle();
+      ">
+
+      <option value="offers">
+        Offers · High → Low
+      </option>
+
+      <option value="package">
+        Package · High → Low
+      </option>
+
+      <option value="growth">
+        Growth · High → Low
+      </option>
+
+      <option value="decline">
+        Decline · Highest
+      </option>
+
+      <option value="name">
+        Company · A → Z
+      </option>
+
+    </select>
+  `;
+}
+
+
+function studentFocusSelect(){
+
+  const list = [
+
+    "All",
+    "Not Placed",
+    "Low Exposure",
+    "High Exposure",
+    "Final Misses",
+    "Not Honoured",
+    "Multiple Offers",
+    "Declined Offers",
+    "Arrears",
+    "Higher Studies",
+    "Entrepreneurship"
+
+  ];
+
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        filters.studentFocus=this.value;
+        renderMiddle();
+      ">
+
+      ${
+        list.map(
+          x=>`
+
+            <option
+              value="${x}"
+              ${
+                filters.studentFocus===x
+                ?
+                "selected"
+                :
+                ""
+              }>
+
+              ${x}
+
+            </option>
+          `
+        )
+        .join("")
+      }
+
+    </select>
+  `;
+}
+
+
+function specializationSelect(){
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        filters.specialization=this.value;
+        renderMiddle();
+      ">
+
+      <option value="All">
+        All Specialisations
+      </option>
+
+      ${
+        specializations.map(
+          x=>`
+
+            <option
+              value="${x}"
+              ${
+                filters.specialization===x
+                ?
+                "selected"
+                :
+                ""
+              }>
+
+              ${x}
+
+            </option>
+          `
+        )
+        .join("")
+      }
+
+    </select>
+  `;
+}
+
+
+function studentSortSelect(){
+
+  return `
+
+    <select
+      class="filter-control"
+      onchange="
+        studentSort=this.value;
+        renderMiddle();
+      ">
+
+      <option value="intervention">
+        Intervention Priority
+      </option>
+
+      <option value="appeared">
+        Companies Appeared
+      </option>
+
+      <option value="offers">
+        Number of Offers
+      </option>
+
+      <option value="finalMisses">
+        Final Misses
+      </option>
+
+      <option value="notHonoured">
+        Not Honoured
+      </option>
+
+      <option value="package">
+        Best Package
+      </option>
+
+      <option value="cgpa">
+        CGPA
+      </option>
+
+      <option value="name">
+        Student Name
+      </option>
+
+    </select>
+  `;
+}
+
+
+/* =========================================================
+   SIGNAL BAR
+   ========================================================= */
+
+function renderSignalBar(){
+
+  let html = "";
+
+
+  if(
+    currentView==="overall"
+  ){
+
+    html =
+      signal("#2563eb","1,378","offers")
+      +
+      signal("#16a34a","1,091","unique offer holders")
+      +
+      signal("#d97706","132","not yet placed")
+      +
+      signal("#7c3aed","109","higher studies")
+      +
+      signal("#0891b2","64","entrepreneurship");
+
+  }
+
+
+  if(
+    currentView==="industries"
+  ){
+
+    if(
+      selectedIndustry==="__overall__"
+    ){
+
+      html =
+        signal("#2563eb","312","recruiters in database")
+        +
+        signal("#16a34a","126","visited")
+        +
+        signal("#7c3aed","151","confirmed")
+        +
+        signal("#dc2626","41","missed this year")
+        +
+        signal("#d97706","48","yet to confirm");
+
+    }else{
+
+      const c =
+        getIndustry(
+          selectedIndustry
+        );
+
+
+      html =
+        signal(
+          "#2563eb",
+          c.relationship,
+          "relationship"
+        )
+        +
+        signal(
+          "#16a34a",
+          currentOffers(c),
+          "current-year offers"
+        )
+        +
+        signal(
+          "#7c3aed",
+          "₹"+maxPackage(c)+"L",
+          "highest package"
+        )
+        +
+        signal(
+          statusColour(c.status),
+          c.status,
+          "current status"
+        );
+
+    }
+
+  }
+
+
+  if(
+    currentView==="companies"
+  ){
+
+    html =
+      signal(
+        "#16a34a",
+        companyStats.filter(
+          x=>x.status==="Completed"
+        ).length,
+        "completed"
+      )
+      +
+      signal(
+        "#2563eb",
+        companyStats.filter(
+          x=>x.status==="Ongoing"
+        ).length,
+        "ongoing"
+      )
+      +
+      signal(
+        "#d97706",
+        companyStats.filter(
+          x=>x.status==="Awaiting Result"
+        ).length,
+        "awaiting result"
+      )
+      +
+      signal(
+        "#7c3aed",
+        companyStats.filter(
+          x=>x.status==="Confirmed"
+        ).length,
+        "future confirmed"
+      );
+
+  }
+
+
+  if(
+    currentView==="students"
+  ){
+
+    const list =
+      filteredStudents();
+
+
+    html =
+      signal(
+        "#2563eb",
+        list.length,
+        "students in view"
+      )
+      +
+      signal(
+        "#16a34a",
+        list.filter(
+          x=>x.outcome==="Placed"
+        ).length,
+        "placed"
+      )
+      +
+      signal(
+        "#d97706",
+        list.filter(
+          x=>x.outcome==="Not Placed"
+        ).length,
+        "not placed"
+      )
+      +
+      signal(
+        "#dc2626",
+        list.filter(
+          x=>x.finalMisses>=2
+        ).length,
+        "repeated final misses"
+      )
+      +
+      signal(
+        "#7c3aed",
+        list.filter(
+          x=>x.offers.length>=2
+        ).length,
+        "multiple offers"
+      );
+
+  }
+
+
+  document
+    .getElementById(
+      "signalBar"
+    )
+    .innerHTML =
+      html;
+
+}
+
+
+function signal(
+  colour,
+  number,
+  label
+){
+
+  return `
+
+    <div class="signal-item">
+
+      <span
+        class="signal-dot"
+        style="
+          background:${colour}
+        ">
+      </span>
+
+      <span class="signal-number">
+        ${number}
+      </span>
+
+      <span>
+        ${label}
+      </span>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   MIDDLE MASTER
+   ========================================================= */
+
+function renderMiddle(){
+
+  renderHeader();
+
+  renderTopFilters();
+
+  renderSignalBar();
+
+
+  if(
+    currentView==="overall"
+  ){
+    renderOverall();
+  }
+
+
+  if(
+    currentView==="industries"
+  ){
+    renderIndustries();
+  }
+
+
+  if(
+    currentView==="companies"
+  ){
+    renderCompanies();
+  }
+
+
+  if(
+    currentView==="students"
+  ){
+    renderStudents();
+  }
+
+}
+
+
+/* =========================================================
+   OVERALL
+   ========================================================= */
+
+function overallRows(){
+
+  let rows =
+    [...batchStats];
+
+
+  if(
+    filters.batch!=="All"
+  ){
+
+    rows =
+      rows.filter(
+        x=>x.batch===filters.batch
+      );
+  }
+
+
+  return rows;
+}
+
+
+function scaled(
+  number
+){
+
+  if(
+    filters.department==="All"
+  ){
+    return number;
+  }
+
+
+  const factor = {
+
+    "CSE":.27,
+    "IT":.15,
+    "AI & ML":.11,
+    "ECE":.17,
+    "EEE":.10,
+    "MECH":.13,
+    "CIVIL":.07
+
+  }[filters.department] || 1;
+
+
+  return Math.max(
+    0,
+    Math.round(
+      number*factor
+    )
+  );
+}
+
+
+function renderOverall(){
+
+  const rows =
+    overallRows();
+
+
+  document
+    .getElementById(
+      "middleContent"
+    )
+    .innerHTML = `
+
+      <section class="section">
+
+        <div class="section-header">
+
+          <div>
+
+            <div class="section-title">
+              Number of Offers by Salary Scale
+            </div>
+
+            <div class="section-subtitle">
+              Every confirmed offer is counted. One student may contribute to multiple salary bands when holding multiple offers.
+            </div>
+
+          </div>
+
+          <div class="section-meta">
+            Offer Volume
+          </div>
+
+        </div>
+
+
+        <div class="table-card">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Batch
+                </th>
+
+                <th class="center">
+                  Total Students
+                </th>
+
+                <th class="center">
+                  &gt; ₹40L
+                </th>
+
+                <th class="center">
+                  ₹30–40L
+                </th>
+
+                <th class="center">
+                  ₹20–30L
+                </th>
+
+                <th class="center">
+                  ₹10–20L
+                </th>
+
+                <th class="center">
+                  ₹6–10L
+                </th>
+
+                <th class="center">
+                  ₹4–6L
+                </th>
+
+                <th class="center">
+                  ₹3–4L
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              ${
+                rows.map(
+                  row=>`
+
+                    <tr>
+
+                      <td>
+                        <strong>
+                          ${row.batch}
+                        </strong>
+                      </td>
+
+                      <td class="center">
+                        ${scaled(row.total)}
+                      </td>
+
+                      ${salaryCell(row,"gt40","offers")}
+                      ${salaryCell(row,"p30_40","offers")}
+                      ${salaryCell(row,"p20_30","offers")}
+                      ${salaryCell(row,"p10_20","offers")}
+                      ${salaryCell(row,"p6_10","offers")}
+                      ${salaryCell(row,"p4_6","offers")}
+                      ${salaryCell(row,"p3_4","offers")}
+
+                    </tr>
+                  `
+                )
+                .join("")
+              }
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+
+
+      <section class="section">
+
+        <div class="section-header">
+
+          <div>
+
+            <div class="section-title">
+              Unique Students by Best Offer
+            </div>
+
+            <div class="section-subtitle">
+              Every student is counted once under the salary band of the student's highest confirmed offer.
+            </div>
+
+          </div>
+
+          <div class="section-meta">
+            Student Outcome
+          </div>
+
+        </div>
+
+
+        <div class="table-card">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Batch
+                </th>
+
+                <th class="center">
+                  Total
+                </th>
+
+                <th class="center">
+                  &gt; ₹40L
+                </th>
+
+                <th class="center">
+                  ₹30–40L
+                </th>
+
+                <th class="center">
+                  ₹20–30L
+                </th>
+
+                <th class="center">
+                  ₹10–20L
+                </th>
+
+                <th class="center">
+                  ₹6–10L
+                </th>
+
+                <th class="center">
+                  ₹4–6L
+                </th>
+
+                <th class="center">
+                  ₹3–4L
+                </th>
+
+                <th class="center">
+                  Not Eligible
+                </th>
+
+                <th class="center">
+                  Entrepreneurship
+                </th>
+
+                <th class="center">
+                  Higher Studies
+                </th>
+
+                <th class="center">
+                  Not Placed
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              ${
+                rows.map(
+                  row=>`
+
+                    <tr>
+
+                      <td>
+                        <strong>
+                          ${row.batch}
+                        </strong>
+                      </td>
+
+                      <td class="center">
+                        ${scaled(row.total)}
+                      </td>
+
+                      ${salaryCell(row,"gt40","unique")}
+                      ${salaryCell(row,"p30_40","unique")}
+                      ${salaryCell(row,"p20_30","unique")}
+                      ${salaryCell(row,"p10_20","unique")}
+                      ${salaryCell(row,"p6_10","unique")}
+                      ${salaryCell(row,"p4_6","unique")}
+                      ${salaryCell(row,"p3_4","unique")}
+
+                      <td
+                        class="
+                          center
+                          click-cell
+                        "
+                        onclick="
+                          showOutcome(
+                            'notEligible',
+                            '${row.batch}'
+                          )
+                        ">
+
+                        ${scaled(row.notEligible)}
+
+                      </td>
+
+                      <td
+                        class="
+                          center
+                          click-cell
+                        "
+                        onclick="
+                          showOutcome(
+                            'entrepreneur',
+                            '${row.batch}'
+                          )
+                        ">
+
+                        ${scaled(row.entrepreneur)}
+
+                      </td>
+
+                      <td
+                        class="
+                          center
+                          click-cell
+                        "
+                        onclick="
+                          showOutcome(
+                            'higherStudies',
+                            '${row.batch}'
+                          )
+                        ">
+
+                        ${scaled(row.higherStudies)}
+
+                      </td>
+
+                      <td
+                        class="
+                          center
+                          click-cell
+                        "
+                        onclick="
+                          showOutcome(
+                            'notPlaced',
+                            '${row.batch}'
+                          )
+                        ">
+
+                        ${scaled(row.notPlaced)}
+
+                      </td>
+
+                    </tr>
+                  `
+                )
+                .join("")
+              }
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+    `;
+
+
+  renderOverallRight();
+
+}
+
+
+function salaryCell(
+  row,
+  slab,
+  mode
+){
+
+  return `
+
+    <td
+      class="
+        center
+        click-cell
+      "
+      onclick="
+        showSalary(
+          '${slab}',
+          '${mode}',
+          '${row.batch}'
+        )
+      ">
+
+      ${scaled(row[mode][slab])}
+
+    </td>
+  `;
+}
+
+
+/* =========================================================
+   OVERALL RIGHT
+   ========================================================= */
+
+function renderOverallRight(){
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        Placement Outcome Control
+      </h2>
+
+      <p class="panel-description">
+        Select any numerical outcome in the middle table to identify the exact students contributing to that number.
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Current Batch Placement Outcome
+              </div>
+
+              <div class="completion-meta">
+                Batch 2027
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              1,378
+            </div>
+
+          </div>
+
+
+          <div class="progress-track">
+
+            <div
+              class="progress-fill"
+              style="
+                width:88%
+              ">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          How to Read the Two Tables
+        </div>
+
+        <div class="info-box">
+
+          <strong>
+            Offer Volume
+          </strong>
+          answers how much opportunity recruiters generated.
+
+          <br><br>
+
+          <strong>
+            Unique Students
+          </strong>
+          answers how many different students actually possess each level of outcome.
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Placement Outcome Structure
+        </div>
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "High Compensation",
+            "Students whose best offer is ₹20 LPA and above."
+          )}
+
+          ${detailRow(
+            "Core Placement",
+            "Students holding confirmed employment offers."
+          )}
+
+          ${detailRow(
+            "Higher Studies",
+            "Verified admission or enrolment outcome."
+          )}
+
+          ${detailRow(
+            "Entrepreneurship",
+            "Verified startup / venture pathway."
+          )}
+
+          ${detailRow(
+            "Not Eligible",
+            "Students restricted by academic or company criteria."
+          )}
+
+          ${detailRow(
+            "Not Placed",
+            "Placement interested students without a confirmed offer."
+          )}
+
+        </div>
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   SALARY DRILL DOWN
+   ========================================================= */
+
+function showSalary(
+  slab,
+  mode,
+  batch
+){
+
+  const stat =
+    batchStats.find(
+      x=>x.batch===batch
+    );
+
+
+  const institutionalCount =
+    scaled(
+      stat[mode][slab]
+    );
+
+
+  let list =
+    students.filter(
+      s=>s.batch===batch
+    );
+
+
+  if(
+    filters.department!=="All"
+  ){
+
+    list =
+      list.filter(
+        s=>s.dept===filters.department
+      );
+  }
+
+
+  if(
+    mode==="unique"
+  ){
+
+    list =
+      list.filter(
+        s=>
+          packageMatches(
+            s.bestPackage,
+            slab
+          )
+      );
+
+  }else{
+
+    list =
+      list.filter(
+        s=>
+          s.offers.some(
+            offer=>
+              packageMatches(
+                offer.package,
+                slab
+              )
+          )
+      );
+
+  }
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        ${salaryLabel(slab)}
+      </h2>
+
+      <p class="panel-description">
+        ${
+          mode==="unique"
+          ?
+          "Unique students based on their highest confirmed offer."
+          :
+          "All confirmed offers within this compensation range."
+        }
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Institutional Count
+              </div>
+
+              <div class="completion-meta">
+                Batch ${batch}
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${institutionalCount}
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Students
+        </div>
+
+        ${
+          list.length
+          ?
+          list.map(
+            s=>personCard(s)
+          )
+          .join("")
+          :
+          `
+
+            <div class="empty">
+              The prototype contains representative student-level data. The live system would populate all ${institutionalCount} records here.
+            </div>
+          `
+        }
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   OUTCOME DRILL DOWN
+   ========================================================= */
+
+function showOutcome(
+  type,
+  batch
+){
+
+  const stat =
+    batchStats.find(
+      x=>x.batch===batch
+    );
+
+
+  let list =
+    students.filter(
+      s=>s.batch===batch
+    );
+
+
+  if(
+    filters.department!=="All"
+  ){
+
+    list =
+      list.filter(
+        s=>s.dept===filters.department
+      );
+  }
+
+
+  let title = "";
+  let total = 0;
+
+
+  if(
+    type==="notPlaced"
+  ){
+
+    title =
+      "Not Yet Placed";
+
+    total =
+      scaled(
+        stat.notPlaced
+      );
+
+    list =
+      list.filter(
+        x=>x.outcome==="Not Placed"
+      );
+
+  }
+
+
+  if(
+    type==="notEligible"
+  ){
+
+    title =
+      "Not Eligible / Eligibility Restricted";
+
+    total =
+      scaled(
+        stat.notEligible
+      );
+
+    list =
+      list.filter(
+        x=>
+          x.outcome==="Not Eligible"
+          ||
+          x.outcome==="Eligibility Restricted"
+      );
+
+  }
+
+
+  if(
+    type==="higherStudies"
+  ){
+
+    title =
+      "Higher Studies";
+
+    total =
+      scaled(
+        stat.higherStudies
+      );
+
+    list =
+      list.filter(
+        x=>x.outcome==="Higher Studies"
+      );
+
+  }
+
+
+  if(
+    type==="entrepreneur"
+  ){
+
+    title =
+      "Entrepreneurship";
+
+    total =
+      scaled(
+        stat.entrepreneur
+      );
+
+    list =
+      list.filter(
+        x=>x.outcome==="Entrepreneurship"
+      );
+
+  }
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        ${title}
+      </h2>
+
+      <p class="panel-description">
+        Batch ${batch} · Click a student for complete evidence and status.
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Students
+              </div>
+
+              <div class="completion-meta">
+                Institutional count
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${total}
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        ${
+          list.length
+          ?
+          list.map(
+            s=>personCard(s)
+          )
+          .join("")
+          :
+          `
+
+            <div class="empty">
+              Historical student-level records are not populated in this prototype.
+            </div>
+          `
+        }
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   INDUSTRIES
+   ========================================================= */
+
+function renderIndustries(){
+
+  if(
+    selectedIndustry==="__overall__"
+  ){
+
+    renderIndustryOverall();
+
+  }else{
+
+    renderIndustryCompany();
+
+  }
+
+}
+
+
+/* =========================================================
+   INDUSTRY OVERALL
+   ========================================================= */
+
+function renderIndustryOverall(){
+
+  document
+    .getElementById(
+      "middleContent"
+    )
+    .innerHTML = `
+
+      <section class="section">
+
+        <div class="section-header">
+
+          <div>
+
+            <div class="section-title">
+              Recruiter Network Health
+            </div>
+
+            <div class="section-subtitle">
+              Compare recruiter participation, continuity and offer performance across academic years.
+            </div>
+
+          </div>
+
+          <div class="section-meta">
+            5-Year View
+          </div>
+
+        </div>
+
+
+        <div class="table-card">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th style="min-width:330px">
+                  Industry Metric
+                </th>
+
+                <th class="center">
+                  2026–27
+                </th>
+
+                <th class="center">
+                  2025–26
+                </th>
+
+                <th class="center">
+                  2024–25
+                </th>
+
+                <th class="center">
+                  2023–24
+                </th>
+
+                <th class="center">
+                  2022–23
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              ${
+                industryMatrix.map(
+                  row=>`
+
+                    <tr>
+
+                      <td>
+
+                        <div class="metric-name">
+                          ${row.title}
+                        </div>
+
+                        <div class="metric-description">
+                          ${row.note}
+                        </div>
+
+                      </td>
+
+                      ${industryMetricCell(row,"2027")}
+                      ${industryMetricCell(row,"2026")}
+                      ${industryMetricCell(row,"2025")}
+                      ${industryMetricCell(row,"2024")}
+                      ${industryMetricCell(row,"2023")}
+
+                    </tr>
+                  `
+                )
+                .join("")
+              }
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+    `;
+
+
+  renderIndustryOverallRight();
+
+}
+
+
+function industryMetricCell(
+  row,
+  year
+){
+
+  const value =
+    row.values[year];
+
+
+  if(
+    value==="—"
+  ){
+
+    return `
+      <td class="center">
+        —
+      </td>
+    `;
+  }
+
+
+  return `
+
+    <td
+      class="
+        center
+        click-cell
+      "
+      onclick="
+        showIndustryMetric(
+          '${row.key}',
+          '${year}'
+        )
+      ">
+
+      ${value}
+
+    </td>
+  `;
+}
+
+
+/* =========================================================
+   INDUSTRY OVERALL RIGHT
+   ========================================================= */
+
+function renderIndustryOverallRight(){
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        Industry Control
+      </h2>
+
+      <p class="panel-description">
+        Monitor recruiter relationships, missed companies and recruitment commitment for the current placement cycle.
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Recruiter Database
+              </div>
+
+              <div class="completion-meta">
+                Active industry relationship base
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              312
+            </div>
+
+          </div>
+
+
+          <div class="progress-track">
+
+            <div
+              class="progress-fill"
+              style="
+                width:81%
+              ">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="warning-box">
+
+          <strong>
+            41 industries
+          </strong>
+
+          that participated during the previous three years have not yet visited this year.
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Recruiters Requiring Attention
+        </div>
+
+        ${industryPersonCard("Schneider Electric")}
+
+        ${industryPersonCard("Siemens")}
+
+        ${industryPersonCard("Amazon")}
+
+        ${industryPersonCard("TVS Motors")}
+
+      </div>
+
+
+      <div class="right-section">
+
+        <button
+          class="primary-button"
+          style="
+            width:100%
+          "
+          onclick="
+            showToast(
+              'Recruiter follow-up list prepared'
+            )
+          ">
+
+          Prepare Follow-up List
+
+        </button>
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   INDUSTRY METRIC
+   ========================================================= */
+
+function showIndustryMetric(
+  key,
+  year
+){
+
+  const metric =
+    industryMatrix.find(
+      x=>x.key===key
+    );
+
+
+  let list =
+    [...industries];
+
+
+  if(
+    key==="visited"
+  ){
+
+    list =
+      list.filter(
+        x=>
+          x.history.some(
+            h=>h.year===year
+          )
+      );
+
+  }
+
+
+  if(
+    key==="confirmed"
+  ){
+
+    list =
+      list.filter(
+        x=>
+          [
+            "Completed",
+            "Ongoing",
+            "Awaiting Result",
+            "Confirmed"
+          ].includes(
+            x.status
+          )
+      );
+
+  }
+
+
+  if(
+    key==="missed"
+  ){
+
+    list =
+      list.filter(
+        x=>x.status==="Not Visiting"
+        ||
+        x.status==="Not Confirmed"
+      );
+
+  }
+
+
+  if(
+    key==="targetPending"
+  ){
+
+    list =
+      list.filter(
+        x=>x.status==="Not Confirmed"
+      );
+
+  }
+
+
+  if(
+    key==="equalLast"
+  ){
+
+    list =
+      companyStats
+        .filter(
+          x=>
+            x.offers>0
+            &&
+            x.offers>=x.lastYear
+        )
+        .map(
+          x=>getIndustryByName(x.company)
+        )
+        .filter(Boolean);
+
+  }
+
+
+  if(
+    key==="equalMax3"
+  ){
+
+    list =
+      companyStats
+        .filter(
+          x=>
+            x.offers>0
+            &&
+            x.offers>=x.max3
+        )
+        .map(
+          x=>getIndustryByName(x.company)
+        )
+        .filter(Boolean);
+
+  }
+
+
+  if(
+    key==="lessLast"
+  ){
+
+    list =
+      companyStats
+        .filter(
+          x=>
+            x.status==="Completed"
+            &&
+            x.offers<x.lastYear
+        )
+        .map(
+          x=>getIndustryByName(x.company)
+        )
+        .filter(Boolean);
+
+  }
+
+
+  if(
+    key==="lessMax3"
+  ){
+
+    list =
+      companyStats
+        .filter(
+          x=>
+            x.status==="Completed"
+            &&
+            x.offers<x.max3
+        )
+        .map(
+          x=>getIndustryByName(x.company)
+        )
+        .filter(Boolean);
+
+  }
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        ${metric.title}
+      </h2>
+
+      <p class="panel-description">
+        Academic year ${year}
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Recruiters
+              </div>
+
+              <div class="completion-meta">
+                Institutional count
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${metric.values[year]}
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="info-box">
+          ${metric.note}
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Representative Companies
+        </div>
+
+        ${
+          list.length
+          ?
+          list.map(
+            x=>
+              industryPersonCard(
+                x.name
+              )
+          )
+          .join("")
+          :
+          `
+
+            <div class="empty">
+              Complete company-level records would populate from the live recruiter database.
+            </div>
+          `
+        }
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   SINGLE INDUSTRY
+   ========================================================= */
+
+function renderIndustryCompany(){
+
+  const company =
+    getIndustry(
+      selectedIndustry
+    );
+
+
+  let history =
+    [...company.history];
+
+
+  if(
+    filters.batch!=="All"
+  ){
+
+    history =
+      history.filter(
+        x=>x.year===filters.batch
+      );
+
+  }
+
+
+  if(
+    filters.department!=="All"
+  ){
+
+    history =
+      history.filter(
+        x=>
+          x.departments.includes(
+            filters.department
+          )
+      );
+
+  }
+
+
+  const grouped = {};
+
+
+  history.forEach(
+    drive=>{
+
+      if(
+        !grouped[drive.year]
+      ){
+        grouped[drive.year] = [];
+      }
+
+      grouped[drive.year].push(
+        drive
+      );
+
+    }
+  );
+
+
+  let html = "";
+
+
+  Object
+    .keys(
+      grouped
+    )
+    .sort(
+      (a,b)=>b-a
+    )
+    .forEach(
+      year=>{
+
+        const drives =
+          grouped[year];
+
+
+        html += `
+
+          <div class="year-section">
+
+            <div class="year-header">
+
+              <div class="year-title">
+                Placement Year ${year}
+              </div>
+
+              <div class="year-meta">
+
+                ${drives.length}
+                recruitment phase${drives.length===1?"":"s"}
+
+                ·
+
+                ${
+                  drives.reduce(
+                    (sum,x)=>sum+x.offers,
+                    0
+                  )
+                }
+                offers
+
+              </div>
+
+            </div>
+
+
+            ${
+              drives.map(
+                drive=>
+                  renderDriveProcess(
+                    company,
+                    drive
+                  )
+              )
+              .join("")
+            }
+
+          </div>
+        `;
+
+      }
+    );
+
+
+  document
+    .getElementById(
+      "middleContent"
+    )
+    .innerHTML =
+
+      html
+      ||
+      `
+
+        <div class="empty">
+          No recruitment process matches the current filters.
+        </div>
+      `;
+
+
+  renderIndustryRight(
+    company
+  );
+
+}
+
+
+function renderDriveProcess(
+  company,
+  drive
+){
+
+  return `
+
+    <div class="drive-process-card">
+
+      <div class="drive-process-top">
+
+        <div>
+
+          <div class="drive-process-title">
+            ${drive.phase}
+          </div>
+
+          <div class="drive-process-meta">
+
+            ${drive.date}
+
+            ·
+
+            ${drive.departments.join(", ")}
+
+            ·
+
+            ₹${drive.package} LPA
+
+          </div>
+
+        </div>
+
+        ${statusBadge(drive.result)}
+
+      </div>
+
+
+      <div class="pipeline">
+
+        ${stageBox(
+          "1",
+          "Registered",
+          drive.registered,
+          false,
+          company.id,
+          drive.phase,
+          "Registered"
+        )}
+
+        ${stageBox(
+          "2",
+          "Eligible",
+          drive.eligible,
+          false,
+          company.id,
+          drive.phase,
+          "Eligible"
+        )}
+
+        ${stageBox(
+          "3",
+          "Assessment",
+          drive.assessment,
+          true,
+          company.id,
+          drive.phase,
+          "Assessment"
+        )}
+
+        ${stageBox(
+          "4",
+          "Technical",
+          drive.technical,
+          false,
+          company.id,
+          drive.phase,
+          "Technical"
+        )}
+
+        ${stageBox(
+          "5",
+          "Interview",
+          drive.interview,
+          false,
+          company.id,
+          drive.phase,
+          "Interview"
+        )}
+
+        ${stageBox(
+          "6",
+          "Offers",
+          drive.offers,
+          false,
+          company.id,
+          drive.phase,
+          "Offers"
+        )}
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+function stageBox(
+  step,
+  label,
+  value,
+  active,
+  companyId,
+  phase,
+  stage
+){
+
+  return `
+
+    <div
+      class="
+        stage-box
+        ${active?"active":""}
+      "
+      onclick="
+        showIndustryStage(
+          '${companyId}',
+          '${encodeURIComponent(phase)}',
+          '${stage}'
+        )
+      ">
+
+      <div class="stage-number">
+        ${step}
+      </div>
+
+      <div class="stage-label">
+        ${label}
+      </div>
+
+      <div class="stage-value">
+        ${value}
+      </div>
+
+      <div class="stage-foot">
+        students
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   INDUSTRY RIGHT
+   ========================================================= */
+
+function renderIndustryRight(
+  company
+){
+
+  const current =
+    company.history.filter(
+      h=>h.year==="2027"
+    );
+
+
+  const completion =
+
+    company.status==="Completed"
+    ?
+    100
+    :
+    company.status==="Ongoing"
+    ?
+    68
+    :
+    company.status==="Awaiting Result"
+    ?
+    82
+    :
+    company.status==="Confirmed"
+    ?
+    35
+    :
+    20;
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        ${company.name}
+      </h2>
+
+      <p class="panel-description">
+        ${company.role}
+        ·
+        ${company.sector}
+        ·
+        ${company.relationship}
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Current Recruitment Position
+              </div>
+
+              <div class="completion-meta">
+                ${company.status}
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${completion}%
+            </div>
+
+          </div>
+
+
+          <div class="progress-track">
+
+            <div
+              class="progress-fill"
+              style="
+                width:${completion}%
+              ">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Recruiter Profile
+        </div>
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "Sector",
+            company.sector
+          )}
+
+          ${detailRow(
+            "Category",
+            company.category
+          )}
+
+          ${detailRow(
+            "Relationship",
+            company.relationship
+          )}
+
+          ${detailRow(
+            "Current Status",
+            company.status
+          )}
+
+          ${detailRow(
+            "Highest Package",
+            "₹"+
+            maxPackage(company)+
+            " LPA"
+          )}
+
+          ${detailRow(
+            "Processes Recorded",
+            company.history.length
+          )}
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Current-Year Processes
+        </div>
+
+        ${
+          current.length
+          ?
+          current.map(
+            h=>`
+
+              <div class="person-card">
+
+                <div class="person-icon">
+                  ${h.offers}
+                </div>
+
+                <div>
+
+                  <div class="person-title">
+                    ${h.phase}
+                  </div>
+
+                  <div class="person-subtitle">
+                    ${h.date}
+                    ·
+                    ${h.result}
+                  </div>
+
+                </div>
+
+                <div class="person-side">
+
+                  <div class="person-package">
+                    ₹${h.package}L
+                  </div>
+
+                </div>
+
+              </div>
+            `
+          )
+          .join("")
+          :
+          `
+
+            <div class="warning-box">
+              No current-year recruitment process has started.
+            </div>
+          `
+        }
+
+      </div>
+
+
+      <div class="right-section">
+
+        <button
+          class="secondary-button"
+          style="
+            width:100%;
+            margin-bottom:7px;
+          "
+          onclick="
+            showToast(
+              '${company.name} added to recruiter watchlist'
+            )
+          ">
+
+          Add to Watchlist
+
+        </button>
+
+
+        <button
+          class="primary-button"
+          style="
+            width:100%
+          "
+          onclick="
+            showToast(
+              '${company.name} complete history opened'
+            )
+          ">
+
+          View Full Recruiter Record
+
+        </button>
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   STAGE DETAIL
+   ========================================================= */
+
+function showIndustryStage(
+  companyId,
+  encodedPhase,
+  stage
+){
+
+  const company =
+    getIndustry(
+      companyId
+    );
+
+
+  const phase =
+    decodeURIComponent(
+      encodedPhase
+    );
+
+
+  const drive =
+    company.history.find(
+      x=>x.phase===phase
+    );
+
+
+  const keyMap = {
+
+    Registered:"registered",
+    Eligible:"eligible",
+    Assessment:"assessment",
+    Technical:"technical",
+    Interview:"interview",
+    Offers:"offers"
+
+  };
+
+
+  const count =
+    drive[
+      keyMap[stage]
+    ];
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        ${company.name} · ${stage}
+      </h2>
+
+      <p class="panel-description">
+        ${drive.phase}
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Students in Stage
+              </div>
+
+              <div class="completion-meta">
+                ${stage}
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${count}
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "Company",
+            company.name
+          )}
+
+          ${detailRow(
+            "Recruitment Phase",
+            drive.phase
+          )}
+
+          ${detailRow(
+            "Date",
+            drive.date
+          )}
+
+          ${detailRow(
+            "Package",
+            "₹"+
+            drive.package+
+            " LPA"
+          )}
+
+          ${detailRow(
+            "Final Offers",
+            drive.offers
+          )}
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="info-box">
+          In the live system this drill-down can show every student in the selected stage, their outcome, score, status and the exact round in which they exited.
+        </div>
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   COMPANY STATISTICS
+   ========================================================= */
+
+function filteredCompanies(){
+
+  let list =
+    [...companyStats];
+
+
+  if(
+    filters.sector!=="All"
+  ){
+
+    list =
+      list.filter(
+        x=>x.sector===filters.sector
+      );
+
+  }
+
+
+  if(
+    filters.department!=="All"
+  ){
+
+    list =
+      list.filter(
+        x=>
+          x.departments.includes(
+            filters.department
+          )
+      );
+
+  }
+
+
+  if(
+    filters.companyStatus!=="All"
+  ){
+
+    list =
+      list.filter(
+        x=>x.status===filters.companyStatus
+      );
+
+  }
+
+
+  const q =
+    document
+      .getElementById(
+        "leftSearch"
+      )
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    q
+  ){
+
+    list =
+      list.filter(
+        x=>
+          x.company
+            .toLowerCase()
+            .includes(q)
+          ||
+          x.sector
+            .toLowerCase()
+            .includes(q)
+      );
+
+  }
+
+
+  if(
+    companySort==="offers"
+  ){
+
+    list.sort(
+      (a,b)=>b.offers-a.offers
+    );
+
+  }
+
+
+  if(
+    companySort==="package"
+  ){
+
+    list.sort(
+      (a,b)=>b.package-a.package
+    );
+
+  }
+
+
+  if(
+    companySort==="growth"
+  ){
+
+    list.sort(
+      (a,b)=>
+        (
+          b.offers-b.lastYear
+        )
+        -
+        (
+          a.offers-a.lastYear
+        )
+    );
+
+  }
+
+
+  if(
+    companySort==="decline"
+  ){
+
+    list.sort(
+      (a,b)=>
+        (
+          a.offers-a.lastYear
+        )
+        -
+        (
+          b.offers-b.lastYear
+        )
+    );
+
+  }
+
+
+  if(
+    companySort==="name"
+  ){
+
+    list.sort(
+      (a,b)=>
+        a.company.localeCompare(
+          b.company
+        )
+    );
+
+  }
+
+
+  return list;
+}
+
+
+function renderCompanies(){
+
+  const list =
+    filteredCompanies();
+
+
+  document
+    .getElementById(
+      "middleContent"
+    )
+    .innerHTML = `
+
+      <section class="section">
+
+        <div class="section-header">
+
+          <div>
+
+            <div class="section-title">
+              Recruiter Performance Ranking
+            </div>
+
+            <div class="section-subtitle">
+              Completed, ongoing, result-awaiting and future-confirmed companies remain visible in one operational table.
+            </div>
+
+          </div>
+
+          <div class="section-meta">
+            ${list.length}
+            companies
+          </div>
+
+        </div>
+
+
+        <div class="table-card">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th style="min-width:150px">
+                  Company
+                </th>
+
+                <th>
+                  Sector
+                </th>
+
+                <th style="min-width:170px">
+                  Departments
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+                <th style="min-width:165px">
+                  Present Stage
+                </th>
+
+                <th class="center">
+                  Offers
+                </th>
+
+                <th class="center">
+                  Last Year
+                </th>
+
+                <th class="center">
+                  YoY
+                </th>
+
+                <th class="center">
+                  3-Year Max
+                </th>
+
+                <th class="center">
+                  Package
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              ${
+                list.map(
+                  company=>{
+
+                    const delta =
+                      company.offers-
+                      company.lastYear;
+
+
+                    return `
+
+                      <tr
+                        onclick="
+                          showCompany(
+                            '${company.company}'
+                          )
+                        ">
+
+                        <td>
+                          <strong>
+                            ${company.company}
+                          </strong>
+                        </td>
+
+                        <td>
+                          ${company.sector}
+                        </td>
+
+                        <td>
+                          ${company.departments.join(", ")}
+                        </td>
+
+                        <td>
+                          ${statusBadge(company.status)}
+                        </td>
+
+                        <td>
+                          ${company.stage}
+                        </td>
+
+                        <td class="center">
+                          <strong>
+                            ${company.offers}
+                          </strong>
+                        </td>
+
+                        <td class="center">
+                          ${company.lastYear}
+                        </td>
+
+                        <td class="center">
+
+                          ${
+                            company.lastYear===0
+                            ?
+                            "—"
+                            :
+                            delta>0
+                            ?
+                            `
+                              <span class="status-badge badge-completed">
+                                +${delta}
+                              </span>
+                            `
+                            :
+                            delta<0
+                            ?
+                            `
+                              <span class="status-badge badge-danger">
+                                ${delta}
+                              </span>
+                            `
+                            :
+                            "0"
+                          }
+
+                        </td>
+
+                        <td class="center">
+                          ${company.max3}
+                        </td>
+
+                        <td class="center">
+                          ₹${company.package}L
+                        </td>
+
+                      </tr>
+                    `;
+                  }
+                )
+                .join("")
+              }
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+    `;
+
+
+  renderCompanyOverview();
+
+}
+
+
+/* =========================================================
+   COMPANY RIGHT
+   ========================================================= */
+
+function renderCompanyOverview(){
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        Company Statistics
+      </h2>
+
+      <p class="panel-description">
+        Select a recruiter to inspect current stage, offer trend, departments and student outcomes.
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Recruiters in Current View
+              </div>
+
+              <div class="completion-meta">
+                Based on active filters
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${filteredCompanies().length}
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Process Position
+        </div>
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "Completed",
+            companyStats.filter(
+              x=>x.status==="Completed"
+            ).length
+          )}
+
+          ${detailRow(
+            "Ongoing",
+            companyStats.filter(
+              x=>x.status==="Ongoing"
+            ).length
+          )}
+
+          ${detailRow(
+            "Awaiting Result",
+            companyStats.filter(
+              x=>x.status==="Awaiting Result"
+            ).length
+          )}
+
+          ${detailRow(
+            "Confirmed",
+            companyStats.filter(
+              x=>x.status==="Confirmed"
+            ).length
+          )}
+
+          ${detailRow(
+            "Yet to Confirm",
+            companyStats.filter(
+              x=>x.status==="Not Confirmed"
+            ).length
+          )}
+
+        </div>
+
+      </div>
+
+    `;
+
+}
+
+
+function showCompany(
+  name
+){
+
+  const company =
+    companyStats.find(
+      x=>x.company===name
+    );
+
+
+  const industry =
+    getIndustryByName(
+      name
+    );
+
+
+  const selectedStudents =
+    students.filter(
+      s=>s.bestCompany===name
+    );
+
+
+  const delta =
+    company.lastYear
+    ?
+    company.offers-
+    company.lastYear
+    :
+    null;
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        ${company.company}
+      </h2>
+
+      <p class="panel-description">
+        ${company.sector}
+        ·
+        ${company.stage}
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Current-Year Offers
+              </div>
+
+              <div class="completion-meta">
+                ₹${company.package} LPA
+                ·
+                ${company.status}
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${company.offers}
+            </div>
+
+          </div>
+
+
+          <div class="progress-track">
+
+            <div
+              class="progress-fill"
+              style="
+                width:${
+                  company.max3
+                  ?
+                  Math.min(
+                    100,
+                    company.offers/
+                    company.max3*
+                    100
+                  )
+                  :
+                  0
+                }%
+              ">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      ${
+        company.status==="Ongoing"
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="info-box">
+              Recruitment is still underway. Current offer count should not be interpreted as final outcome.
+            </div>
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      ${
+        company.status==="Awaiting Result"
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="warning-box">
+              Final company result is awaited. Students who reached the final stage remain visible in the process.
+            </div>
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      ${
+        delta!==null
+        &&
+        delta<0
+        &&
+        company.status==="Completed"
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="danger-box">
+              Current offers are ${Math.abs(delta)} lower than last year.
+            </div>
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Recruiter Performance
+        </div>
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "This Year",
+            company.offers
+          )}
+
+          ${detailRow(
+            "Last Year",
+            company.lastYear
+          )}
+
+          ${detailRow(
+            "3-Year Maximum",
+            company.max3
+          )}
+
+          ${detailRow(
+            "YoY Change",
+            delta===null
+            ?
+            "No comparison"
+            :
+            delta>0
+            ?
+            "+"+delta
+            :
+            delta
+          )}
+
+          ${detailRow(
+            "Package",
+            "₹"+
+            company.package+
+            " LPA"
+          )}
+
+          ${detailRow(
+            "Departments",
+            company.departments.join(", ")
+          )}
+
+        </div>
+
+      </div>
+
+
+      ${
+        industry
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="right-heading">
+              Current Recruitment Process
+            </div>
+
+            ${
+              industry.history
+                .filter(
+                  h=>h.year==="2027"
+                )
+                .map(
+                  h=>`
+
+                    <div class="person-card">
+
+                      <div class="person-icon">
+                        ${h.interview}
+                      </div>
+
+                      <div>
+
+                        <div class="person-title">
+                          ${h.phase}
+                        </div>
+
+                        <div class="person-subtitle">
+                          ${h.result}
+                          ·
+                          ${h.interview}
+                          reached interview
+                        </div>
+
+                      </div>
+
+                      <div class="person-side">
+
+                        <div class="person-package">
+                          ${h.offers}
+                        </div>
+
+                        <div class="person-subtitle">
+                          offers
+                        </div>
+
+                      </div>
+
+                    </div>
+                  `
+                )
+                .join("")
+            }
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Students Whose Best Offer Is Here
+        </div>
+
+        ${
+          selectedStudents.length
+          ?
+          selectedStudents.map(
+            s=>personCard(s)
+          )
+          .join("")
+          :
+          `
+
+            <div class="empty">
+              No representative student record currently has this company as the best offer.
+            </div>
+          `
+        }
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   STUDENT FILTERING
+   ========================================================= */
+
+function filteredStudents(){
+
+  let list =
+    [...students];
+
+
+  if(
+    filters.batch!=="All"
+  ){
+
+    list =
+      list.filter(
+        s=>s.batch===filters.batch
+      );
+
+  }
+
+
+  if(
+    filters.department!=="All"
+  ){
+
+    list =
+      list.filter(
+        s=>s.dept===filters.department
+      );
+
+  }
+
+
+  if(
+    filters.specialization!=="All"
+  ){
+
+    list =
+      list.filter(
+        s=>s.specialization===filters.specialization
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Not Placed"
+  ){
+
+    list =
+      list.filter(
+        s=>s.outcome==="Not Placed"
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Low Exposure"
+  ){
+
+    list =
+      list.filter(
+        s=>
+          s.appeared<=3
+          &&
+          ![
+            "Higher Studies",
+            "Entrepreneurship"
+          ].includes(
+            s.outcome
+          )
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="High Exposure"
+  ){
+
+    list =
+      list.filter(
+        s=>s.appeared>=7
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Final Misses"
+  ){
+
+    list =
+      list.filter(
+        s=>s.finalMisses>=2
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Not Honoured"
+  ){
+
+    list =
+      list.filter(
+        s=>s.notHonoured>0
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Multiple Offers"
+  ){
+
+    list =
+      list.filter(
+        s=>s.offers.length>=2
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Declined Offers"
+  ){
+
+    list =
+      list.filter(
+        s=>
+          s.offers.some(
+            o=>o.status==="Declined"
+          )
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Arrears"
+  ){
+
+    list =
+      list.filter(
+        s=>s.arrears>0
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Higher Studies"
+  ){
+
+    list =
+      list.filter(
+        s=>s.outcome==="Higher Studies"
+      );
+
+  }
+
+
+  if(
+    filters.studentFocus==="Entrepreneurship"
+  ){
+
+    list =
+      list.filter(
+        s=>s.outcome==="Entrepreneurship"
+      );
+
+  }
+
+
+  if(
+    studentSort==="intervention"
+  ){
+
+    list.sort(
+      (a,b)=>
+        interventionScore(b)
+        -
+        interventionScore(a)
+    );
+
+  }
+
+
+  if(
+    studentSort==="appeared"
+  ){
+
+    list.sort(
+      (a,b)=>b.appeared-a.appeared
+    );
+
+  }
+
+
+  if(
+    studentSort==="offers"
+  ){
+
+    list.sort(
+      (a,b)=>
+        b.offers.length-
+        a.offers.length
+    );
+
+  }
+
+
+  if(
+    studentSort==="finalMisses"
+  ){
+
+    list.sort(
+      (a,b)=>
+        b.finalMisses-
+        a.finalMisses
+    );
+
+  }
+
+
+  if(
+    studentSort==="notHonoured"
+  ){
+
+    list.sort(
+      (a,b)=>
+        b.notHonoured-
+        a.notHonoured
+    );
+
+  }
+
+
+  if(
+    studentSort==="package"
+  ){
+
+    list.sort(
+      (a,b)=>
+        b.bestPackage-
+        a.bestPackage
+    );
+
+  }
+
+
+  if(
+    studentSort==="cgpa"
+  ){
+
+    list.sort(
+      (a,b)=>b.cgpa-a.cgpa
+    );
+
+  }
+
+
+  if(
+    studentSort==="name"
+  ){
+
+    list.sort(
+      (a,b)=>
+        a.name.localeCompare(
+          b.name
+        )
+    );
+
+  }
+
+
+  return list;
+}
+
+
+/* =========================================================
+   INTERVENTION SCORE
+   ========================================================= */
+
+function interventionScore(
+  s
+){
+
+  let score = 0;
+
+
+  if(
+    s.outcome==="Not Placed"
+  ){
+    score += 45;
+  }
+
+
+  score +=
+    s.finalMisses*
+    12;
+
+
+  score +=
+    s.notHonoured*
+    10;
+
+
+  if(
+    s.invitations>=7
+    &&
+    s.appeared<=3
+  ){
+    score += 20;
+  }
+
+
+  if(
+    s.arrears>0
+  ){
+    score += 25;
+  }
+
+
+  if(
+    s.offers.length>=2
+  ){
+    score -= 20;
+  }
+
+
+  if(
+    [
+      "Higher Studies",
+      "Entrepreneurship"
+    ].includes(
+      s.outcome
+    )
+  ){
+    score -= 60;
+  }
+
+
+  return score;
+}
+
+
+/* =========================================================
+   STUDENTS
+   ========================================================= */
+
+function renderStudents(){
+
+  const list =
+    filteredStudents();
+
+
+  document
+    .getElementById(
+      "middleContent"
+    )
+    .innerHTML = `
+
+      <section class="section">
+
+        <div class="section-header">
+
+          <div>
+
+            <div class="section-title">
+              Student Opportunity, Conversion & Outcome
+            </div>
+
+            <div class="section-subtitle">
+              This table is designed for intervention: opportunity exposure, round conversion, placement discipline and final outcome.
+            </div>
+
+          </div>
+
+          <div class="section-meta">
+            ${list.length}
+            students
+          </div>
+
+        </div>
+
+
+        <div class="table-card">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th style="min-width:190px">
+                  Student
+                </th>
+
+                <th>
+                  Dept
+                </th>
+
+                <th style="min-width:155px">
+                  Specialisation
+                </th>
+
+                <th class="center">
+                  Invites
+                </th>
+
+                <th class="center">
+                  Appeared
+                </th>
+
+                <th class="center">
+                  Prelims
+                </th>
+
+                <th class="center">
+                  Final
+                </th>
+
+                <th class="center">
+                  Final Misses
+                </th>
+
+                <th class="center">
+                  Offers
+                </th>
+
+                <th class="center">
+                  Not Honoured
+                </th>
+
+                <th style="min-width:130px">
+                  Outcome
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              ${
+                list.map(
+                  s=>`
+
+                    <tr
+                      onclick="
+                        showStudent(
+                          '${s.id}'
+                        )
+                      ">
+
+                      <td>
+
+                        <div class="student-identity">
+
+                          <div class="mini-avatar">
+                            ${initials(s.name)}
+                          </div>
+
+                          <div>
+
+                            <div class="student-name">
+                              ${s.name}
+                            </div>
+
+                            <div class="student-meta">
+                              ${s.id}
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      </td>
+
+                      <td>
+                        ${s.dept}
+                      </td>
+
+                      <td>
+                        ${s.specialization}
+                      </td>
+
+                      <td class="center">
+                        ${s.invitations}
+                      </td>
+
+                      <td
+                        class="
+                          center
+                          click-cell
+                        "
+                        onclick="
+                          event.stopPropagation();
+                          showStudent(
+                            '${s.id}'
+                          )
+                        ">
+
+                        ${s.appeared}
+
+                      </td>
+
+                      <td class="center">
+                        ${s.prelim}
+                      </td>
+
+                      <td class="center">
+                        ${s.finals}
+                      </td>
+
+                      <td class="center">
+
+                        ${
+                          s.finalMisses>=2
+                          ?
+                          `
+                            <span class="status-badge badge-danger">
+                              ${s.finalMisses}
+                            </span>
+                          `
+                          :
+                          s.finalMisses
+                        }
+
+                      </td>
+
+                      <td class="center">
+
+                        ${
+                          s.offers.length>=2
+                          ?
+                          `
+                            <span class="status-badge badge-scheduled">
+                              ${s.offers.length}
+                            </span>
+                          `
+                          :
+                          s.offers.length
+                        }
+
+                      </td>
+
+                      <td class="center">
+
+                        ${
+                          s.notHonoured>0
+                          ?
+                          `
+                            <span class="status-badge badge-awaiting">
+                              ${s.notHonoured}
+                            </span>
+                          `
+                          :
+                          0
+                        }
+
+                      </td>
+
+                      <td>
+                        ${studentOutcomeBadge(s)}
+                      </td>
+
+                    </tr>
+                  `
+                )
+                .join("")
+              }
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+    `;
+
+
+  renderStudentOverview(
+    list
+  );
+
+}
+
+
+/* =========================================================
+   STUDENT OVERVIEW RIGHT
+   ========================================================= */
+
+function renderStudentOverview(
+  list
+){
+
+  const attention =
+    list.filter(
+      x=>interventionScore(x)>=20
+    ).length;
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        Student Intelligence
+      </h2>
+
+      <p class="panel-description">
+        Find students who need opportunity, readiness, conversion, eligibility or placement-discipline intervention.
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Students in Current View
+              </div>
+
+              <div class="completion-meta">
+                Based on active filters
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${list.length}
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      ${
+        attention
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="warning-box">
+
+              <strong>
+                ${attention} students
+              </strong>
+
+              currently show one or more intervention signals.
+
+            </div>
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Intervention Logic
+        </div>
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "Opportunity",
+            "Is the student receiving and attending enough relevant recruitment opportunities?"
+          )}
+
+          ${detailRow(
+            "Conversion",
+            "Where is the student usually getting eliminated?"
+          )}
+
+          ${detailRow(
+            "Discipline",
+            "Are accepted or notified opportunities being honoured?"
+          )}
+
+          ${detailRow(
+            "Outcome",
+            "How many offers exist and what is the student's best offer?"
+          )}
+
+          ${detailRow(
+            "Eligibility",
+            "Are arrears, CGPA or school marks restricting participation?"
+          )}
+
+        </div>
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   STUDENT DETAIL
+   ========================================================= */
+
+function showStudent(
+  id
+){
+
+  const s =
+    students.find(
+      x=>x.id===id
+    );
+
+
+  if(
+    !s
+  ){
+    return;
+  }
+
+
+  const conversion =
+    s.appeared
+    ?
+    Math.round(
+      s.prelim/
+      s.appeared*
+      100
+    )
+    :
+    0;
+
+
+  document
+    .getElementById(
+      "rightHeader"
+    )
+    .innerHTML = `
+
+      <h2 class="panel-title">
+        ${s.name}
+      </h2>
+
+      <p class="panel-description">
+        ${s.id}
+        ·
+        ${s.dept}
+        ·
+        ${s.specialization}
+      </p>
+    `;
+
+
+  document
+    .getElementById(
+      "rightContent"
+    )
+    .innerHTML = `
+
+      <div class="right-section">
+
+        <div class="completion-card">
+
+          <div class="completion-top">
+
+            <div>
+
+              <div class="completion-label">
+                Current Placement Outcome
+              </div>
+
+              <div class="completion-meta">
+
+                ${
+                  s.bestCompany
+                  ?
+                  s.bestCompany+
+                  " · ₹"+
+                  s.bestPackage+
+                  " LPA"
+                  :
+                  s.outcome
+                }
+
+              </div>
+
+            </div>
+
+            <div class="completion-score">
+              ${s.offers.length}
+            </div>
+
+          </div>
+
+
+          <div class="progress-track">
+
+            <div
+              class="progress-fill"
+              style="
+                width:${
+                  s.outcome==="Placed"
+                  ?
+                  100
+                  :
+                  s.outcome==="Not Placed"
+                  ?
+                  62
+                  :
+                  s.outcome==="Not Eligible"
+                  ?
+                  35
+                  :
+                  75
+                }%
+              ">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      ${studentAlert(s)}
+
+
+      <div class="right-section">
+
+        <div class="mini-stat-grid">
+
+          ${miniStat(
+            s.appeared,
+            "ATTENDED"
+          )}
+
+          ${miniStat(
+            s.prelim,
+            "PRELIMS"
+          )}
+
+          ${miniStat(
+            s.finals,
+            "FINALS"
+          )}
+
+          ${miniStat(
+            s.finalMisses,
+            "FINAL MISSES"
+          )}
+
+          ${miniStat(
+            s.offers.length,
+            "OFFERS"
+          )}
+
+          ${miniStat(
+            s.notHonoured,
+            "NOT HONOURED"
+          )}
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Placement Performance
+        </div>
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "Invitations",
+            s.invitations
+          )}
+
+          ${detailRow(
+            "Companies Appeared",
+            s.appeared
+          )}
+
+          ${detailRow(
+            "Prelims Cleared",
+            s.prelim
+          )}
+
+          ${detailRow(
+            "Reached Final",
+            s.finals
+          )}
+
+          ${detailRow(
+            "Initial Conversion",
+            conversion+"%"
+          )}
+
+          ${detailRow(
+            "Offers",
+            s.offers.length
+          )}
+
+          ${detailRow(
+            "Invitations Not Honoured",
+            s.notHonoured
+          )}
+
+        </div>
+
+      </div>
+
+
+      <div class="right-section">
+
+        <div class="right-heading">
+          Academic Eligibility
+        </div>
+
+        <div class="detail-card">
+
+          ${detailRow(
+            "CGPA",
+            s.cgpa
+          )}
+
+          ${detailRow(
+            "10th",
+            s.tenth+"%"
+          )}
+
+          ${detailRow(
+            "12th",
+            s.twelfth+"%"
+          )}
+
+          ${detailRow(
+            "Arrears",
+            s.arrears
+          )}
+
+          ${
+            s.restriction
+            ?
+            detailRow(
+              "Restriction",
+              s.restriction
+            )
+            :
+            ""
+          }
+
+        </div>
+
+      </div>
+
+
+      ${
+        s.offers.length
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="right-heading">
+              Offers Received
+            </div>
+
+            ${
+              s.offers.map(
+                offer=>`
+
+                  <div class="person-card">
+
+                    <div class="person-icon">
+                      ₹
+                    </div>
+
+                    <div>
+
+                      <div class="person-title">
+                        ${offer.company}
+                      </div>
+
+                      <div class="person-subtitle">
+                        ₹${offer.package} LPA
+                      </div>
+
+                    </div>
+
+                    <div class="person-side">
+
+                      ${
+                        offer.status==="Accepted"
+                        ?
+                        `
+                          <span class="status-badge badge-completed">
+                            Accepted
+                          </span>
+                        `
+                        :
+                        `
+                          <span class="status-badge badge-awaiting">
+                            Declined
+                          </span>
+                        `
+                      }
+
+                    </div>
+
+                  </div>
+                `
+              )
+              .join("")
+            }
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      ${
+        s.outcome==="Higher Studies"
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="right-heading">
+              Higher Studies Outcome
+            </div>
+
+            <div class="detail-card">
+
+              ${detailRow(
+                "Programme",
+                s.higherStudy
+              )}
+
+              ${detailRow(
+                "Institution",
+                s.institution
+              )}
+
+              ${detailRow(
+                "Evidence",
+                s.evidence
+              )}
+
+            </div>
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      ${
+        s.outcome==="Entrepreneurship"
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="right-heading">
+              Entrepreneurship Outcome
+            </div>
+
+            <div class="detail-card">
+
+              ${detailRow(
+                "Venture",
+                s.startup
+              )}
+
+              ${detailRow(
+                "Evidence",
+                s.evidence
+              )}
+
+            </div>
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      ${
+        s.journey.length
+        ?
+        `
+
+          <div class="right-section">
+
+            <div class="right-heading">
+              Placement Journey
+            </div>
+
+            ${
+              s.journey.map(
+                item=>
+                  activityItem(
+                    item[0],
+                    item[1]+
+                    " · "+
+                    item[2],
+                    journeyColour(
+                      item[2]
+                    )
+                  )
+              )
+              .join("")
+            }
+
+          </div>
+        `
+        :
+        ""
+      }
+
+
+      <div class="right-section">
+
+        <button
+          class="secondary-button"
+          style="
+            width:100%;
+            margin-bottom:7px;
+          "
+          onclick="
+            showToast(
+              '${s.name} added to intervention watchlist'
+            )
+          ">
+
+          Add to Watchlist
+
+        </button>
+
+
+        <button
+          class="primary-button"
+          style="
+            width:100%
+          "
+          onclick="
+            openStudentModal(
+              '${s.id}'
+            )
+          ">
+
+          Open Full Student Record
+
+        </button>
+
+      </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   STUDENT ALERTS
+   ========================================================= */
+
+function studentAlert(
+  s
+){
+
+  if(
+    s.finalMisses>=3
+  ){
+
+    return `
+
+      <div class="right-section">
+
+        <div class="danger-box">
+
+          <strong>
+            Conversion intervention required.
+          </strong>
+
+          The student has reached ${s.finalMisses} final rounds without securing an offer.
+
+        </div>
+
+      </div>
+    `;
+
+  }
+
+
+  if(
+    s.notHonoured>=2
+  ){
+
+    return `
+
+      <div class="right-section">
+
+        <div class="warning-box">
+
+          <strong>
+            Placement discipline requires attention.
+          </strong>
+
+          ${s.notHonoured} placement invitations were not honoured.
+
+        </div>
+
+      </div>
+    `;
+
+  }
+
+
+  if(
+    s.arrears>0
+  ){
+
+    return `
+
+      <div class="right-section">
+
+        <div class="danger-box">
+
+          <strong>
+            Eligibility restriction.
+          </strong>
+
+          ${s.restriction}
+
+        </div>
+
+      </div>
+    `;
+
+  }
+
+
+  if(
+    s.offers.length>=2
+  ){
+
+    return `
+
+      <div class="right-section">
+
+        <div class="success-box">
+
+          <strong>
+            Multiple placement outcomes.
+          </strong>
+
+          The student currently holds ${s.offers.length} offers with a best package of ₹${s.bestPackage} LPA.
+
+        </div>
+
+      </div>
+    `;
+
+  }
+
+
+  return "";
+}
+
+
+/* =========================================================
+   STUDENT MODAL
+   ========================================================= */
+
+function openStudentModal(
+  id
+){
+
+  const s =
+    students.find(
+      x=>x.id===id
+    );
+
+
+  document
+    .getElementById(
+      "modalTitle"
+    )
+    .textContent =
+      s.name+
+      " · Complete Placement Record";
+
+
+  document
+    .getElementById(
+      "modalSubtitle"
+    )
+    .textContent =
+      s.id+
+      " · "+
+      s.dept+
+      " · "+
+      s.specialization;
+
+
+  document
+    .getElementById(
+      "modalBody"
+    )
+    .innerHTML = `
+
+      <div class="section">
+
+        <div class="section-title">
+          Student Profile
+        </div>
+
+        <div
+          class="detail-card"
+          style="
+            margin-top:10px
+          ">
+
+          ${detailRow(
+            "Outcome",
+            s.outcome
+          )}
+
+          ${detailRow(
+            "Best Company",
+            s.bestCompany || "—"
+          )}
+
+          ${detailRow(
+            "Best Package",
+            s.bestPackage
+            ?
+            "₹"+
+            s.bestPackage+
+            " LPA"
+            :
+            "—"
+          )}
+
+          ${detailRow(
+            "CGPA",
+            s.cgpa
+          )}
+
+          ${detailRow(
+            "Arrears",
+            s.arrears
+          )}
+
+        </div>
+
+      </div>
+
+
+      <div class="section">
+
+        <div class="section-title">
+          Opportunity Summary
+        </div>
+
+        <div
+          class="mini-stat-grid"
+          style="
+            margin-top:10px
+          ">
+
+          ${miniStat(
+            s.invitations,
+            "INVITATIONS"
+          )}
+
+          ${miniStat(
+            s.appeared,
+            "ATTENDED"
+          )}
+
+          ${miniStat(
+            s.prelim,
+            "PRELIMS"
+          )}
+
+          ${miniStat(
+            s.finals,
+            "FINALS"
+          )}
+
+          ${miniStat(
+            s.offers.length,
+            "OFFERS"
+          )}
+
+          ${miniStat(
+            s.notHonoured,
+            "NOT HONOURED"
+          )}
+
+        </div>
+
+      </div>
+
+
+      ${
+        s.journey.length
+        ?
+        `
+
+          <div class="section">
+
+            <div class="section-title">
+              Complete Placement Journey
+            </div>
+
+            <div
+              style="
+                margin-top:13px
+              ">
+
+              ${
+                s.journey.map(
+                  item=>
+                    activityItem(
+                      item[0],
+                      item[1]+
+                      " · "+
+                      item[2],
+                      journeyColour(
+                        item[2]
+                      )
+                    )
+                )
+                .join("")
+              }
+
+            </div>
+
+          </div>
+        `
+        :
+        ""
+      }
+    `;
+
+
+  document
+    .getElementById(
+      "detailModal"
+    )
+    .classList.add(
+      "open"
+    );
+
+}
+
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
+function resetFilters(){
+
+  filters = {
+
+    batch:"2027",
+
+    department:"All",
+
+    sector:"All",
+
+    companyStatus:"All",
+
+    specialization:"All",
+
+    studentFocus:"All"
+
+  };
+
+
+  companySort =
+    "offers";
+
+
+  studentSort =
+    "intervention";
+
+
+  renderAll();
+
+}
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function initials(
+  name
+){
+
+  return name
+    .split(" ")
+    .map(
+      x=>x[0]
+    )
+    .slice(
+      0,
+      2
+    )
+    .join("")
+    .toUpperCase();
+
+}
+
+
+function statusBadge(
+  status
+){
+
+  let cls =
+    "badge-draft";
+
+
+  if(
+    status==="Completed"
+  ){
+    cls =
+      "badge-completed";
+  }
+
+
+  if(
+    status==="Ongoing"
+    ||
+    status.includes("Technical")
+  ){
+    cls =
+      "badge-progress";
+  }
+
+
+  if(
+    status==="Awaiting Result"
+    ||
+    status.includes("Awaited")
+  ){
+    cls =
+      "badge-awaiting";
+  }
+
+
+  if(
+    status==="Confirmed"
+    ||
+    status.includes("Confirmed")
+  ){
+    cls =
+      "badge-scheduled";
+  }
+
+
+  if(
+    status==="Not Visiting"
+  ){
+    cls =
+      "badge-danger";
+  }
+
+
+  if(
+    status==="Not Confirmed"
+  ){
+    cls =
+      "badge-awaiting";
+  }
+
+
+  return `
+
+    <span
+      class="
+        status-badge
+        ${cls}
+      ">
+
+      ${status}
+
+    </span>
+  `;
+}
+
+
+function studentOutcomeBadge(
+  s
+){
+
+  if(
+    s.outcome==="Placed"
+  ){
+
+    return `
+      <span class="status-badge badge-completed">
+        Placed
+      </span>
+    `;
+
+  }
+
+
+  if(
+    s.outcome==="Not Placed"
+  ){
+
+    return `
+      <span class="status-badge badge-awaiting">
+        Not Placed
+      </span>
+    `;
+
+  }
+
+
+  if(
+    s.outcome==="Higher Studies"
+  ){
+
+    return `
+      <span class="status-badge badge-scheduled">
+        Higher Studies
+      </span>
+    `;
+
+  }
+
+
+  if(
+    s.outcome==="Entrepreneurship"
+  ){
+
+    return `
+      <span class="status-badge badge-cyan">
+        Entrepreneurship
+      </span>
+    `;
+
+  }
+
+
+  return `
+    <span class="status-badge badge-danger">
+      ${s.outcome}
+    </span>
+  `;
+
+}
+
+
+function detailRow(
+  label,
+  value
+){
+
+  return `
+
+    <div class="detail-row">
+
+      <div class="detail-label">
+        ${label}
+      </div>
+
+      <div class="detail-value">
+        ${value}
+      </div>
+
+    </div>
+  `;
+
+}
+
+
+function miniStat(
+  value,
+  label
+){
+
+  return `
+
+    <div class="mini-stat">
+
+      <strong>
+        ${value}
+      </strong>
+
+      <span>
+        ${label}
+      </span>
+
+    </div>
+  `;
+
+}
+
+
+function activityItem(
+  title,
+  meta,
+  colour
+){
+
+  return `
+
+    <div class="activity-item">
+
+      <span
+        class="
+          activity-dot
+          ${colour}
+        ">
+      </span>
+
+      <div class="activity-title">
+        ${title}
+      </div>
+
+      <div class="activity-meta">
+        ${meta}
+      </div>
+
+    </div>
+  `;
+
+}
+
+
+function journeyColour(
+  state
+){
+
+  if(
+    state==="Selected"
+    ||
+    state==="Accepted"
+    ||
+    state==="Cleared"
+  ){
+    return "green";
+  }
+
+
+  if(
+    state==="Declined"
+    ||
+    state==="Not Honoured"
+  ){
+    return "orange";
+  }
+
+
+  return "red";
+}
+
+
+function personCard(
+  s
+){
+
+  return `
+
+    <div
+      class="person-card"
+      onclick="
+        showStudent(
+          '${s.id}'
+        )
+      ">
+
+      <div class="person-icon">
+        ${initials(s.name)}
+      </div>
+
+      <div>
+
+        <div class="person-title">
+          ${s.name}
+        </div>
+
+        <div class="person-subtitle">
+          ${s.id}
+          ·
+          ${s.dept}
+        </div>
+
+      </div>
+
+      <div class="person-side">
+
+        ${
+          s.bestPackage
+          ?
+          `
+
+            <div class="person-package">
+              ₹${s.bestPackage}L
+            </div>
+
+            <div class="person-subtitle">
+              ${s.bestCompany}
+            </div>
+          `
+          :
+          studentOutcomeBadge(s)
+        }
+
+      </div>
+
+    </div>
+  `;
+
+}
+
+
+function industryPersonCard(
+  name
+){
+
+  const c =
+    getIndustryByName(
+      name
+    );
+
+
+  if(
+    !c
+  ){
+    return "";
+  }
+
+
+  return `
+
+    <div
+      class="person-card"
+      onclick="
+        selectedIndustry='${c.id}';
+        renderMiddle();
+        renderLeft();
+      ">
+
+      <div class="person-icon">
+        ${initials(c.name)}
+      </div>
+
+      <div>
+
+        <div class="person-title">
+          ${c.name}
+        </div>
+
+        <div class="person-subtitle">
+          ${c.sector}
+          ·
+          ${c.relationship}
+        </div>
+
+      </div>
+
+      <div class="person-side">
+        ${statusBadge(c.status)}
+      </div>
+
+    </div>
+  `;
+
+}
+
+
+function getIndustry(
+  id
+){
+
+  return industries.find(
+    x=>x.id===id
+  );
+
+}
+
+
+function getIndustryByName(
+  name
+){
+
+  return industries.find(
+    x=>x.name===name
+  );
+
+}
+
+
+function currentOffers(
+  company
+){
+
+  return company.history
+    .filter(
+      h=>h.year==="2027"
+    )
+    .reduce(
+      (
+        sum,
+        h
+      )=>
+        sum+h.offers,
+      0
+    );
+
+}
+
+
+function maxPackage(
+  company
+){
+
+  return Math.max(
+    ...company.history.map(
+      h=>h.package
+    )
+  );
+
+}
+
+
+function statusColour(
+  status
+){
+
+  if(
+    status==="Completed"
+  ){
+    return "#16a34a";
+  }
+
+
+  if(
+    status==="Ongoing"
+  ){
+    return "#2563eb";
+  }
+
+
+  if(
+    status==="Awaiting Result"
+  ){
+    return "#d97706";
+  }
+
+
+  if(
+    status==="Confirmed"
+  ){
+    return "#7c3aed";
+  }
+
+
+  return "#dc2626";
+}
+
+
+function salaryLabel(
+  slab
+){
+
+  const map = {
+
+    gt40:"Above ₹40 LPA",
+
+    p30_40:"₹30–40 LPA",
+
+    p20_30:"₹20–30 LPA",
+
+    p10_20:"₹10–20 LPA",
+
+    p6_10:"₹6–10 LPA",
+
+    p4_6:"₹4–6 LPA",
+
+    p3_4:"₹3–4 LPA"
+
+  };
+
+
+  return map[slab];
+
+}
+
+
+function packageMatches(
+  value,
+  slab
+){
+
+  if(
+    slab==="gt40"
+  ){
+    return value>40;
+  }
+
+
+  if(
+    slab==="p30_40"
+  ){
+    return value>=30 && value<=40;
+  }
+
+
+  if(
+    slab==="p20_30"
+  ){
+    return value>=20 && value<30;
+  }
+
+
+  if(
+    slab==="p10_20"
+  ){
+    return value>=10 && value<20;
+  }
+
+
+  if(
+    slab==="p6_10"
+  ){
+    return value>=6 && value<10;
+  }
+
+
+  if(
+    slab==="p4_6"
+  ){
+    return value>=4 && value<6;
+  }
+
+
+  if(
+    slab==="p3_4"
+  ){
+    return value>=3 && value<4;
+  }
+
+
+  return false;
+}
+
+
+/* =========================================================
+   MODAL / TOAST
+   ========================================================= */
+
+function closeModal(){
+
+  document
+    .getElementById(
+      "detailModal"
+    )
+    .classList.remove(
+      "open"
+    );
+
+}
+
+
+function showToast(
+  message
+){
+
+  const toast =
+    document.getElementById(
+      "toast"
+    );
+
+
+  toast.textContent =
+    message;
+
+
+  toast.classList.add(
+    "show"
+  );
+
+
+  setTimeout(
+    ()=>
+      toast.classList.remove(
+        "show"
+      ),
+    2400
+  );
+
+}
+
+
+document
+  .getElementById(
+    "detailModal"
+  )
+  .addEventListener(
+    "click",
+    event=>{
+
+      if(
+        event.target.id==="detailModal"
+      ){
+        closeModal();
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   MASTER RENDER
+   ========================================================= */
+
+function renderAll(){
+
+  renderLeft();
+
+  renderMiddle();
+
+}
+
+
+/* =========================================================
+   INITIAL LOAD
+   ========================================================= */
+
+renderAll();
+
+</script>
+
+</body>
+</html>

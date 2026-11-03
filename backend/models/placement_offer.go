@@ -44,4 +44,6 @@ type FinalSelectionData struct {
 	Students               []FinalSelectionStudentItem `json:"students"`
 	TotalFinalCandidates   int                         `json:"total_final_candidates"`
 	ClearedCandidatesCount int                         `json:"cleared_candidates_count"`
+	FinalRoundCompleted    bool                        `json:"final_round_completed"`
+	FinalRoundName         string                      `json:"final_round_name"`
 }

@@ -6,13 +6,22 @@ import {
   CheckCircle2,
   AlertCircle,
   Search,
-  UserMinus
+  UserMinus,
+  Lock,
+  ArrowRight,
+  RefreshCw,
+  X
 } from 'lucide-react'
-import { getDriveStudents, updateDriveStudentsRoster } from '../../../services/api'
+import { getDriveStudents, updateDriveStudentsRoster, confirmDriveStudentsRoster } from '../../../services/api'
 
 export default function DriveStudentsRoster({
   driveId,
   eligibility,
+  isDriveCompleted = false,
+  officerUserId = null,
+  isRosterConfirmed = false,
+  onDriveUpdated = () => {},
+  onNavigateToStages = () => {},
   onOpenFilterModal = () => {},
   onConfigureCriteria = () => {}
 }) {
@@ -22,6 +31,14 @@ export default function DriveStudentsRoster({
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('included') // default to 'included' to show only drive roster students initially
+  const [isConfirmed, setIsConfirmed] = useState(isRosterConfirmed)
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [confirmFeedback, setConfirmFeedback] = useState(null)
+
+  useEffect(() => {
+    setIsConfirmed(isRosterConfirmed)
+  }, [isRosterConfirmed])
 
   const fetchStudents = async () => {
     if (!driveId) return
@@ -54,6 +71,31 @@ export default function DriveStudentsRoster({
       console.error('Failed to exclude students:', err)
     } finally {
       setIsUpdatingStatus(false)
+    }
+  }
+
+  // Handle confirming the student roster to advance students into Stage 1
+  const handleConfirmRoster = async () => {
+    if (!driveId) return
+    try {
+      setIsConfirming(true)
+      const res = await confirmDriveStudentsRoster(driveId, officerUserId)
+      setIsConfirmed(true)
+      setIsConfirmModalOpen(false)
+      setConfirmFeedback({
+        type: 'success',
+        message: res.message || 'Student list confirmed successfully! Candidates have moved to Stage 1.'
+      })
+      await fetchStudents()
+      onDriveUpdated()
+    } catch (err) {
+      console.error('Failed to confirm student roster:', err)
+      setConfirmFeedback({
+        type: 'error',
+        message: err.message || 'Failed to confirm student list'
+      })
+    } finally {
+      setIsConfirming(false)
     }
   }
 
@@ -215,26 +257,111 @@ export default function DriveStudentsRoster({
 
   return (
     <div className="flex flex-col gap-[14px]">
-      {/* 1. Top Bar: "Students Included in this Drive" + "+ Filter and Add Students" button */}
-      <div className="p-[14px_18px] bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs flex items-center justify-between">
+      {isDriveCompleted && (
+        <div className="flex items-center gap-2.5 p-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-[12px] text-[#475569] text-[13px] font-medium shadow-2xs">
+          <Lock size={16} className="text-[#64748b] shrink-0" />
+          <span>
+            This placement drive is marked as completed. Student roster and inclusion statuses are finalized and locked.
+          </span>
+        </div>
+      )}
+
+      {/* 1. Top Bar: "Students Included in this Drive" + Action buttons */}
+      <div className="p-[14px_18px] bg-white border border-[#dbe5f1] rounded-[12px] shadow-2xs flex items-center justify-between gap-3">
         <div>
           <h2 className="text-[16px] font-[850] text-[#172554] m-0 leading-tight">
             Students Included in this Drive
           </h2>
           <p className="text-[13px] text-[#64748b] mt-[3px] mb-0 font-medium">
-            {includedCount} students currently included
+            {includedCount} students currently included {specialEntryCount > 0 && `• ${specialEntryCount} special entry`}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenFilterModal}
-          className="py-[9px] px-[16px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[9px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 active:scale-98"
-        >
-          <Plus size={16} strokeWidth={2.8} />
-          <span>Filter and Add Students</span>
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {!isDriveCompleted && (
+            <button
+              type="button"
+              onClick={onOpenFilterModal}
+              className="py-[9px] px-[16px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[9px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 active:scale-98"
+            >
+              <Plus size={16} strokeWidth={2.8} />
+              <span>Filter and Add Students</span>
+            </button>
+          )}
+
+          {!isDriveCompleted && (
+            isConfirmed ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 py-[9px] px-[14px] bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] rounded-[9px] text-[13.5px] font-[750] shadow-2xs">
+                  <CheckCircle2 size={16} className="text-[#059669]" />
+                  <span>Student List Confirmed</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmModalOpen(true)}
+                  disabled={isConfirming}
+                  title="Re-sync roster candidates to Stage 1"
+                  className="py-[9px] px-[12px] bg-white hover:bg-[#f8fafc] border border-[#cbd5e1] text-[#334155] rounded-[9px] text-[13px] font-[700] shadow-2xs transition cursor-pointer flex items-center gap-1.5 active:scale-98"
+                >
+                  <RefreshCw size={14} className={isConfirming ? "animate-spin text-[#2563eb]" : "text-[#64748b]"} />
+                  <span>Sync to Stage 1</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsConfirmModalOpen(true)}
+                disabled={isConfirming || (includedCount === 0 && specialEntryCount === 0)}
+                className="py-[9px] px-[16px] bg-[#059669] hover:bg-[#047857] text-white rounded-[9px] text-[13.5px] font-[750] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isConfirming ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={16} strokeWidth={2.6} />
+                )}
+                <span>Confirm Student List</span>
+              </button>
+            )
+          )}
+        </div>
       </div>
+
+      {/* Confirmation Feedback Toast/Banner */}
+      {confirmFeedback && (
+        <div
+          className={`p-3.5 rounded-[12px] border text-[13px] font-medium flex items-center justify-between gap-3 ${
+            confirmFeedback.type === 'success'
+              ? 'bg-[#ecfdf5] border-[#a7f3d0] text-[#065f46]'
+              : 'bg-[#fef2f2] border-[#fecaca] text-[#991b1b]'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {confirmFeedback.type === 'success' ? (
+              <CheckCircle2 size={16} className="text-[#059669] shrink-0" />
+            ) : (
+              <AlertCircle size={16} className="text-[#dc2626] shrink-0" />
+            )}
+            <span>{confirmFeedback.message}</span>
+            {confirmFeedback.type === 'success' && (
+              <button
+                type="button"
+                onClick={onNavigateToStages}
+                className="ml-2 font-[750] underline hover:text-[#047857] cursor-pointer inline-flex items-center gap-1"
+              >
+                <span>View in Stage 1</span>
+                <ArrowRight size={13} />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmFeedback(null)}
+            className="text-[#64748b] hover:text-[#1e293b] cursor-pointer"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* 2. Filter / Criteria Tags Row (strictly from what is configured in eligibility criteria) */}
       {renderEligibilityFilterTags().length > 0 && (
@@ -327,24 +454,26 @@ export default function DriveStudentsRoster({
 
         {/* Tab Filter Options: All, Included, Excluded, Special Entry + Exclude Button */}
         <div className="flex items-center gap-2">
-          {/* Exclude Selected button visible by default (enabled when students are selected) */}
-          <button
-            type="button"
-            onClick={handleExcludeSelected}
-            disabled={selectedIds.size === 0 || isUpdatingStatus}
-            className={`py-[6px] px-[14px] rounded-[8px] text-[12.5px] font-[750] shadow-2xs transition flex items-center gap-1.5 ${
-              selectedIds.size > 0 && !isUpdatingStatus
-                ? 'bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] cursor-pointer hover:shadow-xs active:scale-98'
-                : 'bg-[#f8fafc] text-[#94a3b8] border border-[#e2e8f0] cursor-not-allowed opacity-75'
-            }`}
-          >
-            {isUpdatingStatus ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <UserMinus size={15} strokeWidth={2.4} />
-            )}
-            <span>Exclude Selected {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}</span>
-          </button>
+          {/* Exclude Selected button visible by default (enabled when students are selected and not completed) */}
+          {!isDriveCompleted && (
+            <button
+              type="button"
+              onClick={handleExcludeSelected}
+              disabled={selectedIds.size === 0 || isUpdatingStatus}
+              className={`py-[6px] px-[14px] rounded-[8px] text-[12.5px] font-[750] shadow-2xs transition flex items-center gap-1.5 ${
+                selectedIds.size > 0 && !isUpdatingStatus
+                  ? 'bg-[#fef2f2] hover:bg-[#fee2e2] text-[#b91c1c] border border-[#fecaca] cursor-pointer hover:shadow-xs active:scale-98'
+                  : 'bg-[#f8fafc] text-[#94a3b8] border border-[#e2e8f0] cursor-not-allowed opacity-75'
+              }`}
+            >
+              {isUpdatingStatus ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <UserMinus size={15} strokeWidth={2.4} />
+              )}
+              <span>Exclude Selected {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}</span>
+            </button>
+          )}
 
           <div className="flex items-center gap-1.5 p-1 bg-[#f1f5f9] rounded-[10px] border border-[#e2e8f0]/80">
             <button
@@ -407,9 +536,12 @@ export default function DriveStudentsRoster({
                 <th className="py-3 px-4 w-[48px]">
                   <input
                     type="checkbox"
+                    disabled={isDriveCompleted}
                     checked={filteredStudents.length > 0 && selectedIds.size === filteredStudents.length}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
+                    className={`w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 ${
+                      isDriveCompleted ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                    }`}
                   />
                 </th>
                 <th className="py-3 px-4">Candidate</th>
@@ -446,9 +578,12 @@ export default function DriveStudentsRoster({
                       <td className="py-3.5 px-4">
                         <input
                           type="checkbox"
+                          disabled={isDriveCompleted}
                           checked={isSelected}
-                          onChange={() => toggleStudent(st.user_id)}
-                          className="w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 cursor-pointer"
+                          onChange={() => !isDriveCompleted && toggleStudent(st.user_id)}
+                          className={`w-4 h-4 rounded-[4px] border-[#cbd5e1] text-[#2563eb] focus:ring-0 ${
+                            isDriveCompleted ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
                         />
                       </td>
 
@@ -534,6 +669,73 @@ export default function DriveStudentsRoster({
           </table>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4">
+          <div className="bg-white rounded-[16px] shadow-2xl border border-[#cbd5e1] max-w-[480px] w-full p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-full bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0">
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <h3 className="text-[17px] font-[800] text-[#0f172a] m-0">
+                  {isConfirmed ? 'Sync Student List to Stage 1' : 'Confirm Student List'}
+                </h3>
+                <p className="text-[13px] text-[#64748b] mt-1 m-0">
+                  Advance eligible and special entry candidates into recruitment Stage 1.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-[10px] p-3.5 text-[13px] text-[#334155] mb-5 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-[#64748b]">Total candidates to move:</span>
+                <span className="font-[750] text-[#0f172a]">{includedCount + specialEntryCount} students</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#64748b]">Included candidates:</span>
+                <span className="font-semibold text-[#0f172a]">{includedCount}</span>
+              </div>
+              {specialEntryCount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-[#64748b]">Special entry candidates:</span>
+                  <span className="font-semibold text-[#0f172a]">{specialEntryCount}</span>
+                </div>
+              )}
+              {excludedCount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-[#64748b]">Excluded candidates:</span>
+                  <span className="font-semibold text-[#94a3b8]">{excludedCount} (will not move)</span>
+                </div>
+              )}
+              <div className="border-t border-[#e2e8f0] pt-2 text-[12px] text-[#64748b] leading-relaxed">
+                Before confirmation, no students appear in Stage 1. Confirming will initialize their outcome as <span className="font-semibold text-[#0f172a]">Pending</span> in Stage 1.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isConfirming}
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="px-4 py-2 text-[13px] font-[700] text-[#475569] hover:bg-[#f1f5f9] rounded-[8px] transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isConfirming}
+                onClick={handleConfirmRoster}
+                className="px-5 py-2 text-[13px] font-[750] text-white bg-[#059669] hover:bg-[#047857] rounded-[8px] shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 active:scale-98"
+              >
+                {isConfirming && <Loader2 size={15} className="animate-spin" />}
+                <span>{isConfirmed ? 'Confirm & Sync to Stage 1' : 'Confirm & Move to Stage 1'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
