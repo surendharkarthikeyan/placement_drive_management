@@ -353,7 +353,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.offers.gt40 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('gt40', 'offers')
                                 }
                               }}
@@ -364,7 +363,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.offers.p30_40 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p30_40', 'offers')
                                 }
                               }}
@@ -375,7 +373,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.offers.p20_30 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p20_30', 'offers')
                                 }
                               }}
@@ -386,7 +383,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.offers.p10_20 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p10_20', 'offers')
                                 }
                               }}
@@ -397,7 +393,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.offers.p6_10 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p6_10', 'offers')
                                 }
                               }}
@@ -408,7 +403,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.offers.p4_6 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p4_6', 'offers')
                                 }
                               }}
@@ -419,7 +413,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.offers.p3_4 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p3_4', 'offers')
                                 }
                               }}
@@ -518,7 +511,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.unique.gt40 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('gt40', 'unique')
                                 }
                               }}
@@ -529,7 +521,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.unique.p30_40 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p30_40', 'unique')
                                 }
                               }}
@@ -540,7 +531,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.unique.p20_30 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p20_30', 'unique')
                                 }
                               }}
@@ -551,7 +541,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.unique.p10_20 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p10_20', 'unique')
                                 }
                               }}
@@ -562,7 +551,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.unique.p6_10 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p6_10', 'unique')
                                 }
                               }}
@@ -573,7 +561,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.unique.p4_6 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p4_6', 'unique')
                                 }
                               }}
@@ -584,7 +571,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.unique.p3_4 > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('p3_4', 'unique')
                                 }
                               }}
@@ -594,7 +580,6 @@ export default function IntelligenceMiddlePanel({
                             </td>
                             <td
                               onClick={() => {
-                                onSelectBatch(row.batch)
                                 onSelectOutcome('notEligible', 'unique')
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.not_eligible > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -604,7 +589,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.entrepreneurship > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('entrepreneur', 'unique')
                                 }
                               }}
@@ -615,7 +599,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.higher_studies > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('higherStudies', 'unique')
                                 }
                               }}
@@ -626,7 +609,6 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 if (row.not_placed > 0) {
-                                  onSelectBatch(row.batch)
                                   onSelectOutcome('notPlaced', 'unique')
                                 }
                               }}
