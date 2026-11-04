@@ -54,9 +54,10 @@ export default function IntelligenceRightPanel({
     : ''
 
   const targetRow = cleanSelected
-    ? uniqueRows.find(
-        (r) => String(r.batch).replace(/[\u2013\u2014]/g, '-').replace(/^Batch\s*/i, '').trim().toLowerCase() === cleanSelected
-      ) || uniqueRows[0]
+    ? uniqueRows.find((r) => {
+        const rowBatch = String(r.batch).replace(/[\u2013\u2014]/g, '-').replace(/^Batch\s*/i, '').trim().toLowerCase()
+        return rowBatch === cleanSelected || rowBatch.includes(cleanSelected) || cleanSelected.includes(rowBatch)
+      }) || uniqueRows[0]
     : uniqueRows[0]
 
   let totalStudents = 0
@@ -101,9 +102,11 @@ export default function IntelligenceRightPanel({
   }
 
   // Calculations
-  const nip = notEligible + higherStudies + entrepreneurship
-  let interestedCount = Math.max(0, totalStudents - nip)
-  if (placedCount > interestedCount) {
+  // Placement interested count = total students excluding higher studies and entrepreneurship
+  // (Students with arrears/not-eligible criteria are still placement-seeking students)
+  const nonPlacementTracks = higherStudies + entrepreneurship
+  let interestedCount = Math.max(0, totalStudents - nonPlacementTracks)
+  if (interestedCount === 0 && (placedCount > 0 || notPlaced > 0)) {
     interestedCount = placedCount + notPlaced
   }
 
