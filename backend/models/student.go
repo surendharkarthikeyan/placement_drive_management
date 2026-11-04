@@ -29,6 +29,7 @@ type StudentEligibilityView struct {
 	RollNo             *string  `json:"roll_no"`
 	Name               string   `json:"name"`
 	Email              string   `json:"email"`
+	DepartmentID       *uint64  `json:"department_id"`
 	DepartmentName     string   `json:"department_name"`
 	BatchName          string   `json:"batch_name"`
 	CGPA               *float64 `json:"cgpa"`

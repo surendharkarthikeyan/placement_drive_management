@@ -336,7 +336,7 @@ func (s *DriveService) GetDriveActivities(driveID string) ([]models.PlacementDri
 }
 
 // UpdateDriveEligibility updates or creates eligibility criteria and logs the change
-func (s *DriveService) UpdateDriveEligibility(driveID uint64, minCGPA, minTenth, minTwelfth *float64, maxCurrentArr, maxHistArr *int, maxOfferLPA *float64) (*models.PlacementDriveEligibility, error) {
+func (s *DriveService) UpdateDriveEligibility(driveID uint64, departmentIDs []uint64, minCGPA, minTenth, minTwelfth *float64, maxCurrentArr, maxHistArr *int, maxOfferLPA *float64) (*models.PlacementDriveEligibility, error) {
 	drive, errDrive := s.repo.GetDriveByID(fmt.Sprintf("%d", driveID))
 	if errDrive == nil && drive.OverallStatus == "completed" {
 		return nil, errors.New("cannot edit eligibility: placement drive is completed and locked")
@@ -346,6 +346,11 @@ func (s *DriveService) UpdateDriveEligibility(driveID uint64, minCGPA, minTenth,
 	isNew := err != nil
 
 	eligibility.DriveID = driveID
+	if departmentIDs != nil {
+		eligibility.DepartmentIDs = models.Uint64Array(departmentIDs)
+	} else {
+		eligibility.DepartmentIDs = models.Uint64Array{}
+	}
 	eligibility.MinCGPA = minCGPA
 	eligibility.MinTenthMark = minTenth
 	eligibility.MinTwelfthMark = minTwelfth

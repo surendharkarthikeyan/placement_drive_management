@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { X, Loader2, SlidersHorizontal, Check } from 'lucide-react'
-import { updateDriveEligibility } from '../../../services/api'
+import { X, Loader2, SlidersHorizontal, Check, Building2 } from 'lucide-react'
+import { updateDriveEligibility, getDepartments } from '../../../services/api'
+import MultiSelectDropdown from '../../common/MultiSelectDropdown'
 
 /**
  * EditEligibilityModal
  * Modal to configure placement_drive_eligibility criteria:
+ * - department_ids (MultiSelectDropdown)
  * - min_cgpa
  * - min_tenth_mark
  * - min_twelfth_mark
@@ -23,6 +25,7 @@ export default function EditEligibilityModal({
   onEligibilitySaved = () => {}
 }) {
   const [formData, setFormData] = useState({
+    department_ids: [],
     min_cgpa: '',
     min_tenth_mark: '',
     min_twelfth_mark: '',
@@ -30,11 +33,22 @@ export default function EditEligibilityModal({
     max_history_arrears: '',
     max_existing_offer_lpa: ''
   })
+  const [departments, setDepartments] = useState([])
   const [isSaving, setIsSaving] = useState(false)
+
+  // Fetch departments list
+  useEffect(() => {
+    if (isOpen) {
+      getDepartments()
+        .then((data) => setDepartments(data || []))
+        .catch((err) => console.error('Failed to load departments:', err))
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (currentEligibility) {
       setFormData({
+        department_ids: currentEligibility.department_ids ? Array.from(currentEligibility.department_ids) : [],
         min_cgpa: currentEligibility.min_cgpa !== null && currentEligibility.min_cgpa !== undefined ? String(currentEligibility.min_cgpa) : '',
         min_tenth_mark: currentEligibility.min_tenth_mark !== null && currentEligibility.min_tenth_mark !== undefined ? String(currentEligibility.min_tenth_mark) : '',
         min_twelfth_mark: currentEligibility.min_twelfth_mark !== null && currentEligibility.min_twelfth_mark !== undefined ? String(currentEligibility.min_twelfth_mark) : '',
@@ -44,6 +58,7 @@ export default function EditEligibilityModal({
       })
     } else {
       setFormData({
+        department_ids: [],
         min_cgpa: '',
         min_tenth_mark: '',
         min_twelfth_mark: '',
@@ -68,6 +83,7 @@ export default function EditEligibilityModal({
     try {
       setIsSaving(true)
       const payload = {
+        department_ids: formData.department_ids || [],
         min_cgpa: formData.min_cgpa !== '' ? parseFloat(formData.min_cgpa) : null,
         min_tenth_mark: formData.min_tenth_mark !== '' ? parseFloat(formData.min_tenth_mark) : null,
         min_twelfth_mark: formData.min_twelfth_mark !== '' ? parseFloat(formData.min_twelfth_mark) : null,
@@ -93,6 +109,7 @@ export default function EditEligibilityModal({
     try {
       setIsSaving(true)
       const payload = {
+        department_ids: [],
         min_cgpa: null,
         min_tenth_mark: null,
         min_twelfth_mark: null,
@@ -246,6 +263,23 @@ export default function EditEligibilityModal({
                 onChange={handleChange}
                 placeholder="e.g. 8.5"
                 className="w-full h-[48px] px-4 bg-white border border-[#cbd5e1] focus:border-[#2563eb] rounded-[11px] text-[15.5px] font-[600] text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-3 focus:ring-[#2563eb]/15 transition"
+              />
+            </div>
+
+            {/* Eligible Departments (Multi-Select Dropdown) */}
+            <div className="col-span-2">
+              <MultiSelectDropdown
+                label="Eligible Departments"
+                options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                selectedValues={formData.department_ids}
+                onChange={(vals) => setFormData((prev) => ({ ...prev, department_ids: vals }))}
+                placeholder="All Departments (Open to all)"
+                itemNoun="department"
+                itemNounPlural="departments"
+                icon={Building2}
+                buttonH="h-[48px]"
+                fontSize="text-[15.5px]"
+                labelFontSize="text-[14.5px] font-[750] text-[#334155]"
               />
             </div>
           </div>

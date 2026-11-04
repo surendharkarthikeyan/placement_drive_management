@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Save, Loader2, CheckCircle2, AlertCircle, Trophy, Sparkles, Building2, SlidersHorizontal, PlusCircle, AlertTriangle, Pencil, User, Lock } from 'lucide-react'
-import { getDriveById, updateDriveDetails, getPlacementOfficers, getBatches } from '../../../services/api'
+import { getDriveById, updateDriveDetails, getPlacementOfficers, getBatches, getDepartments } from '../../../services/api'
 import EditEligibilityModal from '../../modals/placement_drive/EditEligibilityModal'
 import EditDriveModal from '../../modals/placement_drive/EditDriveModal'
 import SearchableSelect from '../../common/SearchableSelect'
@@ -37,6 +37,7 @@ export default function CenterWorkspacePanel({
   const [activeTab, setActiveTab] = useState('setup')
   const [officers, setOfficers] = useState([])
   const [batches, setBatches] = useState([])
+  const [departments, setDepartments] = useState([])
   const [isEligibilityModalOpen, setIsEligibilityModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isIncludeStudentsModalOpen, setIsIncludeStudentsModalOpen] = useState(false)
@@ -92,12 +93,14 @@ export default function CenterWorkspacePanel({
   useEffect(() => {
     const loadMetadata = async () => {
       try {
-        const [officersData, batchesData] = await Promise.all([
+        const [officersData, batchesData, departmentsData] = await Promise.all([
           getPlacementOfficers(),
-          getBatches()
+          getBatches(),
+          getDepartments()
         ])
         setOfficers(officersData)
         setBatches(batchesData)
+        setDepartments(departmentsData || [])
       } catch (err) {
         console.error('Failed to load placement metadata:', err)
       }
@@ -639,6 +642,11 @@ export default function CenterWorkspacePanel({
                     Batches: {drive.batches.map((b) => b.name).join(', ')}
                   </span>
                 )}
+                {eligibility.department_ids && eligibility.department_ids.length > 0 && (
+                  <span className="py-[6px] px-[12px] rounded-full text-[12px] font-semibold text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
+                    Departments: {departments.filter((d) => eligibility.department_ids.includes(d.id)).map((d) => d.name).join(', ') || `${eligibility.department_ids.length} departments`}
+                  </span>
+                )}
                 {eligibility.min_cgpa !== null && eligibility.min_cgpa !== undefined && (
                   <span className="py-[6px] px-[12px] rounded-full text-[12px] font-semibold text-[#1d4ed8] bg-[#eff6ff] border border-[#bfdbfe]">
                     CGPA ≥ {eligibility.min_cgpa}
@@ -674,7 +682,8 @@ export default function CenterWorkspacePanel({
                   eligibility.min_twelfth_mark === null &&
                   eligibility.max_current_arrears === null &&
                   eligibility.max_history_arrears === null &&
-                  eligibility.max_existing_offer_lpa === null && (
+                  eligibility.max_existing_offer_lpa === null &&
+                  (!eligibility.department_ids || eligibility.department_ids.length === 0) && (
                     <span className="py-[6px] px-[12px] rounded-full text-[12px] font-semibold text-[#15803d] bg-[#dcfce7] border border-[#bbf7d0]">
                       Open to All Students (No Criteria)
                     </span>

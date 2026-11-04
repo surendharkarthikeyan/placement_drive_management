@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { X, Search, Check, AlertCircle, Loader2, Sparkles, UserMinus, UserCheck } from 'lucide-react'
-import { getDriveStudents, updateDriveStudentsRoster, getBatches } from '../../../services/api'
+import { X, Search, Check, AlertCircle, Loader2, Sparkles, UserMinus, UserCheck, Building2 } from 'lucide-react'
+import { getDriveStudents, updateDriveStudentsRoster, getBatches, getDepartments } from '../../../services/api'
 import CustomSelect from '../../common/CustomSelect'
+import MultiSelectDropdown from '../../common/MultiSelectDropdown'
 
 /**
  * FilterAndIncludeStudentsModal
@@ -13,6 +14,7 @@ import CustomSelect from '../../common/CustomSelect'
  *   5. Max History Arrears
  *   6. Maximum Existing Offer Cap (LPA)
  *   7. Academic Batch Filter
+ *   8. Target Departments Filter (MultiSelectDropdown)
  * - Live Search Bar: Search by name and roll_no
  * - Action buttons:
  *   - "Exclude Selected": marks selected students as 'excluded'
@@ -27,6 +29,7 @@ export default function FilterAndIncludeStudentsModal({
 }) {
   const [students, setStudents] = useState([])
   const [batches, setBatches] = useState([])
+  const [departments, setDepartments] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -39,6 +42,7 @@ export default function FilterAndIncludeStudentsModal({
   const [maxHistoryArrearsFilter, setMaxHistoryArrearsFilter] = useState('no_restriction')
   const [maxExistingOfferFilter, setMaxExistingOfferFilter] = useState('')
   const [selectedBatchFilter, setSelectedBatchFilter] = useState('all')
+  const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState([])
 
   // Search input: by student name or roll_no
   const [searchQuery, setSearchQuery] = useState('')
@@ -82,8 +86,15 @@ export default function FilterAndIncludeStudentsModal({
   useEffect(() => {
     if (isOpen) {
       loadStudents()
-      // Load batches list for filter
+      // Load batches and departments list for filter
       getBatches().then((b) => setBatches(b || [])).catch(() => {})
+      getDepartments().then((d) => setDepartments(d || [])).catch(() => {})
+      // Initialize departments filter from drive eligibility if available
+      if (eligibility && eligibility.department_ids && eligibility.department_ids.length > 0) {
+        setSelectedDepartmentFilter(Array.from(eligibility.department_ids))
+      } else {
+        setSelectedDepartmentFilter([])
+      }
       // Keep criteria inputs clean so all students are visible in the modal list
       setMinCgpaFilter('')
       setMinTenthFilter('')
@@ -94,7 +105,7 @@ export default function FilterAndIncludeStudentsModal({
       setSelectedBatchFilter('all')
       setSearchQuery('')
     }
-  }, [isOpen, driveId])
+  }, [isOpen, driveId, eligibility])
 
   if (!isOpen) return null
 
@@ -171,7 +182,21 @@ export default function FilterAndIncludeStudentsModal({
       if (stBatchId !== batchStr && stBatchName !== batchStr) return false
     }
 
-    // 7. Search query: name and roll_no
+    // 8. Target Department Filter (Multi-select)
+    if (selectedDepartmentFilter && selectedDepartmentFilter.length > 0) {
+      const stDeptId = st.department_id ? Number(st.department_id) : null
+      const matched = selectedDepartmentFilter.some((did) => {
+        if (stDeptId && stDeptId === Number(did)) return true
+        const deptObj = departments.find((d) => d.id === did)
+        if (deptObj && st.department_name && (st.department_name === deptObj.name || st.department_name.toLowerCase().includes(deptObj.name.toLowerCase()))) {
+          return true
+        }
+        return false
+      })
+      if (!matched) return false
+    }
+
+    // 9. Search query: name and roll_no
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
       const matchName = st.name && st.name.toLowerCase().includes(q)
@@ -448,6 +473,25 @@ export default function FilterAndIncludeStudentsModal({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Target Departments Filter (MultiSelectDropdown) */}
+            <div className="col-span-2 md:col-span-1">
+              <MultiSelectDropdown
+                label="Target Departments"
+                options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                selectedValues={selectedDepartmentFilter}
+                onChange={setSelectedDepartmentFilter}
+                placeholder="All Departments"
+                itemNoun="department"
+                itemNounPlural="departments"
+                icon={Building2}
+                buttonH="h-[36px]"
+                fontSize="text-[13px]"
+                labelFontSize="text-[12px] font-[750] text-[#1e293b]"
+                iconSize={15}
+                badgeSize="text-[10.5px]"
+              />
             </div>
           </div>
 

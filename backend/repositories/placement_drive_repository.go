@@ -492,6 +492,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 		RollNo             *string  `gorm:"column:roll_no"`
 		Name               string   `gorm:"column:name"`
 		Email              string   `gorm:"column:email"`
+		DepartmentID       *uint64  `gorm:"column:department_id"`
 		DepartmentName     string   `gorm:"column:dept_name"`
 		BatchName          string   `gorm:"column:batch_name"`
 		BatchID            uint64   `gorm:"column:batch_id"`
@@ -503,7 +504,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 	}
 
 	query := r.db.Table("master_users u").
-		Select("u.id as user_id, u.roll_no, u.name, u.email, d.name as dept_name, b.name as batch_name, u.batch_id, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count").
+		Select("u.id as user_id, u.roll_no, u.name, u.email, u.department_id, d.name as dept_name, b.name as batch_name, u.batch_id, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count").
 		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
 		Joins("LEFT JOIN departments d ON u.department_id = d.id").
 		Joins("LEFT JOIN batches b ON u.batch_id = b.id").
@@ -558,6 +559,14 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 		targetBatchMap[bid] = true
 	}
 
+	// Set of eligible department IDs for the drive (if configured)
+	targetDeptMap := make(map[uint64]bool)
+	if elig != nil && len(elig.DepartmentIDs) > 0 {
+		for _, did := range elig.DepartmentIDs {
+			targetDeptMap[did] = true
+		}
+	}
+
 	for _, s := range rows {
 		isEligible := true
 		var reasons []string
@@ -569,6 +578,14 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 				inTargetBatch = false
 				isEligible = false
 				reasons = append(reasons, "Outside drive target academic batch")
+			}
+		}
+
+		// Check if student belongs to one of the eligible departments (if configured)
+		if len(targetDeptMap) > 0 {
+			if s.DepartmentID == nil || !targetDeptMap[*s.DepartmentID] {
+				isEligible = false
+				reasons = append(reasons, "Outside drive eligible departments")
 			}
 		}
 
@@ -622,6 +639,7 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 			RollNo:             s.RollNo,
 			Name:               s.Name,
 			Email:              s.Email,
+			DepartmentID:       s.DepartmentID,
 			DepartmentName:     s.DepartmentName,
 			BatchName:          s.BatchName,
 			CGPA:               s.CGPA,

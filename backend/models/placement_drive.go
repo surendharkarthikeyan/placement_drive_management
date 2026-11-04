@@ -73,14 +73,15 @@ func (PlacementCompany) TableName() string {
 }
 
 type PlacementDriveEligibility struct {
-	ID                  uint64   `gorm:"primaryKey;autoIncrement" json:"id"`
-	DriveID             uint64   `gorm:"not null;uniqueIndex" json:"drive_id"`
-	MinCGPA             *float64 `gorm:"type:decimal(4,2)" json:"min_cgpa"`
-	MinTenthMark        *float64 `gorm:"type:decimal(5,2)" json:"min_tenth_mark"`
-	MinTwelfthMark      *float64 `gorm:"type:decimal(5,2)" json:"min_twelfth_mark"`
-	MaxCurrentArrears   *int     `json:"max_current_arrears"`
-	MaxHistoryArrears   *int     `json:"max_history_arrears"`
-	MaxExistingOfferLPA *float64 `gorm:"type:decimal(8,2)" json:"max_existing_offer_lpa"`
+	ID                  uint64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	DriveID             uint64      `gorm:"not null;uniqueIndex" json:"drive_id"`
+	DepartmentIDs       Uint64Array `gorm:"column:department_ids;type:json" json:"department_ids"`
+	MinCGPA             *float64    `gorm:"type:decimal(4,2)" json:"min_cgpa"`
+	MinTenthMark        *float64    `gorm:"type:decimal(5,2)" json:"min_tenth_mark"`
+	MinTwelfthMark      *float64    `gorm:"type:decimal(5,2)" json:"min_twelfth_mark"`
+	MaxCurrentArrears   *int        `json:"max_current_arrears"`
+	MaxHistoryArrears   *int        `json:"max_history_arrears"`
+	MaxExistingOfferLPA *float64    `gorm:"type:decimal(8,2)" json:"max_existing_offer_lpa"`
 }
 
 func (PlacementDriveEligibility) TableName() string {

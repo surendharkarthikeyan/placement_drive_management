@@ -253,6 +253,7 @@ func (ctrl *DriveController) UpdateDriveEligibility(c *gin.Context) {
 	}
 
 	var req struct {
+		DepartmentIDs       []uint64 `json:"department_ids"`
 		MinCGPA             *float64 `json:"min_cgpa"`
 		MinTenthMark        *float64 `json:"min_tenth_mark"`
 		MinTwelfthMark      *float64 `json:"min_twelfth_mark"`
@@ -268,6 +269,7 @@ func (ctrl *DriveController) UpdateDriveEligibility(c *gin.Context) {
 
 	eligibility, err := ctrl.service.UpdateDriveEligibility(
 		driveIDUint,
+		req.DepartmentIDs,
 		req.MinCGPA,
 		req.MinTenthMark,
 		req.MinTwelfthMark,

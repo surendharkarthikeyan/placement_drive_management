@@ -18,7 +18,12 @@ export default function MultiSelectDropdown({
   placeholder = 'Select batches...',
   itemNoun = 'batch',
   itemNounPlural = 'batches',
-  icon: Icon = GraduationCap
+  icon: Icon = GraduationCap,
+  buttonH = 'h-[50px]',
+  fontSize = 'text-[15.5px]',
+  labelFontSize = 'text-[15px] font-[750] text-[#334155]',
+  iconSize = 18,
+  badgeSize = 'text-[12px]'
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
@@ -57,7 +62,7 @@ export default function MultiSelectDropdown({
   return (
     <div className="relative w-full" ref={containerRef}>
       {label && (
-        <label className="text-[15px] font-[750] text-[#334155] block mb-[7px]">
+        <label className={`${labelFontSize} block mb-[7px]`}>
           {label} {required && <span className="text-[#dc2626]">*</span>}
         </label>
       )}
@@ -66,26 +71,26 @@ export default function MultiSelectDropdown({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full h-[50px] px-[15px] bg-white border rounded-[11px] text-[15.5px] font-[600] text-[#1e293b] flex items-center justify-between transition cursor-pointer shadow-xs ${
+        className={`w-full ${buttonH} px-[15px] bg-white border rounded-[11px] ${fontSize} font-[600] text-[#1e293b] flex items-center justify-between transition cursor-pointer shadow-xs ${
           isOpen
             ? 'border-[#2563eb] ring-3 ring-[#2563eb]/15'
             : 'border-[#dbe5f1] hover:border-[#cbd5e1]'
         }`}
       >
         <div className="flex items-center gap-2.5 truncate pr-2">
-          <Icon size={18} className="text-[#2563eb] shrink-0" />
+          {Icon && <Icon size={iconSize} className="text-[#2563eb] shrink-0" />}
           <span className={`truncate ${selectedValues && selectedValues.length > 0 ? 'text-[#1e293b]' : 'text-[#94a3b8]'}`}>
             {getDisplayText()}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {selectedValues && selectedValues.length > 1 && (
-            <span className="text-[12px] font-bold text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe] px-2 py-0.5 rounded-full">
+            <span className={`${badgeSize} font-bold text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe] px-2 py-0.5 rounded-full`}>
               {selectedValues.length} {selectedValues.length === 1 ? itemNoun : itemNounPlural}
             </span>
           )}
           <ChevronDown
-            size={18}
+            size={iconSize}
             className={`text-[#64748b] transition-transform duration-200 shrink-0 ${
               isOpen ? 'rotate-180 text-[#2563eb]' : ''
             }`}
