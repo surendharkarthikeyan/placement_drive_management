@@ -21,7 +21,8 @@ export default function IntelligenceMiddlePanel({
   onSelectDepartment = () => {},
   selectedOutcome = 'notPlaced',
   onSelectOutcome = () => {},
-  onSelectDetail = () => {}
+  onSelectDetail = () => {},
+  selectedIndustry = null
 }) {
   // Filters State
   const [selectedBatchFilter, setSelectedBatchFilter] = useState('All')
@@ -89,8 +90,10 @@ export default function IntelligenceMiddlePanel({
   }, [selectedBatchFilter, selectedDeptFilter])
 
   useEffect(() => {
-    loadStats()
-  }, [loadStats])
+    if (currentView === 'overall') {
+      loadStats()
+    }
+  }, [loadStats, currentView])
 
   // Reset Filters handler
   const handleResetFilters = () => {
@@ -132,6 +135,14 @@ export default function IntelligenceMiddlePanel({
     } finally {
       setIsExporting(false)
     }
+  }
+
+  if (currentView === 'industries') {
+    return (
+      <section className="flex-1 min-w-[700px] bg-[#f8fafc] h-full overflow-y-auto select-none flex flex-col">
+        {/* Clean Center Workspace ready for Industries data */}
+      </section>
+    )
   }
 
   const signals = matrixData?.signals || {

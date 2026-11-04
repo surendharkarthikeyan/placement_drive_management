@@ -28,7 +28,8 @@ export default function IntelligenceRightPanel({
   selectedDepartment = 'All',
   selectedOutcome = null,
   selectedOutcomeType = 'offers',
-  onSelectOutcome = () => {}
+  onSelectOutcome = () => {},
+  selectedIndustry = null
 }) {
   const [activeMode, setActiveMode] = useState('overview') // Default view is Overview
   const [loading, setLoading] = useState(false)
@@ -71,6 +72,7 @@ export default function IntelligenceRightPanel({
 
   // Fetch overview stats
   useEffect(() => {
+    if (currentView !== 'overall') return
     let isMounted = true
     const fetchData = async () => {
       setLoading(true)
@@ -97,6 +99,7 @@ export default function IntelligenceRightPanel({
 
   // Fetch outcome group students list from database
   useEffect(() => {
+    if (currentView !== 'overall') return
     let isMounted = true
     const fetchStudents = async () => {
       // For notEligible, no logic for now
@@ -178,6 +181,14 @@ export default function IntelligenceRightPanel({
       return name.includes(q) || roll.includes(q) || dept.includes(q) || status.includes(q)
     })
   }, [outcomeStudents, studentSearchQuery])
+
+  if (currentView === 'industries') {
+    return (
+      <aside className="w-[475px] min-w-[475px] bg-[#fbfdff] border-l border-[#dbe5f1] h-full flex flex-col select-none overflow-hidden">
+        {/* Clean Right Workspace ready for Industries data */}
+      </aside>
+    )
+  }
 
   // Derive metrics for Placement Outcome overview card
   const uniqueRows = statsData?.unique_students_by_offer || []
