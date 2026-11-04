@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import { Search, Loader2 } from 'lucide-react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { Search, Loader2, Users, Filter, Check, X } from 'lucide-react'
 import GlassSegmentedControl from '../../common/GlassSegmentedControl'
-import { getIntelligenceBatchSummaries, getIntelligenceOutcomeSummary } from '../../../services/api'
-import { industriesData, companyStatsData, studentsData } from './intelligenceData'
+import { getIntelligenceBatchSummaries, getIntelligenceOutcomeSummary, getDrives } from '../../../services/api'
+import { companyStatsData, studentsData } from './intelligenceData'
 
 /**
  * IntelligenceLeftPanel
  * Left Panel (390px) for Placement Intelligence:
  * - 4 Analysis Cards (Overall Statistics, Industries, Company Statistics, Students)
+ * - Industries view matches Placement Drive tab's left panel (Search, Status Filter, All/Active/Completed tabs, Grouped Drives)
  * - Dynamic Left Content and Filters tailored to each of the 4 analysis modes
  * - Real DB Batches & Outcome counts for Overall mode
  * - Clean zero-flicker selection with rounded blue indicator bar
@@ -20,7 +21,7 @@ export default function IntelligenceLeftPanel({
   onSelectBatch: externalOnSelectBatch,
   selectedOutcome: externalSelectedOutcome,
   onSelectOutcome: externalOnSelectOutcome,
-  selectedIndustry = '__overall__',
+  selectedIndustry = null,
   onSelectIndustry = () => {},
   selectedCompany = 'All',
   onSelectCompany = () => {},
@@ -46,7 +47,6 @@ export default function IntelligenceLeftPanel({
 
   // Segment tabs for each view
   const [overallTab, setOverallTab] = useState('batches') // 'batches' | 'outcomes'
-  const [industryTab, setIndustryTab] = useState('all') // 'all' | 'active' | 'attention'
   const [companyTab, setCompanyTab] = useState('all') // 'all' | 'active' | 'completed'
   const [studentTab, setStudentTab] = useState('all') // 'all' | 'attention' | 'placed'
 
@@ -54,6 +54,187 @@ export default function IntelligenceLeftPanel({
   const [batches, setBatches] = useState([])
   const [outcomeData, setOutcomeData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // --- INDUSTRIES STATE & FILTERS (Identical to Placement Drive Tab) ---
+  const [industryDrives, setIndustryDrives] = useState([])
+  const [isLoadingDrives, setIsLoadingDrives] = useState(false)
+  const [industrySearchQuery, setIndustrySearchQuery] = useState('')
+  const [industryTab, setIndustryTab] = useState('all') // 'all' | 'active' | 'completed'
+  const [selectedStatuses, setSelectedStatuses] = useState(new Set())
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false)
+  const filterDropdownRef = useRef(null)
+
+  // Glass moving pill ref & state for Filter Tabs in Industries
+  const tabNavRef = useRef(null)
+  const tabRefs = useRef({})
+  const [tabPillStyle, setTabPillStyle] = useState({ left: 0, width: 0, opacity: 0 })
+
+  const updateTabPill = () => {
+    const activeEl = tabRefs.current[industryTab]
+    const container = tabNavRef.current
+    if (activeEl && container) {
+      const activeRect = activeEl.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      setTabPillStyle({
+        left: activeRect.left - containerRect.left,
+        width: activeRect.width,
+        height: activeRect.height,
+        top: activeRect.top - containerRect.top,
+        opacity: 1
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (currentView === 'industries') {
+      updateTabPill()
+    }
+  }, [industryTab, currentView])
+
+  const statusOptions = [
+    { value: 'in_progress', label: 'In Progress', dotColor: 'bg-[#2563eb]' },
+    { value: 'registration_open', label: 'Registration Open', dotColor: 'bg-[#0284c7]' },
+    { value: 'awaiting_final_result', label: 'Awaiting Result', dotColor: 'bg-[#d97706]' },
+    { value: 'scheduled', label: 'Scheduled', dotColor: 'bg-[#7c3aed]' },
+    { value: 'draft', label: 'Draft', dotColor: 'bg-[#64748b]' },
+    { value: 'completed', label: 'Completed', dotColor: 'bg-[#16a34a]' },
+    { value: 'awaiting_next_round', label: 'Date Pending', dotColor: 'bg-[#d97706]' },
+    { value: 'on_hold', label: 'On Hold', dotColor: 'bg-[#94a3b8]' },
+    { value: 'cancelled', label: 'Cancelled', dotColor: 'bg-[#dc2626]' }
+  ]
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setIsFilterDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Fetch drives whenever in 'industries' view or when selectedBatch changes
+  useEffect(() => {
+    if (currentView !== 'industries') return
+    let isMounted = true
+
+    const fetchIndustryDrives = async () => {
+      try {
+        setIsLoadingDrives(true)
+        const data = await getDrives({ status: 'all', batch: selectedBatch || 'all' })
+        if (isMounted) {
+          setIndustryDrives(data || [])
+          if ((!selectedIndustry || selectedIndustry === '__overall__') && data && data.length > 0) {
+            onSelectIndustry(data[0].id)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load industry drives:', err)
+      } finally {
+        if (isMounted) setIsLoadingDrives(false)
+      }
+    }
+
+    fetchIndustryDrives()
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentView, selectedBatch])
+
+  const toggleStatus = (statusValue) => {
+    const next = new Set(selectedStatuses)
+    if (next.has(statusValue)) {
+      next.delete(statusValue)
+    } else {
+      next.add(statusValue)
+    }
+    setSelectedStatuses(next)
+  }
+
+  const clearStatusFilters = () => {
+    setSelectedStatuses(new Set())
+  }
+
+  // Filter industry drives matching DriveListPanel logic
+  const filteredIndustryDrives = useMemo(() => {
+    return industryDrives.filter((drive) => {
+      // 1. Tab Filter (All / Active / Completed)
+      if (industryTab === 'active' && (drive.overall_status === 'completed' || drive.overall_status === 'cancelled')) {
+        return false
+      }
+      if (industryTab === 'completed' && drive.overall_status !== 'completed' && drive.overall_status !== 'cancelled') {
+        return false
+      }
+
+      // 2. Specific Status Checkbox Filter
+      if (selectedStatuses.size > 0 && !selectedStatuses.has(drive.overall_status)) {
+        return false
+      }
+
+      // 3. Search Query Filter
+      if (industrySearchQuery.trim()) {
+        const q = industrySearchQuery.toLowerCase().trim()
+        const company = (drive.company?.company_name || '').toLowerCase()
+        const role = (drive.job_role || '').toLowerCase()
+        const status = (drive.overall_status || '').toLowerCase()
+        return company.includes(q) || role.includes(q) || status.includes(q)
+      }
+
+      return true
+    })
+  }, [industryDrives, industryTab, selectedStatuses, industrySearchQuery])
+
+  const getBadgeDetails = (status) => {
+    switch (status) {
+      case 'in_progress':
+        return {
+          label: 'In Progress',
+          className: 'text-[#1d4ed8] bg-[#dbeafe]/90 border border-[#bfdbfe]/80 shadow-[0_2px_8px_rgba(37,99,235,0.12)]'
+        }
+      case 'registration_open':
+        return {
+          label: 'Registration Open',
+          className: 'text-[#0284c7] bg-[#e0f2fe]/90 border border-[#bae6fd]/80 shadow-[0_2px_8px_rgba(2,132,199,0.12)]'
+        }
+      case 'awaiting_final_result':
+        return {
+          label: 'Awaiting Result',
+          className: 'text-[#b45309] bg-[#fef3c7]/90 border border-[#fde68a]/80 shadow-[0_2px_8px_rgba(217,119,6,0.12)]'
+        }
+      case 'awaiting_next_round':
+        return {
+          label: 'Date Pending',
+          className: 'text-[#b45309] bg-[#fef3c7]/90 border border-[#fde68a]/80'
+        }
+      case 'scheduled':
+        return {
+          label: 'Scheduled',
+          className: 'text-[#6d28d9] bg-[#ede9fe]/90 border border-[#ddd6fe]/80 shadow-[0_2px_8px_rgba(109,40,217,0.12)]'
+        }
+      case 'completed':
+        return {
+          label: 'Completed',
+          className: 'text-[#15803d] bg-[#dcfce7]/90 border border-[#bbf7d0]/80 shadow-[0_2px_8px_rgba(22,163,74,0.12)]'
+        }
+      case 'on_hold':
+        return {
+          label: 'On Hold',
+          className: 'text-[#64748b] bg-[#f1f5f9] border border-[#cbd5e1]'
+        }
+      case 'cancelled':
+        return {
+          label: 'Cancelled',
+          className: 'text-[#dc2626] bg-[#fef2f2] border border-[#fecaca]'
+        }
+      case 'draft':
+      default:
+        return {
+          label: 'Draft',
+          className: 'text-[#475569] bg-[#e2e8f0]/90 border border-[#cbd5e1]/80'
+        }
+    }
+  }
 
   const views = [
     { id: 'overall', title: 'Overall Statistics', sub: 'Batch & outcome view' },
@@ -119,7 +300,6 @@ export default function IntelligenceLeftPanel({
     ? batches.find((b) => b.batch_name === selectedBatch || String(b.id) === String(selectedBatch))
     : null
 
-  // If a batch is chosen, use that batch's student counts! Unless before choosing the batch, use overall count.
   const outcomeCounts = chosenBatchObj
     ? {
         notPlaced: outcomeData?.not_placed_count ?? chosenBatchObj.not_placed_students,
@@ -175,17 +355,6 @@ export default function IntelligenceLeftPanel({
     return o.title.toLowerCase().includes(q) || o.sub.toLowerCase().includes(q)
   })
 
-  // 2. Industries view data
-  const filteredIndustries = industriesData.filter((item) => {
-    if (industryTab === 'active') {
-      if (!['Completed', 'Ongoing', 'Awaiting Result', 'Confirmed'].includes(item.status)) return false
-    } else if (industryTab === 'attention') {
-      if (!['Not Confirmed', 'Not Visiting', 'Awaiting Result'].includes(item.status)) return false
-    }
-    if (!q) return true
-    return item.name.toLowerCase().includes(q) || item.role.toLowerCase().includes(q) || item.sector.toLowerCase().includes(q)
-  })
-
   // 3. Company stats view data
   const companyGroups = [
     { title: 'Completed', status: 'Completed', subtitle: 'Offers released' },
@@ -222,7 +391,7 @@ export default function IntelligenceLeftPanel({
     return fg.title.toLowerCase().includes(q) || fg.subtitle.toLowerCase().includes(q)
   })
 
-  // Helper badge generator
+  // Helper badge generator for Company stats
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'Completed':
@@ -276,85 +445,221 @@ export default function IntelligenceLeftPanel({
           })}
         </div>
 
-        {/* Search Input Box */}
-        <div className="relative mt-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none">
-            <Search size={14} />
-          </span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              currentView === 'overall'
-                ? 'Search batch or outcome...'
-                : currentView === 'industries'
-                ? 'Search industry or role...'
-                : currentView === 'companies'
-                ? 'Search company...'
-                : 'Search student or register no...'
-            }
-            className="w-full h-[38px] pl-9 pr-3 bg-white hover:bg-[#f8fafc] focus:bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[10px] text-[13px] text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition shadow-2xs font-medium"
-          />
-        </div>
+        {/* --- HEADER CONTROLS: FOR INDUSTRIES VIEW (Placement Drive tab layout) --- */}
+        {currentView === 'industries' ? (
+          <>
+            {/* Search Box with Integrated Filter Button */}
+            <div className="relative mt-1 flex items-center gap-2" ref={filterDropdownRef}>
+              <div className="relative flex-1 group">
+                <span className="absolute left-[12px] top-[11.5px] text-[#94a3b8] group-focus-within:text-[#2563eb] transition-colors pointer-events-none">
+                  <Search size={15} />
+                </span>
+                <input
+                  type="text"
+                  value={industrySearchQuery}
+                  onChange={(e) => setIndustrySearchQuery(e.target.value)}
+                  placeholder="Search company or role"
+                  className="w-full h-[38px] pr-[12px] pl-[34px] bg-white hover:bg-white focus:bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[10px] text-[13px] text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+                />
+              </div>
 
-        {/* Segment Tabs tailored to each view */}
-        <div className="mt-1">
-          {currentView === 'overall' && (
-            <GlassSegmentedControl
-              options={[
-                { id: 'batches', label: 'Batches' },
-                { id: 'outcomes', label: 'Outcome Groups' }
-              ]}
-              value={overallTab}
-              onChange={setOverallTab}
-              buttonPy="py-[7px]"
-              fontSize="text-[13px]"
-            />
-          )}
+              {/* Filter Trigger Button */}
+              <button
+                type="button"
+                onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
+                title="Filter by recruitment status"
+                className={`h-[38px] px-2.5 rounded-[10px] border flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                  selectedStatuses.size > 0
+                    ? 'bg-[#eff6ff] text-[#2563eb] border-[#93c5fd] font-bold shadow-xs'
+                    : 'bg-white text-[#64748b] hover:text-[#1e293b] border-[#dbe5f1] hover:border-[#cbd5e1]'
+                }`}
+              >
+                <Filter size={15} />
+                {selectedStatuses.size > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-[#2563eb] text-white text-[10px] font-bold flex items-center justify-center">
+                    {selectedStatuses.size}
+                  </span>
+                )}
+              </button>
 
-          {currentView === 'industries' && (
-            <GlassSegmentedControl
-              options={[
-                { id: 'all', label: 'All' },
-                { id: 'active', label: 'Active' },
-                { id: 'attention', label: 'Attention' }
-              ]}
-              value={industryTab}
-              onChange={setIndustryTab}
-              buttonPy="py-[7px]"
-              fontSize="text-[13px]"
-            />
-          )}
+              {/* Status Filter Dropdown Menu */}
+              {isFilterDropdownOpen && (
+                <div className="absolute top-[44px] right-0 w-[240px] bg-white/95 backdrop-blur-md rounded-[14px] shadow-[0_12px_36px_rgba(15,23,42,0.18)] border border-[#dbe5f1] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#f1f5f9]">
+                    <span className="text-[11px] font-[850] uppercase tracking-wider text-[#64748b]">
+                      Status Filter
+                    </span>
+                    {selectedStatuses.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearStatusFilters}
+                        className="text-[11px] text-[#2563eb] hover:underline font-semibold cursor-pointer"
+                      >
+                        Reset All
+                      </button>
+                    )}
+                  </div>
 
-          {currentView === 'companies' && (
-            <GlassSegmentedControl
-              options={[
+                  <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto pr-1">
+                    {statusOptions.map((opt) => {
+                      const isChecked = selectedStatuses.has(opt.value)
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => toggleStatus(opt.value)}
+                          className={`w-full px-2.5 py-1.5 rounded-[8px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
+                            isChecked
+                              ? 'bg-[#eff6ff] text-[#2563eb] font-semibold'
+                              : 'text-[#334155] hover:bg-[#f8fafc]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${opt.dotColor}`} />
+                            <span>{opt.label}</span>
+                          </div>
+                          {isChecked && <Check size={14} className="text-[#2563eb]" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Filter Tabs (All / Active / Completed) with Animated Sliding Glass Pill */}
+            <div
+              ref={tabNavRef}
+              className="relative mt-1 p-[3px] grid grid-cols-3 gap-[3px] rounded-[10px] bg-[#f1f5f9]/90 border border-[#e2e8f0]/80 backdrop-blur-md overflow-hidden shrink-0"
+            >
+              <div
+                style={{
+                  transform: `translate3d(${tabPillStyle.left}px, ${tabPillStyle.top}px, 0)`,
+                  width: `${tabPillStyle.width}px`,
+                  height: `${tabPillStyle.height}px`,
+                  opacity: tabPillStyle.opacity
+                }}
+                className="absolute top-0 left-0 pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-[8px] bg-white/95 backdrop-blur-md border border-white shadow-[0_2px_8px_rgba(15,23,42,0.08),0_1px_2px_rgba(15,23,42,0.04)] z-0"
+              />
+
+              {[
                 { id: 'all', label: 'All' },
                 { id: 'active', label: 'Active' },
                 { id: 'completed', label: 'Completed' }
-              ]}
-              value={companyTab}
-              onChange={setCompanyTab}
-              buttonPy="py-[7px]"
-              fontSize="text-[13px]"
-            />
-          )}
+              ].map((t) => {
+                const isActive = industryTab === t.id
+                return (
+                  <button
+                    key={t.id}
+                    ref={(el) => (tabRefs.current[t.id] = el)}
+                    type="button"
+                    onClick={() => setIndustryTab(t.id)}
+                    className={`relative z-10 py-[7px] px-[4px] text-[12.5px] font-[750] rounded-[7px] capitalize transition-colors duration-200 cursor-pointer text-center ${
+                      isActive ? 'text-[#2563eb]' : 'text-[#64748b] hover:text-[#1e293b]'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
 
-          {currentView === 'students' && (
-            <GlassSegmentedControl
-              options={[
-                { id: 'all', label: 'All' },
-                { id: 'attention', label: 'Attention' },
-                { id: 'placed', label: 'Placed' }
-              ]}
-              value={studentTab}
-              onChange={setStudentTab}
-              buttonPy="py-[7px]"
-              fontSize="text-[13px]"
-            />
-          )}
-        </div>
+            {/* Active Filter Chips (if any specific status is checked) */}
+            {selectedStatuses.size > 0 && (
+              <div className="mt-1 flex items-center flex-wrap gap-1.5 shrink-0">
+                {Array.from(selectedStatuses).map((st) => {
+                  const opt = statusOptions.find((o) => o.value === st)
+                  return (
+                    <span
+                      key={st}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#eff6ff] text-[#1e40af] border border-[#bfdbfe]"
+                    >
+                      <span>{opt?.label || st}</span>
+                      <X
+                        size={11}
+                        className="cursor-pointer hover:text-[#dc2626]"
+                        onClick={() => toggleStatus(st)}
+                      />
+                    </span>
+                  )
+                })}
+                <button
+                  type="button"
+                  onClick={clearStatusFilters}
+                  className="text-[10.5px] text-[#64748b] hover:text-[#dc2626] font-medium ml-1 underline cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Search Input Box for other views */}
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none">
+                <Search size={14} />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  currentView === 'overall'
+                    ? 'Search batch or outcome...'
+                    : currentView === 'companies'
+                    ? 'Search company...'
+                    : 'Search student or register no...'
+                }
+                className="w-full h-[38px] pl-9 pr-3 bg-white hover:bg-[#f8fafc] focus:bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[10px] text-[13px] text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition shadow-2xs font-medium"
+              />
+            </div>
+
+            {/* Segment Tabs tailored to each view */}
+            <div className="mt-1">
+              {currentView === 'overall' && (
+                <GlassSegmentedControl
+                  options={[
+                    { id: 'batches', label: 'Batches' },
+                    { id: 'outcomes', label: 'Outcome Groups' }
+                  ]}
+                  value={overallTab}
+                  onChange={setOverallTab}
+                  buttonPy="py-[7px]"
+                  fontSize="text-[13px]"
+                />
+              )}
+
+              {currentView === 'companies' && (
+                <GlassSegmentedControl
+                  options={[
+                    { id: 'all', label: 'All' },
+                    { id: 'active', label: 'Active' },
+                    { id: 'completed', label: 'Completed' }
+                  ]}
+                  value={companyTab}
+                  onChange={setCompanyTab}
+                  buttonPy="py-[7px]"
+                  fontSize="text-[13px]"
+                />
+              )}
+
+              {currentView === 'students' && (
+                <GlassSegmentedControl
+                  options={[
+                    { id: 'all', label: 'All' },
+                    { id: 'attention', label: 'Attention' },
+                    { id: 'placed', label: 'Placed' }
+                  ]}
+                  value={studentTab}
+                  onChange={setStudentTab}
+                  buttonPy="py-[7px]"
+                  fontSize="text-[13px]"
+                />
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* 2. Scrollable Content tailored to current view */}
@@ -480,82 +785,89 @@ export default function IntelligenceLeftPanel({
           )
         )}
 
-        {/* VIEW 2: INDUSTRIES (Recruiter History) */}
+        {/* VIEW 2: INDUSTRIES (Same layout, design & grouped cards as Placement Drive tab) */}
         {currentView === 'industries' && (
-          <div className="flex flex-col gap-2.5 animate-in fade-in duration-150">
-            <div className="text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] mb-0.5 px-1">
-              Industry View
-            </div>
-
-            {/* Overall Card */}
-            <button
-              type="button"
-              onClick={() => onSelectIndustry('__overall__')}
-              className={`group relative w-full p-[14px_16px] text-left rounded-[12px] transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                selectedIndustry === '__overall__'
-                  ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'
-                  : 'bg-white/95 hover:bg-white border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-[0_4px_12px_rgba(15,23,42,0.05)] hover:-translate-y-[1px]'
-              }`}
-            >
-              {selectedIndustry === '__overall__' && (
-                <span className="absolute -left-[1px] top-[12px] bottom-[12px] w-[3.5px] rounded-r-full bg-[#2563eb] shadow-[0_0_8px_#3b82f6]" />
-              )}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[14px] font-[850] text-[#1e293b] group-hover:text-[#2563eb] transition-colors leading-tight">
-                    Overall
-                  </div>
-                  <div className="text-[11.5px] text-[#64748b] mt-1 font-medium">
-                    Complete recruiter network
-                  </div>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe]/80 shadow-2xs">
-                  312
-                </span>
+          <div className="flex flex-col gap-2 animate-in fade-in duration-150">
+            {isLoadingDrives && (
+              <div className="py-12 flex flex-col items-center justify-center text-[#94a3b8]">
+                <Loader2 className="w-5 h-5 animate-spin text-[#2563eb] mb-2" />
+                <span className="text-[12px] font-medium">Loading drives...</span>
               </div>
-            </button>
+            )}
 
-            <div className="text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] mt-2 mb-0.5 px-1">
-              Recruiters
-            </div>
+            {!isLoadingDrives && filteredIndustryDrives.length === 0 && (
+              <div className="text-center py-12 text-[#64748b] text-[12px] bg-white/50 border border-dashed border-[#dbe5f1] rounded-[10px] m-1 p-4">
+                No matching drives found.
+              </div>
+            )}
 
-            {filteredIndustries.map((ind) => {
-              const isActive = selectedIndustry === ind.id
-              const totalOffers = ind.history?.reduce((acc, h) => acc + (h.offers || 0), 0) || 0
-              return (
-                <button
-                  key={ind.id}
-                  type="button"
-                  onClick={() => onSelectIndustry(ind.id)}
-                  className={`group relative w-full p-[14px_16px] text-left rounded-[12px] transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                    isActive
-                      ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'
-                      : 'bg-white/95 hover:bg-white border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-[0_4px_12px_rgba(15,23,42,0.05)] hover:-translate-y-[1px]'
-                  }`}
-                >
-                  {isActive && (
-                    <span className="absolute -left-[1px] top-[12px] bottom-[12px] w-[3.5px] rounded-r-full bg-[#2563eb] shadow-[0_0_8px_#3b82f6]" />
-                  )}
+            {!isLoadingDrives &&
+              ['Requires Attention', 'Upcoming', 'Recently Completed'].map((group) => {
+                const groupDrives = filteredIndustryDrives.filter(
+                  (d) => (d.status_group || 'Requires Attention') === group
+                )
+                if (!groupDrives.length) return null
 
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-[14px] font-[850] text-[#1e293b] group-hover:text-[#2563eb] transition-colors leading-tight">
-                        {ind.name}
-                      </div>
-                      <div className="text-[11.5px] text-[#64748b] mt-1 font-medium truncate max-w-[200px]">
-                        {ind.role}
-                      </div>
+                return (
+                  <div key={group} className="mb-2">
+                    <div className="mb-2 text-[#64748b] text-[10.5px] font-[850] tracking-[0.6px] uppercase px-1 flex items-center justify-between">
+                      <span>{group}</span>
+                      <span className="text-[10px] font-semibold text-[#94a3b8] bg-[#f1f5f9] px-1.5 py-0.2 rounded-full">
+                        {groupDrives.length}
+                      </span>
                     </div>
-                    {renderStatusBadge(ind.status)}
-                  </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-[#64748b] mt-3 pt-2.5 border-t border-[#e2e8f0]/80 font-medium">
-                    <span>{ind.sector}</span>
-                    <span>{totalOffers} offers</span>
+                    {groupDrives.map((drive) => {
+                      const isSelected = String(selectedIndustry) === String(drive.id)
+                      const companyName = drive.company?.company_name || 'Placement Company'
+                      const badge = getBadgeDetails(drive.overall_status)
+
+                      return (
+                        <div
+                          key={drive.id}
+                          onClick={() => onSelectIndustry(drive.id)}
+                          className={`group relative mb-2 p-[12px_14px] rounded-[11px] transition-all duration-200 cursor-pointer ${
+                            isSelected
+                              ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'
+                              : 'bg-white/90 hover:bg-white backdrop-blur-xs border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-[0_4px_12px_rgba(15,23,42,0.05)] hover:-translate-y-[1px]'
+                          }`}
+                        >
+                          {isSelected && (
+                            <span className="absolute -left-[1px] top-[10px] bottom-[10px] w-[3.5px] rounded-r-full bg-[#2563eb] shadow-[0_0_8px_#3b82f6]" />
+                          )}
+
+                          <div className="flex items-start justify-between gap-[8px]">
+                            <div>
+                              <div className="text-[14px] font-[800] text-[#1e293b] group-hover:text-[#2563eb] transition-colors leading-tight flex items-center gap-1.5">
+                                <span>{companyName}</span>
+                              </div>
+                              <div className="text-[11.5px] text-[#64748b] mt-[3px] line-clamp-1 font-medium">
+                                {drive.job_role}
+                              </div>
+                            </div>
+
+                            <span
+                              className={`py-[3.5px] px-[8.5px] rounded-[18px] text-[10px] font-[850] whitespace-nowrap shrink-0 backdrop-blur-sm transition-transform group-hover:scale-[1.03] ${badge.className}`}
+                            >
+                              {badge.label}
+                            </span>
+                          </div>
+
+                          <div className="mt-[9px] pt-[7px] border-t border-[#f1f5f9] flex items-center justify-between text-[11px] text-[#64748b]">
+                            <span className="flex items-center gap-1 font-medium">
+                              <Users size={12} className="text-[#94a3b8]" />
+                              {drive.total_students || 0} students
+                            </span>
+                            <span className="text-[#94a3b8] font-normal">
+                              {drive.subtitle_meta || 'Drive Record'}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                </button>
-              )
-            })}
+                )
+              })}
           </div>
         )}
 

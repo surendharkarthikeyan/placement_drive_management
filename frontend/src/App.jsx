@@ -198,6 +198,7 @@ export default function App() {
             selectedOutcome={selectedIntelligenceOutcome}
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
+            selectedIndustry={selectedIntelligenceIndustry}
           />
 
           {/* Right Panel */}
@@ -208,6 +209,7 @@ export default function App() {
             selectedOutcome={selectedIntelligenceOutcome}
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
+            selectedIndustry={selectedIntelligenceIndustry}
           />
         </main>
       )}
