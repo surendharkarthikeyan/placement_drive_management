@@ -24,6 +24,7 @@ export default function App() {
   // Placement Intelligence state
   const [intelligenceView, setIntelligenceView] = useState('overall')
   const [selectedIntelligenceBatch, setSelectedIntelligenceBatch] = useState(null)
+  const [selectedIntelligenceDept, setSelectedIntelligenceDept] = useState('All')
   const [selectedIntelligenceOutcome, setSelectedIntelligenceOutcome] = useState('notPlaced')
   const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState('__overall__')
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
@@ -186,12 +187,18 @@ export default function App() {
             currentView={intelligenceView}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
+            selectedDepartment={selectedIntelligenceDept}
+            onSelectDepartment={setSelectedIntelligenceDept}
             selectedOutcome={selectedIntelligenceOutcome}
             onSelectOutcome={setSelectedIntelligenceOutcome}
           />
 
           {/* Right Panel */}
-          <IntelligenceRightPanel currentView={intelligenceView} />
+          <IntelligenceRightPanel
+            currentView={intelligenceView}
+            selectedBatch={selectedIntelligenceBatch}
+            selectedDepartment={selectedIntelligenceDept}
+          />
         </main>
       )}
 

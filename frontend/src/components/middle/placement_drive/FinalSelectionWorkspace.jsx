@@ -18,6 +18,7 @@ import {
 import {
   getFinalSelection,
   saveFinalSelection,
+  updateStudentOffer,
   uploadReferenceDocument,
   uploadOfferLetter,
   downloadOfferLetterUrl
@@ -62,6 +63,11 @@ export default function FinalSelectionWorkspace({
   const [uploadFeedback, setUploadFeedback] = useState({})
   const [isUploadingRef, setIsUploadingRef] = useState(false)
 
+  // Track initial/persisted values to display Save button beside "Offered" when edited
+  const [initialValues, setInitialValues] = useState({})
+  const [savingOfferId, setSavingOfferId] = useState(null)
+  const [saveFeedback, setSaveFeedback] = useState({})
+
   // Fetch final selection data on mount or when driveId changes
   const fetchData = async () => {
     if (!driveId) return
@@ -79,6 +85,8 @@ export default function FinalSelectionWorkspace({
     setFinalRoundCompleted(false)
     setFinalRoundName('')
     setUploadFeedback({})
+    setInitialValues({})
+    setSaveFeedback({})
 
     try {
       const data = await getFinalSelection(driveId)
@@ -94,13 +102,23 @@ export default function FinalSelectionWorkspace({
         setFinalRoundCompleted(Boolean(data.final_round_completed))
         setFinalRoundName(data.final_round_name || '')
 
-        const studentList = (data.students || []).map((s) => ({
-          ...s,
-          final_role: s.final_role || data.default_role || '',
-          package_lpa: s.package_lpa !== null && s.package_lpa !== undefined ? s.package_lpa : data.default_package_lpa || '',
-          offer_letter_file: s.offer_letter_file || ''
-        }))
+        const initial = {}
+        const studentList = (data.students || []).map((s) => {
+          const role = s.final_role || data.default_role || ''
+          const pkg = s.package_lpa !== null && s.package_lpa !== undefined ? s.package_lpa : (data.default_package_lpa || '')
+          initial[s.drive_student_id] = {
+            final_role: role,
+            package_lpa: pkg
+          }
+          return {
+            ...s,
+            final_role: role,
+            package_lpa: pkg,
+            offer_letter_file: s.offer_letter_file || ''
+          }
+        })
         setStudents(studentList)
+        setInitialValues(initial)
       }
     } catch (err) {
       console.error('Failed to load final selection data', err)
@@ -122,6 +140,49 @@ export default function FinalSelectionWorkspace({
         s.drive_student_id === driveStudentId ? { ...s, [field]: value } : s
       )
     )
+  }
+
+  // Save an individual student's edited role and package to database
+  const handleSaveStudentOffer = async (student) => {
+    const studentId = student.drive_student_id
+    setSavingOfferId(studentId)
+    setErrorMessage('')
+    try {
+      const payload = {
+        final_role: student.final_role ? student.final_role.trim() : defaultRole,
+        package_lpa: student.package_lpa !== '' && student.package_lpa !== null ? parseFloat(student.package_lpa) : null
+      }
+      await updateStudentOffer(driveId, studentId, payload)
+
+      // Update initial values so isEdited resets to false
+      setInitialValues((prev) => ({
+        ...prev,
+        [studentId]: {
+          final_role: student.final_role,
+          package_lpa: student.package_lpa
+        }
+      }))
+
+      // Show temporary "Saved" feedback
+      setSaveFeedback((prev) => ({
+        ...prev,
+        [studentId]: true
+      }))
+      setTimeout(() => {
+        setSaveFeedback((prev) => {
+          const next = { ...prev }
+          delete next[studentId]
+          return next
+        })
+      }, 3000)
+
+      onDriveUpdated()
+    } catch (err) {
+      console.error('Failed to update student offer', err)
+      setErrorMessage(err.response?.data?.error || 'Failed to update offer details.')
+    } finally {
+      setSavingOfferId(null)
+    }
   }
 
   // Handle upload of student offer letter
@@ -310,12 +371,20 @@ export default function FinalSelectionWorkspace({
                 const fileInfo = uploadFeedback[student.drive_student_id]
                 const currentFileName = fileInfo?.status === 'success' ? fileInfo.message : student.offer_letter_file
 
+                const initVal = initialValues[student.drive_student_id]
+                const isEdited = Boolean(
+                  initVal && (
+                    (student.final_role || '').trim() !== (initVal.final_role || '').trim() ||
+                    String(student.package_lpa ?? '').trim() !== String(initVal.package_lpa ?? '').trim()
+                  )
+                )
+
                 return (
                   <div
                     key={student.drive_student_id}
                     className="p-4 rounded-[14px] border border-[#e2e8f0] bg-[#fafcff] hover:border-[#cbd5e1] transition-all flex flex-col gap-3.5"
                   >
-                    {/* Student Header: Avatar, Name, Department, Offered Badge */}
+                    {/* Student Header: Avatar, Name, Department, Offered Badge & Save Button */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-[#dbeafe] text-[#1d4ed8] font-bold text-[12.5px] flex items-center justify-center shrink-0 tracking-tight shadow-2xs">
@@ -337,6 +406,31 @@ export default function FinalSelectionWorkspace({
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                           <span>Offered</span>
                         </span>
+
+                        {/* Show Save button near to the status 'Offered' when role or LPA is edited */}
+                        {isEdited && (
+                          <button
+                            type="button"
+                            onClick={() => handleSaveStudentOffer(student)}
+                            disabled={savingOfferId === student.drive_student_id}
+                            className="px-2.5 py-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[7px] text-[11.5px] font-bold transition flex items-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer disabled:opacity-60"
+                            title="Save edited role and package to database"
+                          >
+                            {savingOfferId === student.drive_student_id ? (
+                              <Loader2 size={12} className="animate-spin text-white" />
+                            ) : (
+                              <Save size={12} className="text-white" />
+                            )}
+                            <span>Save</span>
+                          </button>
+                        )}
+
+                        {saveFeedback[student.drive_student_id] && (
+                          <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#16a34a] bg-[#f0fdf4] border border-[#bbf7d0] px-2 py-0.5 rounded-[6px] animate-in fade-in duration-200">
+                            <Check size={12} className="text-[#16a34a]" />
+                            <span>Saved</span>
+                          </span>
+                        )}
                       </div>
                     </div>
 

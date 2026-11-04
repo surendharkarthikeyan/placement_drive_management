@@ -1864,7 +1864,10 @@ func (r *DriveRepository) CompleteSubstage(driveID uint64, stageID uint64, subst
 // CompleteRecruitmentProcess marks all stages as completed, sets drive overall_status to awaiting_final_result
 func (r *DriveRepository) CompleteRecruitmentProcess(driveID uint64, officerUserID *uint64) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// drive verified
+		var drive models.PlacementDrive
+		if err := tx.First(&drive, driveID).Error; err != nil {
+			return err
+		}
 
 		now := time.Now()
 		// Mark all stages for this drive as completed if not already completed
@@ -1887,6 +1890,9 @@ func (r *DriveRepository) CompleteRecruitmentProcess(driveID uint64, officerUser
 			return err
 		}
 
+		// Ensure all students who cleared the final stage have records in placement_drive_offers
+		r.EnsureFinalOffersInDB(tx, &drive)
+
 		// Log activity
 		actLog := models.PlacementDriveActivityLog{
 			DriveID:             driveID,
@@ -1901,6 +1907,78 @@ func (r *DriveRepository) CompleteRecruitmentProcess(driveID uint64, officerUser
 
 		return nil
 	})
+}
+
+// EnsureFinalOffersInDB ensures that any student who reached and cleared the final recruitment stage
+// has a record in placement_drive_offers with the drive's default role and LPA, and offer_letter_file as null.
+func (r *DriveRepository) EnsureFinalOffersInDB(tx *gorm.DB, drive *models.PlacementDrive) {
+	if drive == nil {
+		return
+	}
+	var lastStage models.PlacementDriveStage
+	err := tx.Where("drive_id = ?", drive.ID).Order("sequence_no desc").First(&lastStage).Error
+	if err != nil {
+		return
+	}
+
+	var lastSubstage models.PlacementDriveSubstage
+	hasSubstages := false
+	if err := tx.Where("stage_id = ?", lastStage.ID).Order("sequence_no desc").First(&lastSubstage).Error; err == nil {
+		hasSubstages = true
+	}
+
+	query := tx.Table("placement_stage_results psr").
+		Select("pds.id as drive_student_id").
+		Joins("JOIN placement_drive_students pds ON pds.id = psr.drive_student_id").
+		Where("psr.stage_id = ? AND psr.outcome = 'cleared'", lastStage.ID)
+
+	if hasSubstages {
+		var subCount int64
+		tx.Model(&models.PlacementStageResult{}).Where("stage_id = ? AND substage_id = ?", lastStage.ID, lastSubstage.ID).Count(&subCount)
+		if subCount > 0 {
+			query = query.Where("psr.substage_id = ?", lastSubstage.ID)
+		}
+	}
+
+	var clearedStudentIDs []uint64
+	if err := query.Pluck("drive_student_id", &clearedStudentIDs).Error; err != nil || len(clearedStudentIDs) == 0 {
+		return
+	}
+
+	now := time.Now()
+	for _, studentID := range clearedStudentIDs {
+		var existing models.PlacementDriveOffer
+		err := tx.Where("drive_student_id = ?", studentID).First(&existing).Error
+		if err != nil {
+			// Record does not exist -> Insert default offer with role & LPA, offer_letter_file = NULL
+			roleVal := drive.JobRole
+			pkgVal := drive.PackageLPA
+			newOffer := models.PlacementDriveOffer{
+				DriveStudentID:  studentID,
+				FinalRole:       &roleVal,
+				PackageLPA:      &pkgVal,
+				ConfirmedAt:     &now,
+				OfferLetterFile: nil,
+				CreatedAt:       now,
+			}
+			_ = tx.Create(&newOffer).Error
+		} else {
+			// Record exists -> Backfill if role, lpa, or confirmed_at is null/empty
+			updates := map[string]interface{}{}
+			if existing.FinalRole == nil || *existing.FinalRole == "" {
+				updates["final_role"] = drive.JobRole
+			}
+			if existing.PackageLPA == nil {
+				updates["package_lpa"] = drive.PackageLPA
+			}
+			if existing.ConfirmedAt == nil {
+				updates["confirmed_at"] = now
+			}
+			if len(updates) > 0 {
+				_ = tx.Model(&existing).Updates(updates).Error
+			}
+		}
+	}
 }
 
 // GetFinalSelectionData retrieves all candidates reaching the final stage and existing offers
@@ -1969,6 +2047,9 @@ func (r *DriveRepository) GetFinalSelectionData(driveID uint64) (*models.FinalSe
 	if !isRecruitmentProcessCompleted {
 		return baseData, nil
 	}
+
+	// Ensure all students who reached/cleared final stage have records in placement_drive_offers
+	r.EnsureFinalOffersInDB(r.db, &drive)
 
 	query := r.db.Table("placement_stage_results psr").
 		Select(`
@@ -2105,7 +2186,6 @@ func (r *DriveRepository) SaveFinalSelections(
 				// Create new offer
 				offer.ConfirmedAt = &now
 				offer.CreatedAt = now
-				offer.ResultReference = studentOfferFile
 				offer.OfferLetterFile = studentOfferFile
 				offer.Notes = &notes
 				if err := tx.Create(&offer).Error; err != nil {
@@ -2120,7 +2200,6 @@ func (r *DriveRepository) SaveFinalSelections(
 					"notes":        notes,
 				}
 				if studentOfferFile != nil {
-					upd["result_reference"] = studentOfferFile
 					upd["offer_letter_file"] = studentOfferFile
 				}
 				if err := tx.Model(&existing).Updates(upd).Error; err != nil {
@@ -2154,4 +2233,33 @@ func (r *DriveRepository) SaveFinalSelections(
 
 		return nil
 	})
+}
+
+// UpdateStudentOffer updates final role and package for a specific student's offer
+func (r *DriveRepository) UpdateStudentOffer(driveID uint64, driveStudentID uint64, role string, packageLPA *float64) error {
+	var drive models.PlacementDrive
+	if err := r.db.First(&drive, driveID).Error; err != nil {
+		return errors.New("drive not found")
+	}
+
+	var existing models.PlacementDriveOffer
+	now := time.Now()
+	err := r.db.Where("drive_student_id = ?", driveStudentID).First(&existing).Error
+	if err != nil {
+		newOffer := models.PlacementDriveOffer{
+			DriveStudentID:  driveStudentID,
+			FinalRole:       &role,
+			PackageLPA:      packageLPA,
+			ConfirmedAt:     &now,
+			OfferLetterFile: nil,
+			CreatedAt:       now,
+		}
+		return r.db.Create(&newOffer).Error
+	}
+
+	return r.db.Model(&existing).Updates(map[string]interface{}{
+		"final_role":   role,
+		"package_lpa":  packageLPA,
+		"confirmed_at": now,
+	}).Error
 }

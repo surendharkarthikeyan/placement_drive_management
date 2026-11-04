@@ -203,6 +203,14 @@ export const downloadOfferLetterUrl = (driveId, driveStudentId) => {
   return `${baseURL}/drives/${driveId}/download-offer-letter/${driveStudentId}`
 }
 
+export const updateStudentOffer = async (driveId, studentId, { final_role, package_lpa }) => {
+  const response = await api.put(`/drives/${driveId}/offers/${studentId}`, {
+    final_role,
+    package_lpa
+  })
+  return response.data
+}
+
 // Student Placement Review
 export const getStudentReviewDetail = async (userId = 'default') => {
   const response = await api.get(`/student-review/${userId}`)
@@ -283,14 +291,50 @@ export const getIntelligenceOutcomeSummary = async (batch = '') => {
   return response.data?.data || {}
 }
 
-export const getIntelligenceOverallStats = async ({ batch = '', department = '' } = {}) => {
+export const getIntelligenceOverallStats = async (arg1 = {}, arg2 = '') => {
+  let batch = ''
+  let department = ''
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    batch = arg1.batch || ''
+    department = arg1.department || ''
+  } else {
+    batch = arg1 || ''
+    department = arg2 || ''
+  }
   const params = {}
-  if (batch && batch !== 'all' && batch !== 'All') params.batch = batch
+  if (batch && batch !== 'all' && batch !== 'All') {
+    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+  }
   if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
     params.department = department
   }
   const response = await api.get('/intelligence/overall-stats', { params })
-  return response.data?.data || null
+  return response.data?.data !== undefined ? response.data.data : response.data
+}
+
+export const exportIntelligenceExcel = async (batch = '', department = '') => {
+  const params = {}
+  if (batch && batch !== 'all' && batch !== 'All') {
+    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+  }
+  if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
+    params.department = department
+  }
+  const response = await api.get('/intelligence/overall-stats/export', {
+    params,
+    responseType: 'blob'
+  })
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', `Overall_Placement_Statistics_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
 }
 
 export default api

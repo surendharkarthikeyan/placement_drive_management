@@ -1,9 +1,11 @@
 package repositories
 
 import (
+	"fmt"
 	"strings"
 	"placement-management/config"
 	"placement-management/models"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -160,9 +162,12 @@ func (r *PlacementIntelligenceRepository) GetOverallPlacementMatrix(batchParam, 
 	var batches []models.Batch
 	bQuery := r.db.Order("name ASC")
 	if batchParam != "" && batchParam != "all" && batchParam != "All" {
-		// Clean batchParam for matching e.g. "2026-27" -> "2027", "2022-2026"
-		cleanBatch := batchParam
-		bQuery = bQuery.Where("id = ? OR name = ? OR name LIKE ?", batchParam, cleanBatch, "%"+cleanBatch+"%")
+		// Clean batchParam for matching e.g. "2026-27" -> "2027", "2022-2026", en-dash vs hyphen
+		cleanBatch := strings.ReplaceAll(batchParam, "–", "-")
+		cleanBatch = strings.ReplaceAll(cleanBatch, "—", "-")
+		cleanBatch = strings.TrimSpace(cleanBatch)
+		bQuery = bQuery.Where("id = ? OR name = ? OR name LIKE ? OR REPLACE(REPLACE(name, '–', '-'), '—', '-') LIKE ?",
+			batchParam, cleanBatch, "%"+cleanBatch+"%", "%"+cleanBatch+"%")
 	}
 	if err := bQuery.Find(&batches).Error; err != nil {
 		return nil, err
@@ -313,5 +318,330 @@ func (r *PlacementIntelligenceRepository) GetOverallPlacementMatrix(batchParam, 
 	}
 
 	return &response, nil
+}
+
+// ExportOverallPlacementMatrixExcel generates a styled Excel spreadsheet containing:
+// 1. Number of Offers by Salary Scale
+// 2. Unique Students by Best Offer
+// with the exact styling (navy header, clear borders, tags) matching Student Placement Review export
+func (r *PlacementIntelligenceRepository) ExportOverallPlacementMatrixExcel(batchParam, deptParam string) ([]byte, error) {
+	matrix, err := r.GetOverallPlacementMatrix(batchParam, deptParam)
+	if err != nil {
+		return nil, err
+	}
+
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheet := "Overall Statistics"
+	f.SetSheetName("Sheet1", sheet)
+
+	// Styles
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:  true,
+			Color: "#FFFFFF",
+			Size:  11,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#1E40AF"},
+			Pattern: 1,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Border: []excelize.Border{
+			{Type: "top", Color: "#CBD5E1", Style: 1},
+			{Type: "bottom", Color: "#CBD5E1", Style: 1},
+			{Type: "left", Color: "#CBD5E1", Style: 1},
+			{Type: "right", Color: "#CBD5E1", Style: 1},
+		},
+	})
+
+	titleStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:  true,
+			Color: "#172554",
+			Size:  14,
+		},
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+		},
+	})
+
+	subtitleStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Color: "#64748B",
+			Size:  10,
+		},
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+		},
+	})
+
+	secTitleStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:  true,
+			Color: "#1E293B",
+			Size:  12,
+		},
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+		},
+	})
+
+	batchColStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:  true,
+			Color: "#1E293B",
+			Size:  11,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+		},
+	})
+
+	centerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Color: "#334155",
+			Size:  11,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+		},
+	})
+
+	highlightStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:  true,
+			Color: "#2563EB",
+			Size:  11,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+		},
+	})
+
+	notPlacedStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{
+			Bold:  true,
+			Color: "#92400E",
+			Size:  11,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#FEF3C7"},
+			Pattern: 1,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Border: []excelize.Border{
+			{Type: "top", Color: "#E2E8F0", Style: 1},
+			{Type: "bottom", Color: "#E2E8F0", Style: 1},
+			{Type: "left", Color: "#E2E8F0", Style: 1},
+			{Type: "right", Color: "#E2E8F0", Style: 1},
+		},
+	})
+
+	// Row 1: Document Title
+	_ = f.SetRowHeight(sheet, 1, 28)
+	_ = f.SetCellValue(sheet, "A1", "OVERALL PLACEMENT STATISTICS")
+	_ = f.SetCellStyle(sheet, "A1", "A1", titleStyle)
+
+	// Row 2: Subtitle with filters
+	filterInfo := "All Graduating Batches | All Departments"
+	if batchParam != "" && batchParam != "All" {
+		filterInfo = fmt.Sprintf("Batch: %s", batchParam)
+	}
+	if deptParam != "" && deptParam != "All" {
+		filterInfo += fmt.Sprintf(" | Department: %s", deptParam)
+	}
+	_ = f.SetRowHeight(sheet, 2, 20)
+	_ = f.SetCellValue(sheet, "A2", filterInfo)
+	_ = f.SetCellStyle(sheet, "A2", "A2", subtitleStyle)
+
+	// ----------------------------------------------------
+	// TABLE 1: Number of Offers by Salary Scale
+	// ----------------------------------------------------
+	currRow := 4
+	_ = f.SetRowHeight(sheet, currRow, 24)
+	_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", currRow), "Number of Offers by Salary Scale")
+	_ = f.SetCellStyle(sheet, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), secTitleStyle)
+
+	currRow++
+	_ = f.SetRowHeight(sheet, currRow, 18)
+	_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", currRow), "Every confirmed offer is counted. One student may contribute to multiple salary bands when holding multiple offers.")
+	_ = f.SetCellStyle(sheet, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), subtitleStyle)
+
+	currRow++
+	t1HeaderRow := currRow
+	_ = f.SetRowHeight(sheet, t1HeaderRow, 28)
+	t1Headers := []string{
+		"Batch",
+		"Total Students",
+		"> ₹40L",
+		"₹30–40L",
+		"₹20–30L",
+		"₹10–20L",
+		"₹6–10L",
+		"₹4–6L",
+		"₹3–4L",
+	}
+	for i, h := range t1Headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, t1HeaderRow)
+		_ = f.SetCellValue(sheet, cell, h)
+		_ = f.SetCellStyle(sheet, cell, cell, headerStyle)
+	}
+
+	for _, r1 := range matrix.OffersBySalaryScale {
+		currRow++
+		_ = f.SetRowHeight(sheet, currRow, 22)
+		cells := []interface{}{
+			fmt.Sprintf("Batch %s", r1.Batch),
+			r1.TotalStudents,
+			r1.Offers.Gt40,
+			r1.Offers.P30_40,
+			r1.Offers.P20_30,
+			r1.Offers.P10_20,
+			r1.Offers.P6_10,
+			r1.Offers.P4_6,
+			r1.Offers.P3_4,
+		}
+		for i, val := range cells {
+			cell, _ := excelize.CoordinatesToCellName(i+1, currRow)
+			_ = f.SetCellValue(sheet, cell, val)
+			if i == 0 {
+				_ = f.SetCellStyle(sheet, cell, cell, batchColStyle)
+			} else if i >= 2 && val.(int64) > 0 {
+				_ = f.SetCellStyle(sheet, cell, cell, highlightStyle)
+			} else {
+				_ = f.SetCellStyle(sheet, cell, cell, centerStyle)
+			}
+		}
+	}
+
+	// ----------------------------------------------------
+	// TABLE 2: Unique Students by Best Offer
+	// ----------------------------------------------------
+	currRow += 3
+	_ = f.SetRowHeight(sheet, currRow, 24)
+	_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", currRow), "Unique Students by Best Offer")
+	_ = f.SetCellStyle(sheet, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), secTitleStyle)
+
+	currRow++
+	_ = f.SetRowHeight(sheet, currRow, 18)
+	_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", currRow), "Every student is counted once under the salary band of the student's highest confirmed offer.")
+	_ = f.SetCellStyle(sheet, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), subtitleStyle)
+
+	currRow++
+	t2HeaderRow := currRow
+	_ = f.SetRowHeight(sheet, t2HeaderRow, 28)
+	t2Headers := []string{
+		"Batch",
+		"Total",
+		"> ₹40L",
+		"₹30–40L",
+		"₹20–30L",
+		"₹10–20L",
+		"₹6–10L",
+		"₹4–6L",
+		"₹3–4L",
+		"Not Eligible",
+		"Entrepreneurship",
+		"Higher Studies",
+		"Not Placed",
+	}
+	for i, h := range t2Headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, t2HeaderRow)
+		_ = f.SetCellValue(sheet, cell, h)
+		_ = f.SetCellStyle(sheet, cell, cell, headerStyle)
+	}
+
+	for _, r2 := range matrix.UniqueStudentsByOffer {
+		currRow++
+		_ = f.SetRowHeight(sheet, currRow, 22)
+		cells := []interface{}{
+			fmt.Sprintf("Batch %s", r2.Batch),
+			r2.Total,
+			r2.Unique.Gt40,
+			r2.Unique.P30_40,
+			r2.Unique.P20_30,
+			r2.Unique.P10_20,
+			r2.Unique.P6_10,
+			r2.Unique.P4_6,
+			r2.Unique.P3_4,
+			r2.NotEligible,
+			r2.Entrepreneurship,
+			r2.HigherStudies,
+			r2.NotPlaced,
+		}
+		for i, val := range cells {
+			cell, _ := excelize.CoordinatesToCellName(i+1, currRow)
+			_ = f.SetCellValue(sheet, cell, val)
+			if i == 0 {
+				_ = f.SetCellStyle(sheet, cell, cell, batchColStyle)
+			} else if i == 12 { // Not Placed
+				_ = f.SetCellStyle(sheet, cell, cell, notPlacedStyle)
+			} else if i >= 2 && i <= 8 && val.(int64) > 0 {
+				_ = f.SetCellStyle(sheet, cell, cell, highlightStyle)
+			} else {
+				_ = f.SetCellStyle(sheet, cell, cell, centerStyle)
+			}
+		}
+	}
+
+	// Auto column widths
+	colWidths := map[int]float64{
+		1:  20, // Batch
+		2:  16, // Total Students / Total
+		3:  14, // > ₹40L
+		4:  14, // ₹30–40L
+		5:  14, // ₹20–30L
+		6:  14, // ₹10–20L
+		7:  14, // ₹6–10L
+		8:  14, // ₹4–6L
+		9:  14, // ₹3–4L
+		10: 17, // Not Eligible
+		11: 20, // Entrepreneurship
+		12: 18, // Higher Studies
+		13: 16, // Not Placed
+	}
+	for colIdx, width := range colWidths {
+		colName, _ := excelize.ColumnNumberToName(colIdx)
+		_ = f.SetColWidth(sheet, colName, colName, width)
+	}
+
+	buffer, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }
 

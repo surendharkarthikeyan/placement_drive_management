@@ -964,6 +964,42 @@ func (ctrl *DriveController) SaveFinalSelection(c *gin.Context) {
 	})
 }
 
+// UpdateStudentOffer updates final role and package for an individual offered student
+func (ctrl *DriveController) UpdateStudentOffer(c *gin.Context) {
+	driveID := c.Param("id")
+	driveIDUint, err := strconv.ParseUint(driveID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid drive id"})
+		return
+	}
+
+	studentID := c.Param("student_id")
+	studentIDUint, err := strconv.ParseUint(studentID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student id"})
+		return
+	}
+
+	var req struct {
+		FinalRole  string   `json:"final_role"`
+		PackageLPA *float64 `json:"package_lpa"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := ctrl.service.UpdateStudentOffer(driveIDUint, studentIDUint, req.FinalRole, req.PackageLPA); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Student offer updated successfully",
+	})
+}
+
 
 // UploadReferenceDocument saves official reference document to C:\BIT\placement\placement_drive_management\document_db\final_result_info
 func (ctrl *DriveController) UploadReferenceDocument(c *gin.Context) {
@@ -1079,19 +1115,29 @@ func (ctrl *DriveController) UploadOfferLetter(c *gin.Context) {
 		return
 	}
 
-	// Update placement_drive_offers: store the full path of the document in result_reference
+	// Update placement_drive_offers: store the full path of the document in offer_letter_file
 	if config.DB != nil && driveStudentID > 0 {
 		var existing models.PlacementDriveOffer
 		now := time.Now()
 		if err := config.DB.Where("drive_student_id = ?", driveStudentID).First(&existing).Error; err == nil {
 			config.DB.Model(&existing).Updates(map[string]interface{}{
-				"result_reference":  targetPath,
 				"offer_letter_file": targetPath,
 			})
 		} else {
+			var role *string
+			var pkg *float64
+			var drive models.PlacementDrive
+			driveIDUint, _ := strconv.ParseUint(driveID, 10, 64)
+			if err := config.DB.First(&drive, driveIDUint).Error; err == nil {
+				role = &drive.JobRole
+				p := drive.PackageLPA
+				pkg = &p
+			}
 			newOffer := models.PlacementDriveOffer{
 				DriveStudentID:  driveStudentID,
-				ResultReference: &targetPath,
+				FinalRole:       role,
+				PackageLPA:      pkg,
+				ConfirmedAt:     &now,
 				OfferLetterFile: &targetPath,
 				CreatedAt:       now,
 			}
@@ -1139,9 +1185,7 @@ func (ctrl *DriveController) DownloadOfferLetter(c *gin.Context) {
 	}
 
 	filePath := ""
-	if offer.ResultReference != nil && *offer.ResultReference != "" {
-		filePath = *offer.ResultReference
-	} else if offer.OfferLetterFile != nil && *offer.OfferLetterFile != "" {
+	if offer.OfferLetterFile != nil && *offer.OfferLetterFile != "" {
 		filePath = *offer.OfferLetterFile
 	}
 

@@ -8,9 +8,8 @@ type PlacementDriveOffer struct {
 	FinalRole       *string                `gorm:"size:200" json:"final_role"`
 	PackageLPA      *float64               `gorm:"type:decimal(8,2)" json:"package_lpa"`
 	ConfirmedAt     *time.Time             `json:"confirmed_at"`
-	ResultReference *string                `gorm:"size:255" json:"result_reference"`
 	Notes           *string                `gorm:"type:text" json:"notes"`
-	OfferLetterFile *string                `gorm:"size:255" json:"offer_letter_file"`
+	OfferLetterFile *string                `gorm:"size:500" json:"offer_letter_file"`
 	CreatedAt       time.Time              `json:"created_at"`
 	DriveStudent    *PlacementDriveStudent `gorm:"foreignKey:DriveStudentID" json:"drive_student,omitempty"`
 }

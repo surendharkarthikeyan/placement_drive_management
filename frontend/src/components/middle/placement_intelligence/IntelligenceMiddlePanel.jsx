@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Loader2, Download, RotateCcw } from 'lucide-react'
-import { getIntelligenceOverallStats, getBatches, getDepartments } from '../../../services/api'
+import { getIntelligenceOverallStats, exportIntelligenceExcel, getBatches, getDepartments } from '../../../services/api'
 
 /**
  * IntelligenceMiddlePanel
@@ -17,6 +17,8 @@ export default function IntelligenceMiddlePanel({
   currentView = 'overall',
   selectedBatch: externalBatch = null,
   onSelectBatch = () => {},
+  selectedDepartment: externalDepartment = 'All',
+  onSelectDepartment = () => {},
   selectedOutcome = 'notPlaced',
   onSelectOutcome = () => {},
   onSelectDetail = () => {}
@@ -40,6 +42,15 @@ export default function IntelligenceMiddlePanel({
       setSelectedBatchFilter('All')
     }
   }, [externalBatch])
+
+  // Sync externalDepartment if changed
+  useEffect(() => {
+    if (externalDepartment) {
+      setSelectedDeptFilter(externalDepartment)
+    } else {
+      setSelectedDeptFilter('All')
+    }
+  }, [externalDepartment])
 
   // Fetch batches & departments for filter dropdowns on mount
   useEffect(() => {
@@ -86,6 +97,7 @@ export default function IntelligenceMiddlePanel({
     setSelectedBatchFilter('All')
     setSelectedDeptFilter('All')
     onSelectBatch(null)
+    onSelectDepartment('All')
   }
 
   // Batch dropdown change handler
@@ -98,23 +110,28 @@ export default function IntelligenceMiddlePanel({
     }
   }
 
-  // Export handler (CSV / JSON data export)
-  const handleExport = () => {
-    if (!matrixData) return
-    const rows = matrixData.offers_by_salary_scale || []
-    let csv = 'Batch,Total Students,>40L,30-40L,20-30L,10-20L,6-10L,4-6L,3-4L\n'
-    rows.forEach((r) => {
-      csv += `"${r.batch}",${r.total_students},${r.offers.gt40},${r.offers.p30_40},${r.offers.p20_30},${r.offers.p10_20},${r.offers.p6_10},${r.offers.p4_6},${r.offers.p3_4}\n`
-    })
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `Overall_Placement_Statistics_${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.URL.revokeObjectURL(url)
+  // Department dropdown change handler
+  const handleDeptChange = (val) => {
+    setSelectedDeptFilter(val)
+    onSelectDepartment(val)
+  }
+
+  const [isExporting, setIsExporting] = useState(false)
+
+  // Export handler (Generates real styled Excel spreadsheet with both tables)
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      await exportIntelligenceExcel(
+        selectedBatchFilter !== 'All' ? selectedBatchFilter : '',
+        selectedDeptFilter !== 'All' ? selectedDeptFilter : ''
+      )
+    } catch (err) {
+      console.error('Failed to export placement intelligence excel', err)
+      alert('Failed to generate Excel export.')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const signals = matrixData?.signals || {
@@ -129,7 +146,7 @@ export default function IntelligenceMiddlePanel({
   const uniqueRows = matrixData?.unique_students_by_offer || []
 
   return (
-    <section className="flex-1 min-w-[700px] bg-[#f8fafc] h-full overflow-y-auto flex flex-col select-none">
+    <section className="flex-1 min-w-[700px] bg-[#f8fafc] h-full overflow-y-auto hide-scrollbar flex flex-col select-none">
       {/* 1. Header (Title, Subtitle, Actions) */}
       <div className="p-[18px_20px_12px] bg-white border-b border-[#edf2f7] shrink-0">
         <div className="flex items-start justify-between gap-4">
@@ -152,10 +169,15 @@ export default function IntelligenceMiddlePanel({
             <button
               type="button"
               onClick={handleExport}
-              className="h-[36px] px-3.5 rounded-[9px] border border-[#dbe5f1] bg-white text-[#475569] text-[12.5px] font-[700] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              disabled={isExporting}
+              className="h-[36px] px-3.5 rounded-[9px] border border-[#dbe5f1] bg-white text-[#475569] text-[12.5px] font-[700] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-98 disabled:opacity-60"
             >
-              <Download size={13} className="text-[#64748b]" />
-              Export
+              {isExporting ? (
+                <Loader2 size={13} className="animate-spin text-[#2563eb]" />
+              ) : (
+                <Download size={13} className="text-[#64748b]" />
+              )}
+              <span>{isExporting ? 'Exporting...' : 'Export'}</span>
             </button>
             <button
               type="button"
@@ -198,7 +220,7 @@ export default function IntelligenceMiddlePanel({
           </label>
           <select
             value={selectedDeptFilter}
-            onChange={(e) => setSelectedDeptFilter(e.target.value)}
+            onChange={(e) => handleDeptChange(e.target.value)}
             className="h-[34px] px-2.5 bg-white border border-[#dbe5f1] hover:border-[#93c5fd] focus:border-[#2563eb] rounded-[8px] text-[12px] font-semibold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
           >
             <option value="All">All Departments</option>

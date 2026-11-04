@@ -486,3 +486,8 @@ func (s *DriveService) SaveFinalSelections(
 ) error {
 	return s.repo.SaveFinalSelections(driveID, pubDate, reference, notes, offers, markCompleted, officerUserID)
 }
+
+// UpdateStudentOffer updates final role and package for a specific student's offer
+func (s *DriveService) UpdateStudentOffer(driveID uint64, driveStudentID uint64, role string, packageLPA *float64) error {
+	return s.repo.UpdateStudentOffer(driveID, driveStudentID, role, packageLPA)
+}

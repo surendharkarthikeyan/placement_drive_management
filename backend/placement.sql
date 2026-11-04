@@ -210,7 +210,6 @@ CREATE TABLE `placement_drive_offers` (
   `final_role` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `package_lpa` decimal(8,2) DEFAULT NULL,
   `confirmed_at` datetime DEFAULT NULL,
-  `result_reference` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `offer_letter_file` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -219,10 +218,10 @@ CREATE TABLE `placement_drive_offers` (
   CONSTRAINT `fk_placement_drive_offers_student` FOREIGN KEY (`drive_student_id`) REFERENCES `placement_drive_students` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `placement_drive_offers` (`id`, `drive_student_id`, `final_role`, `package_lpa`, `confirmed_at`, `result_reference`, `notes`, `offer_letter_file`, `created_at`) VALUES
-(1,	2,	NULL,	NULL,	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\CS101_TECH004.pdf',	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\CS101_TECH004.pdf',	'2026-11-03 06:54:19'),
-(2,	3,	NULL,	NULL,	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\IT102_TECH004.png',	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\IT102_TECH004.png',	'2026-11-03 06:54:22')
-ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_student_id` = VALUES(`drive_student_id`), `final_role` = VALUES(`final_role`), `package_lpa` = VALUES(`package_lpa`), `confirmed_at` = VALUES(`confirmed_at`), `result_reference` = VALUES(`result_reference`), `notes` = VALUES(`notes`), `offer_letter_file` = VALUES(`offer_letter_file`), `created_at` = VALUES(`created_at`);
+INSERT INTO `placement_drive_offers` (`id`, `drive_student_id`, `final_role`, `package_lpa`, `confirmed_at`, `notes`, `offer_letter_file`, `created_at`) VALUES
+(1,	2,	NULL,	NULL,	NULL,	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\CS101_TECH004.pdf',	'2026-11-03 06:54:19'),
+(2,	3,	NULL,	NULL,	NULL,	NULL,	'C:\\BIT\\placement\\placement_drive_management\\document_db\\student_offer_letters\\IT102_TECH004.png',	'2026-11-03 06:54:22')
+ON DUPLICATE KEY UPDATE `id` = VALUES(`id`), `drive_student_id` = VALUES(`drive_student_id`), `final_role` = VALUES(`final_role`), `package_lpa` = VALUES(`package_lpa`), `confirmed_at` = VALUES(`confirmed_at`), `notes` = VALUES(`notes`), `offer_letter_file` = VALUES(`offer_letter_file`), `created_at` = VALUES(`created_at`);
 
 DROP TABLE IF EXISTS `placement_drive_stages`;
 CREATE TABLE `placement_drive_stages` (

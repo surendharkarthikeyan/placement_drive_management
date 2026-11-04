@@ -43,6 +43,7 @@ func SetupRoutes(r *gin.Engine) {
 			drives.POST("/:id/complete-recruitment", driveCtrl.CompleteRecruitmentProcess)
 			drives.GET("/:id/final-selection", driveCtrl.GetFinalSelection)
 			drives.POST("/:id/final-selection", driveCtrl.SaveFinalSelection)
+			drives.PUT("/:id/offers/:student_id", driveCtrl.UpdateStudentOffer)
 			drives.POST("/:id/upload-reference-doc", driveCtrl.UploadReferenceDocument)
 			drives.POST("/:id/upload-offer-letter", driveCtrl.UploadOfferLetter)
 			drives.GET("/:id/download-offer-letter/:student_id", driveCtrl.DownloadOfferLetter)
@@ -94,6 +95,7 @@ func SetupRoutes(r *gin.Engine) {
 			intelligence.GET("/batch-summaries", intelligenceCtrl.GetBatchSummaries)
 			intelligence.GET("/outcome-summary", intelligenceCtrl.GetOutcomeGroupSummary)
 			intelligence.GET("/overall-stats", intelligenceCtrl.GetOverallPlacementMatrix)
+			intelligence.GET("/overall-stats/export", intelligenceCtrl.ExportOverallPlacementMatrixExcel)
 		}
 
 		// Health Check

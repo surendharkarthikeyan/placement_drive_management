@@ -49,3 +49,19 @@ func (ctrl *PlacementIntelligenceController) GetOverallPlacementMatrix(c *gin.Co
 	c.JSON(http.StatusOK, gin.H{"data": matrix})
 }
 
+// ExportOverallPlacementMatrixExcel generates a styled Excel spreadsheet with both placement intelligence tables
+func (ctrl *PlacementIntelligenceController) ExportOverallPlacementMatrixExcel(c *gin.Context) {
+	batch := c.Query("batch")
+	department := c.Query("department")
+
+	excelBytes, err := ctrl.repo.ExportOverallPlacementMatrixExcel(batch, department)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate Excel document: " + err.Error()})
+		return
+	}
+
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", "attachment; filename=Overall_Placement_Statistics.xlsx")
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelBytes)
+}
+
