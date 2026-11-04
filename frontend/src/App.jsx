@@ -25,7 +25,7 @@ export default function App() {
   const [intelligenceView, setIntelligenceView] = useState('overall')
   const [selectedIntelligenceBatch, setSelectedIntelligenceBatch] = useState(null)
   const [selectedIntelligenceDept, setSelectedIntelligenceDept] = useState('All')
-  const [selectedIntelligenceOutcome, setSelectedIntelligenceOutcome] = useState('notPlaced')
+  const [selectedIntelligenceOutcome, setSelectedIntelligenceOutcome] = useState(null)
   const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState('__overall__')
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
   const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')

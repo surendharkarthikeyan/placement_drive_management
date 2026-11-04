@@ -15,10 +15,10 @@ export default function IntelligenceRightPanel({
   currentView = 'overall',
   selectedBatch = null,
   selectedDepartment = 'All',
-  selectedOutcome = 'notPlaced',
+  selectedOutcome = null,
   onSelectOutcome = () => {}
 }) {
-  const [activeMode, setActiveMode] = useState('students') // 'students' | 'overview'
+  const [activeMode, setActiveMode] = useState('overview') // Default view is Overview
   const [loading, setLoading] = useState(false)
   const [statsData, setStatsData] = useState(null)
 
@@ -26,10 +26,17 @@ export default function IntelligenceRightPanel({
   const [outcomeStudents, setOutcomeStudents] = useState([])
   const [loadingStudents, setLoadingStudents] = useState(false)
 
-  // Map outcome group keys to standard 3 supported groups
-  const effectiveOutcome = (selectedOutcome === 'higherStudies' || selectedOutcome === 'entrepreneur')
+  // Map outcome group keys to standard 4 supported groups
+  const effectiveOutcome = (selectedOutcome === 'higherStudies' || selectedOutcome === 'entrepreneur' || selectedOutcome === 'notEligible')
     ? selectedOutcome
-    : 'notPlaced'
+    : (selectedOutcome === 'notPlaced' ? 'notPlaced' : 'notPlaced')
+
+  // Switch to students mode when an outcome group is explicitly chosen from outside
+  useEffect(() => {
+    if (selectedOutcome) {
+      setActiveMode('students')
+    }
+  }, [selectedOutcome])
 
   // Fetch overview stats
   useEffect(() => {
@@ -61,6 +68,12 @@ export default function IntelligenceRightPanel({
   useEffect(() => {
     let isMounted = true
     const fetchStudents = async () => {
+      // For notEligible, no logic for now
+      if (effectiveOutcome === 'notEligible') {
+        setOutcomeStudents([])
+        return
+      }
+
       setLoadingStudents(true)
       try {
         const students = await getIntelligenceOutcomeStudents({
@@ -145,6 +158,7 @@ export default function IntelligenceRightPanel({
   // Outcome group titles & pill styling
   const outcomeTitleMap = {
     notPlaced: 'Not Yet Placed',
+    notEligible: 'Not Eligible',
     higherStudies: 'Higher Studies',
     entrepreneur: 'Entrepreneurship'
   }
@@ -153,6 +167,8 @@ export default function IntelligenceRightPanel({
 
   const getStatusPillClass = (group) => {
     switch (group) {
+      case 'notEligible':
+        return 'bg-[#fee2e2] text-[#991b1b] border border-[#fecaca]'
       case 'higherStudies':
         return 'bg-[#f3e8ff] text-[#7e22ce] border border-[#e9d5ff]'
       case 'entrepreneur':
@@ -213,13 +229,13 @@ export default function IntelligenceRightPanel({
           </div>
         </div>
 
-        {/* 3 Outcome Group Selector Buttons (When in Students Mode) */}
+        {/* Outcome Group Selector Buttons (When in Students Mode) */}
         {activeMode === 'students' && (
           <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[#f1f5f9]">
             <button
               type="button"
               onClick={() => onSelectOutcome('notPlaced')}
-              className={`flex-1 py-1.5 px-2 rounded-[8px] text-[11.5px] font-[800] transition cursor-pointer text-center truncate ${
+              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
                 effectiveOutcome === 'notPlaced'
                   ? 'bg-[#fef3c7] text-[#92400e] ring-1 ring-[#fde68a] shadow-2xs'
                   : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
@@ -229,8 +245,19 @@ export default function IntelligenceRightPanel({
             </button>
             <button
               type="button"
+              onClick={() => onSelectOutcome('notEligible')}
+              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
+                effectiveOutcome === 'notEligible'
+                  ? 'bg-[#fee2e2] text-[#991b1b] ring-1 ring-[#fecaca] shadow-2xs'
+                  : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
+              }`}
+            >
+              Not Eligible
+            </button>
+            <button
+              type="button"
               onClick={() => onSelectOutcome('higherStudies')}
-              className={`flex-1 py-1.5 px-2 rounded-[8px] text-[11.5px] font-[800] transition cursor-pointer text-center truncate ${
+              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
                 effectiveOutcome === 'higherStudies'
                   ? 'bg-[#f3e8ff] text-[#7e22ce] ring-1 ring-[#e9d5ff] shadow-2xs'
                   : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
@@ -241,7 +268,7 @@ export default function IntelligenceRightPanel({
             <button
               type="button"
               onClick={() => onSelectOutcome('entrepreneur')}
-              className={`flex-1 py-1.5 px-2 rounded-[8px] text-[11.5px] font-[800] transition cursor-pointer text-center truncate ${
+              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
                 effectiveOutcome === 'entrepreneur'
                   ? 'bg-[#ecfeff] text-[#0e7490] ring-1 ring-[#cffafe] shadow-2xs'
                   : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
