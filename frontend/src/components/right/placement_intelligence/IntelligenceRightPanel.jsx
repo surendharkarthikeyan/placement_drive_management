@@ -127,24 +127,18 @@ export default function IntelligenceRightPanel({
       <div className="flex-1 p-[20px_24px] overflow-y-auto space-y-6 custom-dropdown-scroll">
         {/* Card: Placement Outcome */}
         <div className="p-4.5 rounded-[13px] border border-[#bfdbfe] bg-gradient-to-br from-[#eff6ff] to-[#f5f3ff] shadow-2xs flex flex-col gap-3.5">
-          {/* Top Label & Score */}
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[14px] font-[850] text-[#172554] tracking-tight leading-tight">
-                Placement Outcome
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-[6px] bg-[#dbeafe] text-[#1e40af] text-[11px] font-[800] border border-[#bfdbfe]">
-                  {batchFilterLabel}
-                </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-[6px] bg-white text-[#475569] text-[11px] font-[750] border border-[#dbe5f1]">
-                  {deptFilterLabel}
-                </span>
-              </div>
+          {/* Top Label & Active Filters */}
+          <div>
+            <div className="text-[14px] font-[850] text-[#172554] tracking-tight leading-tight">
+              Placement Outcome
             </div>
-
-            <div className="text-[32px] font-[850] text-[#172554] leading-none tracking-tight">
-              {placedCount.toLocaleString()}
+            <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-[6px] bg-[#dbeafe] text-[#1e40af] text-[11px] font-[800] border border-[#bfdbfe]">
+                {batchFilterLabel}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-[6px] bg-white text-[#475569] text-[11px] font-[750] border border-[#dbe5f1]">
+                {deptFilterLabel}
+              </span>
             </div>
           </div>
 
