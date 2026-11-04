@@ -22,6 +22,13 @@ import {
   deleteStudentReviewNote
 } from '../../../services/api'
 import GlassSegmentedControl from '../../common/GlassSegmentedControl'
+import {
+  StudentProfileHeader,
+  StudentStatCards,
+  StudentOffersCard,
+  StudentAcademicEligibilityCard,
+  StudentPlacementJourneyTimeline
+} from '../../common/student'
 
 /**
  * ReviewStudentDetailPanel (Right Panel of Student Placement Review)
@@ -262,50 +269,7 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
       ) : student ? (
         <div className={`flex flex-col transition-opacity duration-200 ${isUpdating ? 'opacity-70 pointer-events-none' : 'opacity-100'}`}>
           {/* 1. Profile Header Row */}
-          <div className="flex items-center gap-3.5">
-            {/* Avatar with royal blue/indigo gradient */}
-            <div className="w-[50px] h-[50px] rounded-[14px] bg-gradient-to-tr from-[#2563eb] via-[#3b82f6] to-[#6366f1] flex items-center justify-center text-white text-[17px] font-extrabold shadow-sm tracking-wide shrink-0">
-              {getInitials(student.name)}
-            </div>
-
-            {/* Name and Meta Subtitle */}
-            <div className="min-w-0 flex-1">
-              <h2 className="text-[19px] font-extrabold text-[#0f172a] tracking-tight leading-tight truncate m-0">
-                {student.name}
-              </h2>
-              <p className="text-[12.5px] font-semibold text-[#64748b] mt-0.5 mb-0 truncate leading-snug">
-                {student.roll_no ? `${student.roll_no} · ` : ''}
-                {student.department_code || student.department_name || 'ENG'} · CGPA {formatCGPA(student.cgpa)}
-              </p>
-            </div>
-          </div>
-
-          {/* 2. Status Badges Row (Immediate priority omitted per user requirement) */}
-          <div className="flex items-center gap-2 mt-3">
-            {/* Placed / Not Placed Badge */}
-            {student.is_placed ? (
-              <span className="px-3 py-1 rounded-full text-[12px] font-bold font-sans tracking-tight bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0] inline-flex items-center justify-center">
-                Placed
-              </span>
-            ) : (
-              <span className="px-3 py-1 rounded-full text-[12px] font-bold font-sans tracking-tight bg-[#fef9c3] text-[#854d0e] border border-[#fef08a] inline-flex items-center justify-center">
-                Not Placed
-              </span>
-            )}
-
-            {/* Core / Software / NIP Category Badge */}
-            {student.category_badge && (
-              <span
-                className={`px-3 py-1 rounded-full text-[12px] font-bold font-sans tracking-tight border inline-flex items-center justify-center ${
-                  student.category_badge === 'NIP'
-                    ? 'bg-[#f1f5f9] text-[#475569] border-[#cbd5e1]'
-                    : 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]'
-                }`}
-              >
-                {student.category_badge}
-              </span>
-            )}
-          </div>
+          <StudentProfileHeader student={student} />
 
           {/* Subtle separator */}
           <div className="w-full h-px bg-[#f1f5f9] my-4" />
@@ -327,163 +291,18 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
           {activeTab === 'Placement Journey' && (
             <>
               {/* Six Metric Stat Cards Grid */}
-              <div className="grid grid-cols-3 gap-2.5 mt-4">
-                {/* Card 1: Invitations */}
-                <div className="bg-white border border-[#dbe5f1] rounded-[14px] py-[15px] px-2 text-center shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col items-center justify-center hover:border-[#bfdbfe] transition-all">
-                  <strong className="block text-[22px] font-black text-[#172554] leading-none mb-1.5">
-                    {student.stats?.invitations ?? 0}
-                  </strong>
-                  <span className="block text-[11.5px] font-semibold text-[#64748b] leading-tight">
-                    Invitations
-                  </span>
-                </div>
-
-                {/* Card 2: Attended */}
-                <div className="bg-white border border-[#dbe5f1] rounded-[14px] py-[15px] px-2 text-center shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col items-center justify-center hover:border-[#bfdbfe] transition-all">
-                  <strong className="block text-[22px] font-black text-[#172554] leading-none mb-1.5">
-                    {student.stats?.accepted ?? 0}
-                  </strong>
-                  <span className="block text-[11.5px] font-semibold text-[#64748b] leading-tight">
-                    Attended
-                  </span>
-                </div>
-
-                {/* Card 3: Processes */}
-                <div className="bg-white border border-[#dbe5f1] rounded-[14px] py-[15px] px-2 text-center shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col items-center justify-center hover:border-[#bfdbfe] transition-all">
-                  <strong className="block text-[22px] font-black text-[#172554] leading-none mb-1.5">
-                    {student.stats?.processes ?? 0}
-                  </strong>
-                  <span className="block text-[11.5px] font-semibold text-[#64748b] leading-tight">
-                    Processes
-                  </span>
-                </div>
-
-                {/* Card 4: Final Misses */}
-                <div className="bg-white border border-[#dbe5f1] rounded-[14px] py-[15px] px-2 text-center shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col items-center justify-center hover:border-[#bfdbfe] transition-all">
-                  <strong className="block text-[22px] font-black text-[#172554] leading-none mb-1.5">
-                    {student.stats?.final_misses ?? 0}
-                  </strong>
-                  <span className="block text-[11.5px] font-semibold text-[#64748b] leading-tight">
-                    Final Misses
-                  </span>
-                </div>
-
-                {/* Card 5: Offers */}
-                <div className="bg-white border border-[#dbe5f1] rounded-[14px] py-[15px] px-2 text-center shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col items-center justify-center hover:border-[#bfdbfe] transition-all">
-                  <strong className="block text-[22px] font-black text-[#172554] leading-none mb-1.5">
-                    {student.stats?.offers ?? 0}
-                  </strong>
-                  <span className="block text-[11.5px] font-semibold text-[#64748b] leading-tight">
-                    Offers
-                  </span>
-                </div>
-
-                {/* Card 6: Recruitment rounds cleared */}
-                <div className="bg-white border border-[#dbe5f1] rounded-[14px] py-[15px] px-2 text-center shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col items-center justify-center hover:border-[#bfdbfe] transition-all">
-                  <strong className="block text-[20px] font-black text-[#172554] leading-none mb-1.5">
-                    {student.stats?.rounds_text || `${student.stats?.rounds_cleared ?? 0} of ${student.stats?.total_rounds ?? 0}`}
-                  </strong>
-                  <span className="block text-[11px] font-semibold text-[#64748b] leading-tight">
-                    Recruitment rounds cleared
-                  </span>
-                </div>
+              <div className="mt-4">
+                <StudentStatCards stats={student.stats} variant="review" />
               </div>
 
               {/* Offers Received Section */}
-              <div className="mt-6 flex flex-col gap-2.5">
-                <h3 className="text-[14px] font-bold text-[#172554] tracking-tight m-0">
-                  Offers Received
-                </h3>
-
-                {student.offers && student.offers.length > 0 ? (
-                  student.offers.map((offer, idx) => (
-                    <div
-                      key={offer.offer_id || idx}
-                      className="bg-white border border-[#dbe5f1] rounded-[16px] p-[12px_16px] flex items-center justify-between shadow-[0_1px_3px_rgba(15,23,42,0.03)] hover:border-[#cbd5e1] transition-all"
-                    >
-                      {/* Left: Rupee Icon & Offer Details */}
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-[42px] h-[42px] rounded-[12px] bg-[#eff6ff] flex items-center justify-center text-[#2563eb] text-[16px] font-bold shrink-0">
-                          ₹
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[15px] font-bold text-[#172554] leading-snug truncate">
-                            {offer.company_name}
-                          </span>
-                          <span className="text-[13px] font-medium text-[#64748b] leading-tight mt-0.5">
-                            {offer.package_lpa != null ? `₹${offer.package_lpa} LPA` : (offer.role || 'Offer Secured')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Right: Accepted Pill Badge */}
-                      <span className="px-3.5 py-1 rounded-full text-[12px] font-bold bg-[#dcfce7] text-[#15803d] border border-[#bbf7d0]/60 inline-flex items-center shrink-0">
-                        {offer.status || 'Accepted'}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="bg-[#fbfdff] border border-dashed border-[#cbd5e1] rounded-[16px] py-4 px-4 flex items-center justify-center text-center text-[#94a3b8] text-[13px] font-semibold">
-                    No offers
-                  </div>
-                )}
+              <div className="mt-6">
+                <StudentOffersCard offers={student.offers} />
               </div>
 
               {/* Academic Eligibility Section */}
-              <div className="mt-6 flex flex-col gap-2.5">
-                <h3 className="text-[14px] font-bold text-[#172554] tracking-tight m-0">
-                  Academic Eligibility
-                </h3>
-
-                <div className="bg-white border border-[#dbe5f1] rounded-[16px] px-5 py-1.5 shadow-[0_1px_3px_rgba(15,23,42,0.03)] flex flex-col">
-                  {/* Row 1: Batch */}
-                  <div className="flex items-center justify-between py-3 border-b border-[#f1f5f9]">
-                    <span className="text-[13.5px] font-medium text-[#475569]">Batch</span>
-                    <span className="text-[14px] font-bold text-[#172554]">
-                      {student.batch_name || '2022-2026'}
-                    </span>
-                  </div>
-
-                  {/* Row 2: CGPA */}
-                  <div className="flex items-center justify-between py-3 border-b border-[#f1f5f9]">
-                    <span className="text-[13.5px] font-medium text-[#475569]">CGPA</span>
-                    <span className="text-[14px] font-bold text-[#172554]">
-                      {student.cgpa != null ? Number(student.cgpa).toFixed(2) : '8.50'}
-                    </span>
-                  </div>
-
-                  {/* Row 3: 10th */}
-                  <div className="flex items-center justify-between py-3 border-b border-[#f1f5f9]">
-                    <span className="text-[13.5px] font-medium text-[#475569]">10th</span>
-                    <span className="text-[14px] font-bold text-[#172554]">
-                      {student.tenth_mark != null ? `${Number(student.tenth_mark).toFixed(1)}%` : '92.5%'}
-                    </span>
-                  </div>
-
-                  {/* Row 4: 12th */}
-                  <div className="flex items-center justify-between py-3 border-b border-[#f1f5f9]">
-                    <span className="text-[13.5px] font-medium text-[#475569]">12th</span>
-                    <span className="text-[14px] font-bold text-[#172554]">
-                      {student.twelfth_mark != null ? `${Number(student.twelfth_mark).toFixed(1)}%` : '88.0%'}
-                    </span>
-                  </div>
-
-                  {/* Row 5: Arrears */}
-                  <div className="flex items-center justify-between py-3 border-b border-[#f1f5f9]">
-                    <span className="text-[13.5px] font-medium text-[#475569]">Arrears</span>
-                    <span className="text-[14px] font-bold text-[#172554]">
-                      {student.current_arrears ?? 0}
-                    </span>
-                  </div>
-
-                  {/* Row 6: History of Arrears */}
-                  <div className="flex items-center justify-between py-3">
-                    <span className="text-[13.5px] font-medium text-[#475569]">History of Arrears</span>
-                    <span className="text-[14px] font-bold text-[#172554]">
-                      {student.history_of_arrears ?? 0}
-                    </span>
-                  </div>
-                </div>
+              <div className="mt-6">
+                <StudentAcademicEligibilityCard student={student} />
               </div>
             </>
           )}
@@ -831,127 +650,11 @@ export default function ReviewStudentDetailPanel({ studentId = 'default' }) {
           {activeTab === 'Activity History' && (
             <div className="flex flex-col gap-4 mt-4">
               {/* 1. Timeline: Recent Company Recruitment History (On Top) */}
-              <div className="bg-white border border-[#dbe5f1] rounded-[16px] p-5 shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
-                {/* Header */}
-                <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-[#f1f5f9]">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#3b82f6]" />
-                    <h4 className="text-[13.5px] font-bold text-[#1e293b] tracking-tight">
-                      Recent Company Recruitment History
-                    </h4>
-                  </div>
-                  {historyData && historyData.total_count > 0 && (
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#f1f5f9] text-[#475569]">
-                      {historyData.total_count} total
-                    </span>
-                  )}
-                </div>
-
-                {/* Body */}
-                {historyLoading && !historyData ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-[#94a3b8]">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#3b82f6] mb-2" />
-                    <span className="text-[12px]">Loading recruitment history...</span>
-                  </div>
-                ) : historyError ? (
-                  <div className="p-3 text-[12px] bg-red-50 text-red-600 rounded-lg text-center">
-                    {historyError}
-                  </div>
-                ) : historyData?.items?.length === 0 ? (
-                  <div className="py-6 text-center text-[#94a3b8]">
-                    <p className="text-[12.5px] font-medium text-[#64748b]">No recruitment history found</p>
-                    <p className="text-[11.5px] text-[#94a3b8] mt-1">This student has not participated in any placement drives yet.</p>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex flex-col">
-                    {historyData?.items?.map((item, idx) => {
-                      let dotBg = 'bg-[#CC7C2E]' // In Process (Orange)
-
-                      if (item.status === 'Offered') {
-                        dotBg = 'bg-[#4CA154]' // Offered (Green)
-                      } else if (item.status === 'Failed / Cancelled') {
-                        dotBg = 'bg-[#CA3A31]' // Failed / Cancelled (Red)
-                      }
-
-                      const isLast = idx === (historyData.items.length - 1)
-
-                      return (
-                        <div key={item.drive_id || idx} className="relative flex items-stretch gap-3 group">
-                          {/* Timeline column with Dot and perfectly centered vertical connecting line */}
-                          <div className="flex flex-col items-center flex-shrink-0 w-[20px]">
-                            {/* Dot with halo ring */}
-                            <div className="w-[20px] h-[20px] flex items-center justify-center flex-shrink-0">
-                              <div className={`w-[11px] h-[11px] rounded-full ring-[3.5px] ring-[#DEE9FC] ${dotBg}`} />
-                            </div>
-
-                            {/* Connecting Line to next item - perfectly centered under the dot */}
-                            {!isLast && (
-                              <div className="w-[2px] bg-[#DEE9FC] flex-1 my-1" />
-                            )}
-                          </div>
-
-                          {/* Company & Round details */}
-                          <div className={`flex-1 min-w-0 ${!isLast ? 'pb-5' : 'pb-1'}`}>
-                            <div className="flex items-center justify-between gap-2">
-                              <h5 className="text-[14px] font-bold text-[#1e293b] truncate leading-tight">
-                                {item.company_name}
-                              </h5>
-                              {item.job_role && (
-                                <span className="text-[10.5px] text-[#94a3b8] font-medium truncate max-w-[120px]">
-                                  {item.job_role}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="text-[12.5px] text-[#64748b] font-medium leading-relaxed mt-0.5">
-                              {item.round_detail_text}
-                            </div>
-
-                            {item.date_formatted && (
-                              <div className="text-[10.5px] text-[#94a3b8] mt-0.5">
-                                {item.date_formatted}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                    {/* Pagination Controls */}
-                    {historyData && historyData.total_pages > 1 && (
-                      <div className="mt-6 pt-3.5 border-t border-[#f1f5f9] flex items-center justify-between">
-                        <span className="text-[11.5px] text-[#64748b] font-medium">
-                          Page <span className="font-bold text-[#1e293b]">{historyData.current_page}</span> of{' '}
-                          <span className="font-bold text-[#1e293b]">{historyData.total_pages}</span>
-                        </span>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            disabled={historyData.current_page <= 1 || historyLoading}
-                            onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                            className="px-2.5 py-1 text-[11.5px] font-medium rounded-[7px] border border-[#dbe5f1] text-[#475569] hover:bg-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
-                          >
-                            <ChevronLeft className="w-3.5 h-3.5" />
-                            Prev
-                          </button>
-                          <button
-                            type="button"
-                            disabled={historyData.current_page >= historyData.total_pages || historyLoading}
-                            onClick={() => setHistoryPage((p) => Math.min(historyData.total_pages, p + 1))}
-                            className="px-2.5 py-1 text-[11.5px] font-medium rounded-[7px] border border-[#dbe5f1] text-[#475569] hover:bg-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
-                          >
-                            Next
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <StudentPlacementJourneyTimeline
+                userId={student?.user_id || studentId}
+                title="Recent Company Recruitment History"
+                limit={5}
+              />
 
               {/* 2. Search Bar for Attended Companies (Down) */}
               <div className="relative mt-1">

@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Loader2, Search, X } from 'lucide-react'
-import { getIntelligenceOverallStats, getIntelligenceOutcomeStudents } from '../../../services/api'
+import {
+  getIntelligenceOverallStats,
+  getIntelligenceOutcomeStudents,
+  getStudentReviewDetail
+} from '../../../services/api'
+import {
+  StudentProfileHeader,
+  StudentStatCards,
+  StudentOffersCard,
+  StudentAcademicEligibilityCard,
+  StudentPlacementJourneyTimeline
+} from '../../common/student'
 
 /**
  * IntelligenceRightPanel
@@ -26,6 +37,11 @@ export default function IntelligenceRightPanel({
   const [outcomeStudents, setOutcomeStudents] = useState([])
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
+
+  // Detailed student record state
+  const [selectedStudentId, setSelectedStudentId] = useState(null)
+  const [selectedStudentDetail, setSelectedStudentDetail] = useState(null)
+  const [loadingStudentDetail, setLoadingStudentDetail] = useState(false)
 
   const SALARY_BAND_LABELS = {
     gt40: '> ₹40L',
@@ -110,10 +126,43 @@ export default function IntelligenceRightPanel({
     }
   }, [effectiveOutcome, selectedBatch, selectedDepartment])
 
-  // Clear search query when outcome group changes
+  // Clear search query and selected student when outcome group, batch, or dept changes
   useEffect(() => {
     setStudentSearchQuery('')
-  }, [effectiveOutcome])
+    setSelectedStudentId(null)
+    setSelectedStudentDetail(null)
+  }, [effectiveOutcome, selectedBatch, selectedDepartment])
+
+  // Fetch student review detail when a student is selected
+  useEffect(() => {
+    let isMounted = true
+    if (!selectedStudentId) {
+      setSelectedStudentDetail(null)
+      return
+    }
+
+    const fetchDetail = async () => {
+      setLoadingStudentDetail(true)
+      try {
+        const data = await getStudentReviewDetail(selectedStudentId)
+        if (isMounted) {
+          setSelectedStudentDetail(data)
+        }
+      } catch (err) {
+        console.error('Failed to load student review detail in intelligence panel:', err)
+      } finally {
+        if (isMounted) {
+          setLoadingStudentDetail(false)
+        }
+      }
+    }
+
+    fetchDetail()
+
+    return () => {
+      isMounted = false
+    }
+  }, [selectedStudentId])
 
   // Filter students based on search query (name, roll no, department, status)
   const filteredStudents = useMemo(() => {
@@ -229,12 +278,18 @@ export default function IntelligenceRightPanel({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-[19px] font-[850] text-[#172554] tracking-tight m-0 leading-tight">
-              {activeMode === 'students' ? currentOutcomeTitle : 'Placement Outcome'}
+              {activeMode === 'students'
+                ? (selectedStudentId ? (selectedStudentDetail?.name || 'Student Record') : currentOutcomeTitle)
+                : 'Placement Outcome'}
             </h2>
             <p className="text-[12px] text-[#64748b] mt-1 mb-0 leading-relaxed font-medium">
-              {batchFilterLabel}
-              {deptFilterLabel !== 'All Departments' ? ` · ${deptFilterLabel}` : ''}
-              {activeMode === 'students' ? ' · Click a student for complete evidence and status.' : ''}
+              {selectedStudentId
+                ? (selectedStudentDetail
+                    ? `${selectedStudentDetail.roll_no ? `${selectedStudentDetail.roll_no} · ` : ''}${selectedStudentDetail.department_code || selectedStudentDetail.department_name || ''} · ${selectedStudentDetail.batch_name || ''}`
+                    : 'Loading student record...')
+                : (activeMode === 'students'
+                    ? `${batchFilterLabel}${deptFilterLabel !== 'All Departments' ? ` · ${deptFilterLabel}` : ''} · Click a student for complete evidence and status.`
+                    : `${batchFilterLabel}${deptFilterLabel !== 'All Departments' ? ` · ${deptFilterLabel}` : ''}`)}
             </p>
           </div>
 
@@ -265,8 +320,8 @@ export default function IntelligenceRightPanel({
           </div>
         </div>
 
-        {/* Outcome Group Selector Buttons (When in Students Mode) */}
-        {activeMode === 'students' && (
+        {/* Outcome Group Selector Buttons (When in Students Mode and not inspecting a student) */}
+        {activeMode === 'students' && !selectedStudentId && (
           isSalaryBand ? (
             <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-[#f1f5f9]">
               <div className="flex items-center gap-2 min-w-0">
@@ -339,97 +394,145 @@ export default function IntelligenceRightPanel({
       {/* 2. Scrollable Body */}
       <div className="flex-1 p-[18px_22px] overflow-y-auto space-y-4 custom-dropdown-scroll">
         {activeMode === 'students' ? (
-          <>
-            {/* Top Students Count Card (Reference Style) */}
-            <div className="p-4.5 rounded-[13px] border border-[#bfdbfe] bg-gradient-to-br from-[#eff6ff] to-[#f5f3ff] shadow-2xs flex items-center justify-between">
-              <div>
-                <div className="text-[14.5px] font-[850] text-[#172554] leading-tight">
-                  Students
-                </div>
-                <div className="text-[11.5px] font-medium text-[#64748b] mt-0.5">
-                  Institutional count
-                </div>
-              </div>
-
-              <div className="text-[34px] font-[900] text-[#172554] leading-none tracking-tight">
-                {loadingStudents ? '...' : outcomeStudents.length}
-              </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="relative group">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] group-focus-within:text-[#2563eb] transition-colors pointer-events-none">
-                <Search size={15} />
-              </span>
-              <input
-                type="text"
-                value={studentSearchQuery}
-                onChange={(e) => setStudentSearchQuery(e.target.value)}
-                placeholder="Search student or roll number..."
-                className="w-full h-[40px] pl-[38px] pr-[32px] bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[11px] text-[13px] font-medium text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-3 focus:ring-[#2563eb]/15 transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+          selectedStudentId ? (
+            /* Student Detailed Record View */
+            <div className="flex flex-col gap-5">
+              {/* Profile Header with Back to Student List */}
+              <StudentProfileHeader
+                student={selectedStudentDetail}
+                onBack={() => setSelectedStudentId(null)}
+                backLabel="Back to Student List"
               />
-              {studentSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setStudentSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#475569] transition cursor-pointer p-0.5 rounded-full hover:bg-[#f1f5f9]"
-                  title="Clear search"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
 
-            {/* Students List Cards */}
-            <div className="space-y-2.5">
-              {loadingStudents ? (
-                <div className="py-14 text-center text-[12px] text-[#64748b] font-medium flex flex-col items-center justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#2563eb] mb-2" />
-                  Loading students from database...
+              {loadingStudentDetail && !selectedStudentDetail ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-2.5 text-[#64748b]">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#2563eb]" />
+                  <span className="text-[13px] font-semibold">Loading student record...</span>
                 </div>
-              ) : outcomeStudents.length === 0 ? (
-                <div className="py-10 text-center text-[12px] text-[#94a3b8] font-medium bg-[#f8fafc] rounded-[12px] border border-dashed border-[#cbd5e1] p-6">
-                  No students found in {currentOutcomeTitle} for the selected filters.
-                </div>
-              ) : filteredStudents.length === 0 ? (
-                <div className="py-10 text-center text-[12px] text-[#94a3b8] font-medium bg-[#f8fafc] rounded-[12px] border border-dashed border-[#cbd5e1] p-6">
-                  No students match &ldquo;{studentSearchQuery}&rdquo;
-                </div>
+              ) : selectedStudentDetail ? (
+                <>
+                  {/* Subtle separator */}
+                  <div className="w-full h-px bg-[#f1f5f9]" />
+
+                  {/* 1. First 6 cards data: invitations, attended, current process, final misses, offers, not honoured */}
+                  <StudentStatCards
+                    stats={selectedStudentDetail.stats}
+                    variant="intelligence"
+                  />
+
+                  {/* 2. Offers received card */}
+                  <StudentOffersCard offers={selectedStudentDetail.offers} />
+
+                  {/* 3. Below that academic details card */}
+                  <StudentAcademicEligibilityCard student={selectedStudentDetail} />
+
+                  {/* 4. Then placement journey */}
+                  <StudentPlacementJourneyTimeline
+                    userId={selectedStudentId}
+                    title="Placement Journey"
+                    limit={5}
+                  />
+                </>
               ) : (
-                filteredStudents.map((s) => {
-                  const initials = getInitials(s.name)
-                  return (
-                    <div
-                      key={s.id}
-                      className="bg-white border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-xs rounded-[12px] p-3.5 flex items-center justify-between gap-3 transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Rounded Avatar Initials */}
-                        <div className="w-[42px] h-[42px] rounded-[10px] bg-[#eff6ff] border border-[#bfdbfe] text-[#2563eb] font-[850] text-[13px] flex items-center justify-center shrink-0 group-hover:bg-[#2563eb] group-hover:text-white transition-colors">
-                          {initials}
-                        </div>
-
-                        {/* Name & Roll/Dept */}
-                        <div className="min-w-0">
-                          <div className="text-[14px] font-[800] text-[#1e293b] leading-tight truncate group-hover:text-[#2563eb] transition-colors">
-                            {s.name}
-                          </div>
-                          <div className="text-[11.5px] font-semibold text-[#64748b] mt-1 truncate">
-                            {s.roll_no} {s.department_code ? `· ${s.department_code}` : ''}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Status Pill */}
-                      <span className={`px-3 py-1 rounded-full text-[11px] font-[800] shrink-0 whitespace-nowrap shadow-2xs ${getStatusPillClass(effectiveOutcome)}`}>
-                        {s.status}
-                      </span>
-                    </div>
-                  )
-                })
+                <div className="p-4 bg-[#fef2f2] border border-[#fecaca] rounded-[12px] text-center text-[#991b1b] text-[13px]">
+                  Failed to load student details.
+                </div>
               )}
             </div>
-          </>
+          ) : (
+            <>
+              {/* Top Students Count Card (Reference Style) */}
+              <div className="p-4.5 rounded-[13px] border border-[#bfdbfe] bg-gradient-to-br from-[#eff6ff] to-[#f5f3ff] shadow-2xs flex items-center justify-between">
+                <div>
+                  <div className="text-[14.5px] font-[850] text-[#172554] leading-tight">
+                    Students
+                  </div>
+                  <div className="text-[11.5px] font-medium text-[#64748b] mt-0.5">
+                    Institutional count
+                  </div>
+                </div>
+
+                <div className="text-[34px] font-[900] text-[#172554] leading-none tracking-tight">
+                  {loadingStudents ? '...' : outcomeStudents.length}
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative group">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] group-focus-within:text-[#2563eb] transition-colors pointer-events-none">
+                  <Search size={15} />
+                </span>
+                <input
+                  type="text"
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  placeholder="Search student or roll number..."
+                  className="w-full h-[40px] pl-[38px] pr-[32px] bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[11px] text-[13px] font-medium text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-3 focus:ring-[#2563eb]/15 transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+                />
+                {studentSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#475569] transition cursor-pointer p-0.5 rounded-full hover:bg-[#f1f5f9]"
+                    title="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Students List Cards */}
+              <div className="space-y-2.5">
+                {loadingStudents ? (
+                  <div className="py-14 text-center text-[12px] text-[#64748b] font-medium flex flex-col items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin text-[#2563eb] mb-2" />
+                    Loading students from database...
+                  </div>
+                ) : outcomeStudents.length === 0 ? (
+                  <div className="py-10 text-center text-[12px] text-[#94a3b8] font-medium bg-[#f8fafc] rounded-[12px] border border-dashed border-[#cbd5e1] p-6">
+                    No students found in {currentOutcomeTitle} for the selected filters.
+                  </div>
+                ) : filteredStudents.length === 0 ? (
+                  <div className="py-10 text-center text-[12px] text-[#94a3b8] font-medium bg-[#f8fafc] rounded-[12px] border border-dashed border-[#cbd5e1] p-6">
+                    No students match &ldquo;{studentSearchQuery}&rdquo;
+                  </div>
+                ) : (
+                  filteredStudents.map((s) => {
+                    const initials = getInitials(s.name)
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedStudentId(s.id)}
+                        className="bg-white border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-xs rounded-[12px] p-3.5 flex items-center justify-between gap-3 transition-all cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Rounded Avatar Initials */}
+                          <div className="w-[42px] h-[42px] rounded-[10px] bg-[#eff6ff] border border-[#bfdbfe] text-[#2563eb] font-[850] text-[13px] flex items-center justify-center shrink-0 group-hover:bg-[#2563eb] group-hover:text-white transition-colors">
+                            {initials}
+                          </div>
+
+                          {/* Name & Roll/Dept */}
+                          <div className="min-w-0">
+                            <div className="text-[14px] font-[800] text-[#1e293b] leading-tight truncate group-hover:text-[#2563eb] transition-colors">
+                              {s.name}
+                            </div>
+                            <div className="text-[11.5px] font-semibold text-[#64748b] mt-1 truncate">
+                              {s.roll_no} {s.department_code ? `· ${s.department_code}` : ''}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status Pill */}
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-[800] shrink-0 whitespace-nowrap shadow-2xs ${getStatusPillClass(effectiveOutcome)}`}>
+                          {s.status}
+                        </span>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </>
+          )
         ) : (
           /* Overview Mode */
           <div className="space-y-6">
