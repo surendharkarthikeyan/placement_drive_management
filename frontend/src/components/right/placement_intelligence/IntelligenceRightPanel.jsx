@@ -206,17 +206,6 @@ export default function IntelligenceRightPanel({
           <div className="flex items-center bg-[#f1f5f9] p-0.5 rounded-[8px] border border-[#e2e8f0] shrink-0">
             <button
               type="button"
-              onClick={() => setActiveMode('students')}
-              className={`px-2.5 py-1 rounded-[6px] text-[11px] font-[800] transition cursor-pointer ${
-                activeMode === 'students'
-                  ? 'bg-white text-[#2563eb] shadow-2xs'
-                  : 'text-[#64748b] hover:text-[#1e293b]'
-              }`}
-            >
-              Students
-            </button>
-            <button
-              type="button"
               onClick={() => setActiveMode('overview')}
               className={`px-2.5 py-1 rounded-[6px] text-[11px] font-[800] transition cursor-pointer ${
                 activeMode === 'overview'
@@ -225,6 +214,17 @@ export default function IntelligenceRightPanel({
               }`}
             >
               Overview
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveMode('students')}
+              className={`px-2.5 py-1 rounded-[6px] text-[11px] font-[800] transition cursor-pointer ${
+                activeMode === 'students'
+                  ? 'bg-white text-[#2563eb] shadow-2xs'
+                  : 'text-[#64748b] hover:text-[#1e293b]'
+              }`}
+            >
+              Students
             </button>
           </div>
         </div>
