@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { Loader2, Search, X } from 'lucide-react'
 import { getIntelligenceOverallStats, getIntelligenceOutcomeStudents } from '../../../services/api'
 
 /**
@@ -25,6 +25,7 @@ export default function IntelligenceRightPanel({
   // Outcome group students state
   const [outcomeStudents, setOutcomeStudents] = useState([])
   const [loadingStudents, setLoadingStudents] = useState(false)
+  const [studentSearchQuery, setStudentSearchQuery] = useState('')
 
   // Map outcome group keys to standard 4 supported groups
   const effectiveOutcome = (selectedOutcome === 'higherStudies' || selectedOutcome === 'entrepreneur' || selectedOutcome === 'notEligible')
@@ -95,6 +96,24 @@ export default function IntelligenceRightPanel({
       isMounted = false
     }
   }, [effectiveOutcome, selectedBatch, selectedDepartment])
+
+  // Clear search query when outcome group changes
+  useEffect(() => {
+    setStudentSearchQuery('')
+  }, [effectiveOutcome])
+
+  // Filter students based on search query (name, roll no, department, status)
+  const filteredStudents = useMemo(() => {
+    if (!studentSearchQuery.trim()) return outcomeStudents
+    const q = studentSearchQuery.toLowerCase().trim()
+    return outcomeStudents.filter((s) => {
+      const name = (s.name || '').toLowerCase()
+      const roll = (s.roll_no || '').toLowerCase()
+      const dept = (s.department_code || s.department_name || '').toLowerCase()
+      const status = (s.status || '').toLowerCase()
+      return name.includes(q) || roll.includes(q) || dept.includes(q) || status.includes(q)
+    })
+  }, [outcomeStudents, studentSearchQuery])
 
   // Derive metrics for Placement Outcome overview card
   const uniqueRows = statsData?.unique_students_by_offer || []
@@ -300,6 +319,30 @@ export default function IntelligenceRightPanel({
               </div>
             </div>
 
+            {/* Search Bar */}
+            <div className="relative group">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] group-focus-within:text-[#2563eb] transition-colors pointer-events-none">
+                <Search size={15} />
+              </span>
+              <input
+                type="text"
+                value={studentSearchQuery}
+                onChange={(e) => setStudentSearchQuery(e.target.value)}
+                placeholder="Search student or roll number..."
+                className="w-full h-[40px] pl-[38px] pr-[32px] bg-white border border-[#dbe5f1] focus:border-[#2563eb] rounded-[11px] text-[13px] font-medium text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:ring-3 focus:ring-[#2563eb]/15 transition-all shadow-[0_1px_3px_rgba(15,23,42,0.04)]"
+              />
+              {studentSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setStudentSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#475569] transition cursor-pointer p-0.5 rounded-full hover:bg-[#f1f5f9]"
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             {/* Students List Cards */}
             <div className="space-y-2.5">
               {loadingStudents ? (
@@ -311,8 +354,12 @@ export default function IntelligenceRightPanel({
                 <div className="py-10 text-center text-[12px] text-[#94a3b8] font-medium bg-[#f8fafc] rounded-[12px] border border-dashed border-[#cbd5e1] p-6">
                   No students found in {currentOutcomeTitle} for the selected filters.
                 </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="py-10 text-center text-[12px] text-[#94a3b8] font-medium bg-[#f8fafc] rounded-[12px] border border-dashed border-[#cbd5e1] p-6">
+                  No students match &ldquo;{studentSearchQuery}&rdquo;
+                </div>
               ) : (
-                outcomeStudents.map((s) => {
+                filteredStudents.map((s) => {
                   const initials = getInitials(s.name)
                   return (
                     <div
