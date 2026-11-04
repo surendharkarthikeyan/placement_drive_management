@@ -270,4 +270,27 @@ export const exportReviewStudentsExcel = async (studentIds = [], filters = {}) =
   window.URL.revokeObjectURL(url)
 }
 
+// Placement Intelligence APIs
+export const getIntelligenceBatchSummaries = async () => {
+  const response = await api.get('/intelligence/batch-summaries')
+  return response.data?.data || []
+}
+
+export const getIntelligenceOutcomeSummary = async (batch = '') => {
+  const params = {}
+  if (batch && batch !== 'all') params.batch = batch
+  const response = await api.get('/intelligence/outcome-summary', { params })
+  return response.data?.data || {}
+}
+
+export const getIntelligenceOverallStats = async ({ batch = '', department = '' } = {}) => {
+  const params = {}
+  if (batch && batch !== 'all' && batch !== 'All') params.batch = batch
+  if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
+    params.department = department
+  }
+  const response = await api.get('/intelligence/overall-stats', { params })
+  return response.data?.data || null
+}
+
 export default api

@@ -1,0 +1,51 @@
+package controllers
+
+import (
+	"net/http"
+	"placement-management/repositories"
+	"github.com/gin-gonic/gin"
+)
+
+type PlacementIntelligenceController struct {
+	repo *repositories.PlacementIntelligenceRepository
+}
+
+func NewPlacementIntelligenceController() *PlacementIntelligenceController {
+	return &PlacementIntelligenceController{
+		repo: repositories.NewPlacementIntelligenceRepository(),
+	}
+}
+
+// GetBatchSummaries returns real batch statistics from database
+func (ctrl *PlacementIntelligenceController) GetBatchSummaries(c *gin.Context) {
+	summaries, err := ctrl.repo.GetBatchSummaries()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch batch summaries: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": summaries})
+}
+
+// GetOutcomeGroupSummary returns outcome metrics aggregated from database
+func (ctrl *PlacementIntelligenceController) GetOutcomeGroupSummary(c *gin.Context) {
+	batchID := c.Query("batch")
+	summary, err := ctrl.repo.GetOutcomeGroupSummary(batchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch outcome summary: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": summary})
+}
+
+// GetOverallPlacementMatrix returns salary scale offer breakdown and unique student outcomes from DB
+func (ctrl *PlacementIntelligenceController) GetOverallPlacementMatrix(c *gin.Context) {
+	batch := c.Query("batch")
+	department := c.Query("department")
+	matrix, err := ctrl.repo.GetOverallPlacementMatrix(batch, department)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch overall placement matrix: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": matrix})
+}
+

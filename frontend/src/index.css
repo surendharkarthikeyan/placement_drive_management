@@ -104,3 +104,24 @@ body {
   transform: scale(1.22);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
 }
+
+/* Sleek subtle horizontal and vertical scrollbars for data tables */
+.custom-table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+.custom-table-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.custom-table-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 9999px;
+}
+.custom-table-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.custom-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

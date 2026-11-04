@@ -7,6 +7,9 @@ import RightControlPanel from './components/right/placement_drive/RightControlPa
 import ReviewFiltersPanel from './components/left/student_placement_review/ReviewFiltersPanel'
 import ReviewProgressWorkspace from './components/middle/student_placement_review/ReviewProgressWorkspace'
 import ReviewStudentDetailPanel from './components/right/student_placement_review/ReviewStudentDetailPanel'
+import IntelligenceLeftPanel from './components/left/placement_intelligence/IntelligenceLeftPanel'
+import IntelligenceMiddlePanel from './components/middle/placement_intelligence/IntelligenceMiddlePanel'
+import IntelligenceRightPanel from './components/right/placement_intelligence/IntelligenceRightPanel'
 import CreateDriveModal from './components/modals/placement_drive/CreateDriveModal'
 import { AlertCircle, AlertTriangle } from 'lucide-react'
 import { getBatches } from './services/api'
@@ -18,9 +21,17 @@ export default function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  // Placement Intelligence state
+  const [intelligenceView, setIntelligenceView] = useState('overall')
+  const [selectedIntelligenceBatch, setSelectedIntelligenceBatch] = useState(null)
+  const [selectedIntelligenceOutcome, setSelectedIntelligenceOutcome] = useState('notPlaced')
+  const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState('__overall__')
+  const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
+  const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
+
   // Student Placement Review state
-  const [selectedReviewStudentId, setSelectedReviewStudentId] = useState(null)
   const [reviewFilters, setReviewFilters] = useState({})
+  const [selectedReviewStudentId, setSelectedReviewStudentId] = useState(null)
 
   // Batch filter state (shared across Header and Left Panel)
   const [batches, setBatches] = useState([])
@@ -152,7 +163,39 @@ export default function App() {
         </main>
       )}
 
-      {activeModule !== 'Placement Drive' && activeModule !== 'Student Placement Review' && (
+      {activeModule === 'Placement Intelligence' && (
+        <main className="flex-1 flex h-[calc(100vh-144px)] overflow-hidden">
+          {/* Left Panel */}
+          <IntelligenceLeftPanel
+            currentView={intelligenceView}
+            onViewChange={setIntelligenceView}
+            selectedBatch={selectedIntelligenceBatch}
+            onSelectBatch={setSelectedIntelligenceBatch}
+            selectedOutcome={selectedIntelligenceOutcome}
+            onSelectOutcome={setSelectedIntelligenceOutcome}
+            selectedIndustry={selectedIntelligenceIndustry}
+            onSelectIndustry={setSelectedIntelligenceIndustry}
+            selectedCompany={selectedIntelligenceCompany}
+            onSelectCompany={setSelectedIntelligenceCompany}
+            selectedStudentFocus={selectedIntelligenceStudentFocus}
+            onSelectStudentFocus={setSelectedIntelligenceStudentFocus}
+          />
+
+          {/* Center Workspace Panel */}
+          <IntelligenceMiddlePanel
+            currentView={intelligenceView}
+            selectedBatch={selectedIntelligenceBatch}
+            onSelectBatch={setSelectedIntelligenceBatch}
+            selectedOutcome={selectedIntelligenceOutcome}
+            onSelectOutcome={setSelectedIntelligenceOutcome}
+          />
+
+          {/* Right Panel */}
+          <IntelligenceRightPanel currentView={intelligenceView} />
+        </main>
+      )}
+
+      {activeModule !== 'Placement Drive' && activeModule !== 'Student Placement Review' && activeModule !== 'Placement Intelligence' && (
         <main className="flex-1 flex h-[calc(100vh-144px)] overflow-hidden items-center justify-center bg-[#f5f8fc]">
           <div className="text-center max-w-md bg-white border border-[#dbe5f1] rounded-[16px] p-8 shadow-sm">
             <h2 className="text-[18px] font-[800] text-[#172554] mb-2">{activeModule}</h2>

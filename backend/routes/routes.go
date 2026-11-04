@@ -9,6 +9,7 @@ func SetupRoutes(r *gin.Engine) {
 	driveCtrl := controllers.NewDriveController()
 	masterCtrl := controllers.NewMasterController()
 	studentReviewCtrl := controllers.NewStudentReviewController()
+	intelligenceCtrl := controllers.NewPlacementIntelligenceController()
 
 	api := r.Group("/api")
 	{
@@ -85,6 +86,14 @@ func SetupRoutes(r *gin.Engine) {
 			studentReview.POST("/:user_id/notes", studentReviewCtrl.SaveStudentReviewNote)
 			studentReview.PUT("/notes/:note_id", studentReviewCtrl.UpdateStudentReviewNote)
 			studentReview.DELETE("/notes/:note_id", studentReviewCtrl.DeleteStudentReviewNote)
+		}
+
+		// Placement Intelligence
+		intelligence := api.Group("/intelligence")
+		{
+			intelligence.GET("/batch-summaries", intelligenceCtrl.GetBatchSummaries)
+			intelligence.GET("/outcome-summary", intelligenceCtrl.GetOutcomeGroupSummary)
+			intelligence.GET("/overall-stats", intelligenceCtrl.GetOverallPlacementMatrix)
 		}
 
 		// Health Check
