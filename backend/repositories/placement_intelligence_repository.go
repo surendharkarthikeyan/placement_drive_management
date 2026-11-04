@@ -116,11 +116,11 @@ func (r *PlacementIntelligenceRepository) GetOutcomeGroupSummary(batchID string)
 		Where("COALESCE(s.higher_studies, '0') = '1'").
 		Count(&summary.HigherStudiesCount)
 
-	// Entrepreneurship (Startup or Business)
+	// Entrepreneurship (Startup or Business enum '1')
 	r.db.Table("master_users u").
 		Joins("JOIN placement_student_basic_details s ON u.id = s.user_id").
 		Where(batchCondition, args...).
-		Where("(COALESCE(s.startup, '0') = '1' OR COALESCE(s.business, '0') = '1')").
+		Where("(COALESCE(s.startup, '0') IN ('1', 'true', 'yes') OR COALESCE(s.business, '0') IN ('1', 'true', 'yes'))").
 		Count(&summary.EntrepreneurCount)
 
 	// Not Eligible (Current arrears > 0 or nip = 1)
@@ -281,10 +281,10 @@ func (r *PlacementIntelligenceRepository) GetOverallPlacementMatrix(batchParam, 
 			Where("u.role_id = 1 AND u.batch_id = ? AND COALESCE(s.higher_studies, '0') = '1'"+deptCond, baseArgs...).
 			Count(&uniqueRow.HigherStudies)
 
-		// Entrepreneurship (Startup or Business)
+		// Entrepreneurship (Startup or Business enum '1')
 		r.db.Table("master_users u").
 			Joins("JOIN placement_student_basic_details s ON u.id = s.user_id").
-			Where("u.role_id = 1 AND u.batch_id = ? AND (COALESCE(s.startup, '0') = '1' OR COALESCE(s.business, '0') = '1')"+deptCond, baseArgs...).
+			Where("u.role_id = 1 AND u.batch_id = ? AND (COALESCE(s.startup, '0') IN ('1', 'true', 'yes') OR COALESCE(s.business, '0') IN ('1', 'true', 'yes'))"+deptCond, baseArgs...).
 			Count(&uniqueRow.Entrepreneurship)
 
 		// Not Eligible (Current arrears > 0 or nip = '1')
