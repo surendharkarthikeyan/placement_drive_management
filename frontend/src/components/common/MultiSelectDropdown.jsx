@@ -49,9 +49,22 @@ export default function MultiSelectDropdown({
     onChange(Array.from(current))
   }
 
+  const isAllSelected = options.length > 0 && options.every((o) => selectedValues.includes(o.value))
+
+  const handleToggleAll = () => {
+    if (isAllSelected) {
+      onChange([])
+    } else {
+      onChange(options.map((o) => o.value))
+    }
+  }
+
   // Label text to display on trigger button
   const getDisplayText = () => {
     if (!selectedValues || selectedValues.length === 0) return placeholder
+    if (isAllSelected && options.length > 1) {
+      return `All ${itemNounPlural}`
+    }
     const selectedNames = options
       .filter((o) => selectedValues.includes(o.value))
       .map((o) => o.label)
@@ -100,41 +113,75 @@ export default function MultiSelectDropdown({
 
       {/* Custom Dropdown List */}
       {isOpen && (
-        <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-[#dbe5f1] rounded-[13px] shadow-[0_10px_25px_-5px_rgba(15,23,42,0.12),0_8px_10px_-6px_rgba(15,23,42,0.06)] p-2 flex flex-col gap-1 max-h-[220px] overflow-y-auto overscroll-contain pr-1 custom-dropdown-scroll animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-[#dbe5f1] rounded-[13px] shadow-[0_10px_25px_-5px_rgba(15,23,42,0.12),0_8px_10px_-6px_rgba(15,23,42,0.06)] p-2 flex flex-col gap-1 max-h-[230px] overflow-y-auto overscroll-contain pr-1 custom-dropdown-scroll animate-in fade-in zoom-in-95 duration-150">
           {options.length === 0 ? (
             <div className="py-4 text-center text-[14px] text-[#94a3b8]">
               No {itemNounPlural} found
             </div>
           ) : (
-            options.map((opt) => {
-              const isSelected = selectedValues.includes(opt.value)
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleToggleOption(opt.value)}
-                  className={`w-full px-3.5 py-2.5 rounded-[9px] text-[15px] flex items-center justify-between text-left transition cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#eff6ff] text-[#2563eb] font-[750]'
-                      : 'hover:bg-[#f8fafc] text-[#334155] font-[600]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition ${
-                        isSelected
-                          ? 'bg-[#2563eb] border-[#2563eb] text-white'
-                          : 'border-[#cbd5e1] bg-white'
-                      }`}
-                    >
-                      {isSelected && <Check size={12} strokeWidth={3} />}
+            <>
+              {/* One-click Select All Option */}
+              {options.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleToggleAll}
+                    className={`w-full px-3.5 py-2.5 rounded-[9px] ${fontSize} flex items-center justify-between text-left transition cursor-pointer ${
+                      isAllSelected
+                        ? 'bg-[#eff6ff] text-[#2563eb] font-[750]'
+                        : 'hover:bg-[#f8fafc] text-[#1e293b] font-[700]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition ${
+                          isAllSelected
+                            ? 'bg-[#2563eb] border-[#2563eb] text-white'
+                            : 'border-[#cbd5e1] bg-white'
+                        }`}
+                      >
+                        {isAllSelected && <Check size={12} strokeWidth={3} />}
+                      </div>
+                      <span className="font-[750]">
+                        {isAllSelected ? `Deselect All (${options.length})` : `Select All (${options.length} ${itemNounPlural})`}
+                      </span>
                     </div>
-                    <span>{opt.label}</span>
-                  </div>
-                  {isSelected && <Check size={16} className="text-[#2563eb] shrink-0 ml-2" />}
-                </button>
-              )
-            })
+                    {isAllSelected && <Check size={16} className="text-[#2563eb] shrink-0 ml-2" />}
+                  </button>
+                  <div className="w-full h-px bg-[#f1f5f9] my-0.5" />
+                </>
+              )}
+
+              {options.map((opt) => {
+                const isSelected = selectedValues.includes(opt.value)
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleToggleOption(opt.value)}
+                    className={`w-full px-3.5 py-2.5 rounded-[9px] ${fontSize} flex items-center justify-between text-left transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#eff6ff] text-[#2563eb] font-[750]'
+                        : 'hover:bg-[#f8fafc] text-[#334155] font-[600]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition ${
+                          isSelected
+                            ? 'bg-[#2563eb] border-[#2563eb] text-white'
+                            : 'border-[#cbd5e1] bg-white'
+                        }`}
+                      >
+                        {isSelected && <Check size={12} strokeWidth={3} />}
+                      </div>
+                      <span>{opt.label}</span>
+                    </div>
+                    {isSelected && <Check size={16} className="text-[#2563eb] shrink-0 ml-2" />}
+                  </button>
+                )
+              })}
+            </>
           )}
         </div>
       )}
