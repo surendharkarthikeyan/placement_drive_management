@@ -1308,11 +1308,11 @@ export default function DriveStagesAndOutcomes({
                 )
               ) : !nextStage ? (
                 <>
-                  Are you sure you want to mark the final stage <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> as completed? All students marked as <span className="font-bold text-[#16a34a]">Cleared</span> will automatically move to the <strong>4. Final Selection</strong> tab.
+                  Are you sure you want to mark the final stage <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> as completed? All students marked as <span className="font-bold text-[#16a34a]">Cleared</span> will automatically move to the <strong>4. Final Selection</strong> tab, and any remaining students with <strong>Pending</strong> outcome will be set to <span className="font-bold text-[#dc2626]">Not Cleared</span>.
                 </>
               ) : (
                 <>
-                  Are you sure you want to mark <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> as completed? All students marked as <span className="font-bold text-[#16a34a]">Cleared</span> will automatically progress to the next recruitment stage.
+                  Are you sure you want to mark <strong className="text-[#1e293b]">"{currentStage?.stage_name}"</strong> as completed? All students marked as <span className="font-bold text-[#16a34a]">Cleared</span> will automatically progress to the next recruitment stage, and any remaining students with <strong>Pending</strong> outcome will be set to <span className="font-bold text-[#dc2626]">Not Cleared</span>.
                 </>
               )}
             </p>
@@ -1366,7 +1366,7 @@ export default function DriveStagesAndOutcomes({
             </div>
 
             <p className="text-[14.5px] text-[#475569] leading-relaxed mb-7 font-normal">
-              Are you sure you want to mark <strong className="text-[#1e293b]">"{substageToComplete.substage_name}"</strong> as completed? Students marked as <span className="font-bold text-[#16a34a]">Cleared</span> will automatically progress to the next substage.
+              Are you sure you want to mark <strong className="text-[#1e293b]">"{substageToComplete.substage_name}"</strong> as completed? Students marked as <span className="font-bold text-[#16a34a]">Cleared</span> will automatically progress to the next substage, and any remaining students with <strong>Pending</strong> outcome will be set to <span className="font-bold text-[#dc2626]">Not Cleared</span>.
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-1">

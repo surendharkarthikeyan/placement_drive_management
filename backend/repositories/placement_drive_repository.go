@@ -1672,6 +1672,20 @@ func (r *DriveRepository) CompleteStage(driveID uint64, stageID uint64, officerU
 			return err
 		}
 
+		// When marking this stage as completed, update any students with outcome 'pending' in this stage to 'not_cleared'
+		updatesPending := map[string]interface{}{
+			"outcome":    "not_cleared",
+			"updated_at": now,
+		}
+		if officerUserID != nil {
+			updatesPending["updated_by"] = *officerUserID
+		}
+		if err := tx.Model(&models.PlacementStageResult{}).
+			Where("stage_id = ? AND (outcome = 'pending' OR outcome IS NULL OR outcome = '')", stageID).
+			Updates(updatesPending).Error; err != nil {
+			return err
+		}
+
 		// Find next stage in sequence
 		var nextStage models.PlacementDriveStage
 		err := tx.Where("drive_id = ? AND sequence_no > ?", driveID, currentStage.SequenceNo).
@@ -1799,6 +1813,20 @@ func (r *DriveRepository) CompleteSubstage(driveID uint64, stageID uint64, subst
 			return err
 		}
 
+		// When marking this substage as completed, update any students with outcome 'pending' in this substage to 'not_cleared'
+		updatesSubPending := map[string]interface{}{
+			"outcome":    "not_cleared",
+			"updated_at": now,
+		}
+		if officerUserID != nil {
+			updatesSubPending["updated_by"] = *officerUserID
+		}
+		if err := tx.Model(&models.PlacementStageResult{}).
+			Where("stage_id = ? AND substage_id = ? AND (outcome = 'pending' OR outcome IS NULL OR outcome = '')", stageID, substageID).
+			Updates(updatesSubPending).Error; err != nil {
+			return err
+		}
+
 		// Find next substage in sequence within the same stage
 		var nextSubstage models.PlacementDriveSubstage
 		err := tx.Where("stage_id = ? AND sequence_no > ?", stageID, currentSubstage.SequenceNo).
@@ -1878,6 +1906,24 @@ func (r *DriveRepository) CompleteRecruitmentProcess(driveID uint64, officerUser
 				"completed_at": now,
 			}).Error; err != nil {
 			return err
+		}
+
+		// For all stages in this drive, mark any students with outcome 'pending' as 'not_cleared'
+		var stageIDs []uint64
+		tx.Model(&models.PlacementDriveStage{}).Where("drive_id = ?", driveID).Pluck("id", &stageIDs)
+		if len(stageIDs) > 0 {
+			updatesProcPending := map[string]interface{}{
+				"outcome":    "not_cleared",
+				"updated_at": now,
+			}
+			if officerUserID != nil {
+				updatesProcPending["updated_by"] = *officerUserID
+			}
+			if err := tx.Model(&models.PlacementStageResult{}).
+				Where("stage_id IN ? AND (outcome = 'pending' OR outcome IS NULL OR outcome = '')", stageIDs).
+				Updates(updatesProcPending).Error; err != nil {
+				return err
+			}
 		}
 
 		// Update overall_status of drive to awaiting_final_result

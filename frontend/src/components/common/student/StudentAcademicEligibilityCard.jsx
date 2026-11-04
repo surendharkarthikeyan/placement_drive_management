@@ -65,3 +65,4 @@ export default function StudentAcademicEligibilityCard({ student = {} }) {
     </div>
   )
 }
+

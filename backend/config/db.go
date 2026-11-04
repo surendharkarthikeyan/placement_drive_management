@@ -50,4 +50,18 @@ func ConnectDB() {
 	}
 
 	log.Println("[SUCCESS] Connected to MySQL database successfully.")
+
+	// Automatically update any students with outcome 'pending' in completed stages to 'not_cleared'
+	DB.Exec(`
+		UPDATE placement_stage_results psr
+		JOIN placement_drive_stages pds ON psr.stage_id = pds.id
+		SET psr.outcome = 'not_cleared', psr.updated_at = NOW()
+		WHERE pds.stage_status = 'completed' AND (psr.outcome = 'pending' OR psr.outcome IS NULL OR psr.outcome = '')
+	`)
+	DB.Exec(`
+		UPDATE placement_stage_results psr
+		JOIN placement_drive_substages pdsub ON psr.substage_id = pdsub.id
+		SET psr.outcome = 'not_cleared', psr.updated_at = NOW()
+		WHERE pdsub.substage_status = 'completed' AND (psr.outcome = 'pending' OR psr.outcome IS NULL OR psr.outcome = '')
+	`)
 }
