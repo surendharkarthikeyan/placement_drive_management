@@ -75,11 +75,8 @@ func (r *PlacementIntelligenceRepository) GetBatchSummaries() ([]models.BatchPla
 			Where("u.role_id = 1 AND u.batch_id = ?", b.ID).
 			Count(&summary.OffersCount)
 
-		// Not Eligible count (e.g. current arrears > 0 or history arrears > 0 or nip = 1)
-		r.db.Table("master_users u").
-			Joins("JOIN placement_student_basic_details s ON u.id = s.user_id").
-			Where("u.role_id = 1 AND u.batch_id = ? AND (COALESCE(s.current_arrear_count, 0) > 0 OR COALESCE(s.nip, '0') = '1')", b.ID).
-			Count(&summary.NotEligibleCount)
+		// Not Eligible count (no logic for now)
+		summary.NotEligibleCount = 0
 
 		// Not Placed count = Total students - Placed students - Higher studies - Startup/Business
 		notPlaced := summary.TotalStudents - summary.PlacedStudents - summary.HigherStudiesCount - (summary.StartupCount + summary.BusinessCount)
@@ -123,12 +120,8 @@ func (r *PlacementIntelligenceRepository) GetOutcomeGroupSummary(batchID string)
 		Where("(COALESCE(s.startup, '0') IN ('1', 'true', 'yes') OR COALESCE(s.business, '0') IN ('1', 'true', 'yes'))").
 		Count(&summary.EntrepreneurCount)
 
-	// Not Eligible (Current arrears > 0 or nip = 1)
-	r.db.Table("master_users u").
-		Joins("JOIN placement_student_basic_details s ON u.id = s.user_id").
-		Where(batchCondition, args...).
-		Where("(COALESCE(s.current_arrear_count, 0) > 0 OR COALESCE(s.nip, '0') = '1')").
-		Count(&summary.NotEligibleCount)
+	// Not Eligible (no logic for now)
+	summary.NotEligibleCount = 0
 
 	// Total students in scope
 	var totalStudents int64
@@ -287,11 +280,8 @@ func (r *PlacementIntelligenceRepository) GetOverallPlacementMatrix(batchParam, 
 			Where("u.role_id = 1 AND u.batch_id = ? AND (COALESCE(s.startup, '0') IN ('1', 'true', 'yes') OR COALESCE(s.business, '0') IN ('1', 'true', 'yes'))"+deptCond, baseArgs...).
 			Count(&uniqueRow.Entrepreneurship)
 
-		// Not Eligible (Current arrears > 0 or nip = '1')
-		r.db.Table("master_users u").
-			Joins("JOIN placement_student_basic_details s ON u.id = s.user_id").
-			Where("u.role_id = 1 AND u.batch_id = ? AND (COALESCE(s.current_arrear_count, 0) > 0 OR COALESCE(s.nip, '0') = '1')"+deptCond, baseArgs...).
-			Count(&uniqueRow.NotEligible)
+		// Not Eligible (no logic for now)
+		uniqueRow.NotEligible = 0
 
 		// Placed count
 		placedStudents := int64(len(userMaxOffer))
