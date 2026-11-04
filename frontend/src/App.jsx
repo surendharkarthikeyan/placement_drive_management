@@ -198,6 +198,8 @@ export default function App() {
             currentView={intelligenceView}
             selectedBatch={selectedIntelligenceBatch}
             selectedDepartment={selectedIntelligenceDept}
+            selectedOutcome={selectedIntelligenceOutcome}
+            onSelectOutcome={setSelectedIntelligenceOutcome}
           />
         </main>
       )}

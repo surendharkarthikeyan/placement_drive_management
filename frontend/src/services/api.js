@@ -291,6 +291,19 @@ export const getIntelligenceOutcomeSummary = async (batch = '') => {
   return response.data?.data || {}
 }
 
+export const getIntelligenceOutcomeStudents = async ({ outcome = 'notPlaced', batch = '', department = '' } = {}) => {
+  const params = {}
+  if (outcome) params.outcome = outcome
+  if (batch && batch !== 'all' && batch !== 'All') {
+    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+  }
+  if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
+    params.department = department
+  }
+  const response = await api.get('/intelligence/outcome-students', { params })
+  return response.data?.data || []
+}
+
 export const getIntelligenceOverallStats = async (arg1 = {}, arg2 = '') => {
   let batch = ''
   let department = ''

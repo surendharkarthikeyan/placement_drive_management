@@ -96,6 +96,7 @@ func SetupRoutes(r *gin.Engine) {
 			intelligence.GET("/outcome-summary", intelligenceCtrl.GetOutcomeGroupSummary)
 			intelligence.GET("/overall-stats", intelligenceCtrl.GetOverallPlacementMatrix)
 			intelligence.GET("/overall-stats/export", intelligenceCtrl.ExportOverallPlacementMatrixExcel)
+			intelligence.GET("/outcome-students", intelligenceCtrl.GetOutcomeGroupStudents)
 		}
 
 		// Health Check

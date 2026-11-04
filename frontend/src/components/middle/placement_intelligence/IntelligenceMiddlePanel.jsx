@@ -256,17 +256,29 @@ export default function IntelligenceMiddlePanel({
           <span className="font-[850] text-[#172554]">{signals.unique_offer_holders.toLocaleString()}</span> unique offer holders
         </div>
 
-        <div className="flex items-center gap-1.5 font-medium text-[#1e40af]">
+        <div
+          onClick={() => onSelectOutcome('notPlaced')}
+          className={`flex items-center gap-1.5 font-medium transition cursor-pointer px-2 py-0.5 rounded-[6px] hover:bg-white/80 ${selectedOutcome === 'notPlaced' ? 'bg-white shadow-2xs font-[800] ring-1 ring-[#d97706]/40' : 'text-[#1e40af]'}`}
+          title="Click to view Not Yet Placed students in right panel"
+        >
           <span className="w-2 h-2 rounded-full bg-[#d97706] shrink-0" />
           <span className="font-[850] text-[#172554]">{signals.not_yet_placed.toLocaleString()}</span> not yet placed
         </div>
 
-        <div className="flex items-center gap-1.5 font-medium text-[#1e40af]">
+        <div
+          onClick={() => onSelectOutcome('higherStudies')}
+          className={`flex items-center gap-1.5 font-medium transition cursor-pointer px-2 py-0.5 rounded-[6px] hover:bg-white/80 ${selectedOutcome === 'higherStudies' ? 'bg-white shadow-2xs font-[800] ring-1 ring-[#7c3aed]/40' : 'text-[#1e40af]'}`}
+          title="Click to view Higher Studies students in right panel"
+        >
           <span className="w-2 h-2 rounded-full bg-[#7c3aed] shrink-0" />
           <span className="font-[850] text-[#172554]">{signals.higher_studies.toLocaleString()}</span> higher studies
         </div>
 
-        <div className="flex items-center gap-1.5 font-medium text-[#1e40af]">
+        <div
+          onClick={() => onSelectOutcome('entrepreneur')}
+          className={`flex items-center gap-1.5 font-medium transition cursor-pointer px-2 py-0.5 rounded-[6px] hover:bg-white/80 ${selectedOutcome === 'entrepreneur' ? 'bg-white shadow-2xs font-[800] ring-1 ring-[#0891b2]/40' : 'text-[#1e40af]'}`}
+          title="Click to view Entrepreneurship students in right panel"
+        >
           <span className="w-2 h-2 rounded-full bg-[#0891b2] shrink-0" />
           <span className="font-[850] text-[#172554]">{signals.entrepreneurship.toLocaleString()}</span> entrepreneurship
         </div>

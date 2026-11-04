@@ -645,3 +645,122 @@ func (r *PlacementIntelligenceRepository) ExportOverallPlacementMatrixExcel(batc
 	return buffer.Bytes(), nil
 }
 
+// GetOutcomeGroupStudents returns students belonging to the chosen outcome group (notPlaced, higherStudies, entrepreneur)
+func (r *PlacementIntelligenceRepository) GetOutcomeGroupStudents(outcomeParam, batchParam, deptParam string) ([]models.IntelligenceOutcomeStudent, error) {
+	cleanBatch := strings.ReplaceAll(batchParam, "–", "-")
+	cleanBatch = strings.ReplaceAll(cleanBatch, "—", "-")
+	cleanBatch = strings.TrimSpace(cleanBatch)
+
+	query := r.db.Table("master_users u").
+		Select("u.id, u.name, u.roll_no, u.department_id, COALESCE(d.name, '') as department_name, u.batch_id, b.name as batch_name, COALESCE(s.cgpa, 0) as cgpa").
+		Joins("JOIN batches b ON u.batch_id = b.id").
+		Joins("LEFT JOIN departments d ON u.department_id = d.id").
+		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
+		Where("u.role_id = 1")
+
+	// Batch filter
+	if cleanBatch != "" && cleanBatch != "all" && cleanBatch != "All" {
+		query = query.Where("u.batch_id = ? OR b.name = ? OR b.name LIKE ? OR REPLACE(REPLACE(b.name, '–', '-'), '—', '-') LIKE ?",
+			cleanBatch, cleanBatch, "%"+cleanBatch+"%", "%"+cleanBatch+"%")
+	}
+
+	// Department filter
+	if deptParam != "" && deptParam != "all" && deptParam != "All" && deptParam != "All Departments" {
+		lowerDept := strings.ToLower(deptParam)
+		searchPattern := "%" + deptParam + "%"
+		if lowerDept == "cse" || strings.Contains(lowerDept, "computer") {
+			searchPattern = "%Computer Science%"
+		} else if lowerDept == "it" || strings.Contains(lowerDept, "information") {
+			searchPattern = "%Information Technology%"
+		} else if lowerDept == "ece" || strings.Contains(lowerDept, "electronics") {
+			searchPattern = "%Electronics%"
+		} else if lowerDept == "eee" || strings.Contains(lowerDept, "electrical") {
+			searchPattern = "%Electrical%"
+		} else if lowerDept == "mech" || strings.Contains(lowerDept, "mechanical") {
+			searchPattern = "%Mechanical%"
+		} else if lowerDept == "civil" {
+			searchPattern = "%Civil%"
+		}
+		query = query.Where("u.department_id = ? OR d.name = ? OR d.name LIKE ?", deptParam, deptParam, searchPattern)
+	}
+
+	// Outcome group condition
+	normalizedOutcome := strings.ToLower(strings.TrimSpace(outcomeParam))
+	var statusLabel string
+
+	switch normalizedOutcome {
+	case "higherstudies", "higher_studies":
+		query = query.Where("COALESCE(s.higher_studies, '0') IN ('1', 'true', 'yes')")
+		statusLabel = "Higher Studies"
+
+	case "entrepreneur", "entrepreneurship":
+		query = query.Where("(COALESCE(s.startup, '0') IN ('1', 'true', 'yes') OR COALESCE(s.business, '0') IN ('1', 'true', 'yes'))")
+		statusLabel = "Entrepreneurship"
+
+	case "notplaced", "not_placed", "not yet placed":
+		fallthrough
+	default:
+		// Not placed: NOT in offers, NOT higher studies, NOT entrepreneur
+		query = query.Where("u.id NOT IN (SELECT DISTINCT pds.user_id FROM placement_drive_offers pdo JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id)")
+		query = query.Where("COALESCE(s.higher_studies, '0') NOT IN ('1', 'true', 'yes')")
+		query = query.Where("COALESCE(s.startup, '0') NOT IN ('1', 'true', 'yes') AND COALESCE(s.business, '0') NOT IN ('1', 'true', 'yes')")
+		statusLabel = "Not Placed"
+	}
+
+	query = query.Order("u.name ASC")
+
+	type TempStudent struct {
+		ID             uint64  `gorm:"column:id"`
+		Name           string  `gorm:"column:name"`
+		RollNo         string  `gorm:"column:roll_no"`
+		DepartmentID   uint64  `gorm:"column:department_id"`
+		DepartmentName string  `gorm:"column:department_name"`
+		BatchID        uint64  `gorm:"column:batch_id"`
+		BatchName      string  `gorm:"column:batch_name"`
+		CGPA           float64 `gorm:"column:cgpa"`
+	}
+
+	var rawList []TempStudent
+	if err := query.Scan(&rawList).Error; err != nil {
+		return nil, err
+	}
+
+	result := make([]models.IntelligenceOutcomeStudent, 0, len(rawList))
+	for _, s := range rawList {
+		code := getDeptCode(s.DepartmentName)
+		result = append(result, models.IntelligenceOutcomeStudent{
+			ID:             s.ID,
+			Name:           s.Name,
+			RollNo:         s.RollNo,
+			DepartmentID:   s.DepartmentID,
+			DepartmentName: s.DepartmentName,
+			DepartmentCode: code,
+			BatchID:        s.BatchID,
+			BatchName:      s.BatchName,
+			CGPA:           s.CGPA,
+			Status:         statusLabel,
+			OutcomeGroup:   normalizedOutcome,
+		})
+	}
+
+	return result, nil
+}
+
+func getDeptCode(name string) string {
+	lower := strings.ToLower(name)
+	if strings.Contains(lower, "computer") {
+		return "CSE"
+	} else if strings.Contains(lower, "information") {
+		return "IT"
+	} else if strings.Contains(lower, "electronics") {
+		return "ECE"
+	} else if strings.Contains(lower, "electrical") {
+		return "EEE"
+	} else if strings.Contains(lower, "mechanical") {
+		return "MECH"
+	} else if strings.Contains(lower, "civil") {
+		return "CIVIL"
+	}
+	return name
+}
+

@@ -70,3 +70,18 @@ type OverallPlacementStatsResponse struct {
 	UniqueStudentsByOffer []BatchUniqueStudentsRow `json:"unique_students_by_offer"`
 }
 
+// IntelligenceOutcomeStudent represents a student belonging to an outcome group
+type IntelligenceOutcomeStudent struct {
+	ID             uint64  `json:"id"`
+	Name           string  `json:"name"`
+	RollNo         string  `json:"roll_no"`
+	DepartmentID   uint64  `json:"department_id"`
+	DepartmentName string  `json:"department_name"`
+	DepartmentCode string  `json:"department_code"`
+	BatchID        uint64  `json:"batch_id"`
+	BatchName      string  `json:"batch_name"`
+	CGPA           float64 `json:"cgpa"`
+	Status         string  `json:"status"` // "Not Placed", "Higher Studies", "Entrepreneurship"
+	OutcomeGroup   string  `json:"outcome_group"`
+}
+

@@ -65,3 +65,17 @@ func (ctrl *PlacementIntelligenceController) ExportOverallPlacementMatrixExcel(c
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelBytes)
 }
 
+// GetOutcomeGroupStudents returns the list of students for the selected outcome group, batch, and department
+func (ctrl *PlacementIntelligenceController) GetOutcomeGroupStudents(c *gin.Context) {
+	outcome := c.Query("outcome")
+	batch := c.Query("batch")
+	department := c.Query("department")
+
+	students, err := ctrl.repo.GetOutcomeGroupStudents(outcome, batch, department)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch outcome students: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": students})
+}
+
