@@ -350,25 +350,81 @@ export default function IntelligenceMiddlePanel({
                             <td className="px-4 py-3 text-center text-[#475569] font-medium whitespace-nowrap">
                               {row.total_students}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.gt40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.offers.gt40 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('gt40')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.gt40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.offers.gt40}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p30_40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.offers.p30_40 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p30_40')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p30_40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.offers.p30_40}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p20_30 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.offers.p20_30 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p20_30')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p20_30 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.offers.p20_30}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p10_20 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.offers.p10_20 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p10_20')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p10_20 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.offers.p10_20}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p6_10 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.offers.p6_10 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p6_10')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p6_10 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.offers.p6_10}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p4_6 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.offers.p4_6 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p4_6')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p4_6 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.offers.p4_6}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p3_4 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.offers.p3_4 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p3_4')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p3_4 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.offers.p3_4}
                             </td>
                           </tr>
@@ -459,47 +515,121 @@ export default function IntelligenceMiddlePanel({
                             <td className="px-4 py-3 text-center text-[#475569] font-medium whitespace-nowrap">
                               {row.total}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.gt40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.unique.gt40 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('gt40')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.gt40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.unique.gt40}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p30_40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.unique.p30_40 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p30_40')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p30_40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.unique.p30_40}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p20_30 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.unique.p20_30 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p20_30')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p20_30 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.unique.p20_30}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p10_20 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.unique.p10_20 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p10_20')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p10_20 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.unique.p10_20}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p6_10 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.unique.p6_10 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p6_10')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p6_10 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.unique.p6_10}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p4_6 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.unique.p4_6 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p4_6')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p4_6 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.unique.p4_6}
                             </td>
-                            <td className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p3_4 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}>
+                            <td
+                              onClick={() => {
+                                if (row.unique.p3_4 > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('p3_4')
+                                }
+                              }}
+                              className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p3_4 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
+                            >
                               {row.unique.p3_4}
                             </td>
                             <td
-                              onClick={() => onSelectOutcome('notEligible')}
+                              onClick={() => {
+                                onSelectBatch(row.batch)
+                                onSelectOutcome('notEligible')
+                              }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.not_eligible > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
                             >
                               {row.not_eligible}
                             </td>
                             <td
-                              onClick={() => onSelectOutcome('entrepreneur')}
+                              onClick={() => {
+                                if (row.entrepreneurship > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('entrepreneur')
+                                }
+                              }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.entrepreneurship > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
                             >
                               {row.entrepreneurship}
                             </td>
                             <td
-                              onClick={() => onSelectOutcome('higherStudies')}
+                              onClick={() => {
+                                if (row.higher_studies > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('higherStudies')
+                                }
+                              }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.higher_studies > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
                             >
                               {row.higher_studies}
                             </td>
                             <td
-                              onClick={() => onSelectOutcome('notPlaced')}
+                              onClick={() => {
+                                if (row.not_placed > 0) {
+                                  onSelectBatch(row.batch)
+                                  onSelectOutcome('notPlaced')
+                                }
+                              }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.not_placed > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
                             >
                               {row.not_placed}

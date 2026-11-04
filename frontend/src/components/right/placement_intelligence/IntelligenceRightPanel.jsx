@@ -27,17 +27,30 @@ export default function IntelligenceRightPanel({
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
 
-  // Map outcome group keys to standard 4 supported groups
-  const effectiveOutcome = (selectedOutcome === 'higherStudies' || selectedOutcome === 'entrepreneur' || selectedOutcome === 'notEligible')
-    ? selectedOutcome
-    : (selectedOutcome === 'notPlaced' ? 'notPlaced' : 'notPlaced')
+  const SALARY_BAND_LABELS = {
+    gt40: '> ₹40L',
+    p30_40: '₹30–40L',
+    p20_30: '₹20–30L',
+    p10_20: '₹10–20L',
+    p6_10: '₹6–10L',
+    p4_6: '₹4–6L',
+    p3_4: '₹3–4L'
+  }
+  const isSalaryBand = Boolean(SALARY_BAND_LABELS[selectedOutcome])
 
-  // Switch to students mode when an outcome group is explicitly chosen from outside
+  // Map outcome group keys to standard 4 supported groups or salary band
+  const effectiveOutcome = isSalaryBand
+    ? selectedOutcome
+    : (selectedOutcome === 'higherStudies' || selectedOutcome === 'entrepreneur' || selectedOutcome === 'notEligible')
+      ? selectedOutcome
+      : 'notPlaced'
+
+  // Switch to students mode when an outcome group or salary band is explicitly chosen
   useEffect(() => {
     if (selectedOutcome) {
       setActiveMode('students')
     }
-  }, [selectedOutcome])
+  }, [selectedOutcome, selectedBatch])
 
   // Fetch overview stats
   useEffect(() => {
@@ -179,12 +192,16 @@ export default function IntelligenceRightPanel({
     notPlaced: 'Not Yet Placed',
     notEligible: 'Not Eligible',
     higherStudies: 'Higher Studies',
-    entrepreneur: 'Entrepreneurship'
+    entrepreneur: 'Entrepreneurship',
+    ...SALARY_BAND_LABELS
   }
 
-  const currentOutcomeTitle = outcomeTitleMap[effectiveOutcome] || 'Not Yet Placed'
+  const currentOutcomeTitle = outcomeTitleMap[effectiveOutcome] || 'Students'
 
   const getStatusPillClass = (group) => {
+    if (SALARY_BAND_LABELS[group]) {
+      return 'bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe]'
+    }
     switch (group) {
       case 'notEligible':
         return 'bg-[#fee2e2] text-[#991b1b] border border-[#fecaca]'
@@ -250,52 +267,72 @@ export default function IntelligenceRightPanel({
 
         {/* Outcome Group Selector Buttons (When in Students Mode) */}
         {activeMode === 'students' && (
-          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[#f1f5f9]">
-            <button
-              type="button"
-              onClick={() => onSelectOutcome('notPlaced')}
-              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
-                effectiveOutcome === 'notPlaced'
-                  ? 'bg-[#fef3c7] text-[#92400e] ring-1 ring-[#fde68a] shadow-2xs'
-                  : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
-              }`}
-            >
-              Not Yet Placed
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectOutcome('notEligible')}
-              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
-                effectiveOutcome === 'notEligible'
-                  ? 'bg-[#fee2e2] text-[#991b1b] ring-1 ring-[#fecaca] shadow-2xs'
-                  : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
-              }`}
-            >
-              Not Eligible
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectOutcome('higherStudies')}
-              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
-                effectiveOutcome === 'higherStudies'
-                  ? 'bg-[#f3e8ff] text-[#7e22ce] ring-1 ring-[#e9d5ff] shadow-2xs'
-                  : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
-              }`}
-            >
-              Higher Studies
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectOutcome('entrepreneur')}
-              className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
-                effectiveOutcome === 'entrepreneur'
-                  ? 'bg-[#ecfeff] text-[#0e7490] ring-1 ring-[#cffafe] shadow-2xs'
-                  : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
-              }`}
-            >
-              Entrepreneurship
-            </button>
-          </div>
+          isSalaryBand ? (
+            <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-[#f1f5f9]">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="px-2.5 py-1 rounded-[7px] bg-[#2563eb] text-white text-[12px] font-[850] shadow-2xs shrink-0">
+                  {SALARY_BAND_LABELS[effectiveOutcome]}
+                </span>
+                <span className="text-[12px] font-[750] text-[#1e40af] truncate">
+                  Highest Confirmed Offer
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onSelectOutcome('notPlaced')}
+                className="text-[11.5px] font-[750] text-[#2563eb] hover:text-[#1d4ed8] hover:underline cursor-pointer shrink-0"
+              >
+                Outcome Groups →
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[#f1f5f9]">
+              <button
+                type="button"
+                onClick={() => onSelectOutcome('notPlaced')}
+                className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
+                  effectiveOutcome === 'notPlaced'
+                    ? 'bg-[#fef3c7] text-[#92400e] ring-1 ring-[#fde68a] shadow-2xs'
+                    : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
+                }`}
+              >
+                Not Yet Placed
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectOutcome('notEligible')}
+                className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
+                  effectiveOutcome === 'notEligible'
+                    ? 'bg-[#fee2e2] text-[#991b1b] ring-1 ring-[#fecaca] shadow-2xs'
+                    : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
+                }`}
+              >
+                Not Eligible
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectOutcome('higherStudies')}
+                className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
+                  effectiveOutcome === 'higherStudies'
+                    ? 'bg-[#f3e8ff] text-[#7e22ce] ring-1 ring-[#e9d5ff] shadow-2xs'
+                    : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
+                }`}
+              >
+                Higher Studies
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectOutcome('entrepreneur')}
+                className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
+                  effectiveOutcome === 'entrepreneur'
+                    ? 'bg-[#ecfeff] text-[#0e7490] ring-1 ring-[#cffafe] shadow-2xs'
+                    : 'bg-[#f8fafc] text-[#64748b] hover:bg-[#f1f5f9]'
+                }`}
+              >
+                Entrepreneurship
+              </button>
+            </div>
+          )
         )}
       </div>
 

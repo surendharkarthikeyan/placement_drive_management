@@ -635,11 +635,119 @@ func (r *PlacementIntelligenceRepository) ExportOverallPlacementMatrixExcel(batc
 	return buffer.Bytes(), nil
 }
 
-// GetOutcomeGroupStudents returns students belonging to the chosen outcome group (notPlaced, higherStudies, entrepreneur)
+// GetOutcomeGroupStudents returns students belonging to the chosen outcome group (notPlaced, higherStudies, entrepreneur, or salary bands)
 func (r *PlacementIntelligenceRepository) GetOutcomeGroupStudents(outcomeParam, batchParam, deptParam string) ([]models.IntelligenceOutcomeStudent, error) {
 	cleanBatch := strings.ReplaceAll(batchParam, "–", "-")
 	cleanBatch = strings.ReplaceAll(cleanBatch, "—", "-")
 	cleanBatch = strings.TrimSpace(cleanBatch)
+
+	normalizedOutcome := strings.ToLower(strings.TrimSpace(outcomeParam))
+
+	// Check if outcomeParam is a salary band
+	var isSalaryBand bool
+	var havingClause string
+
+	switch normalizedOutcome {
+	case "gt40", ">40l", ">40", "> 40l":
+		isSalaryBand = true
+		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) > 40"
+	case "p30_40", "30-40l", "30-40", "30_40":
+		isSalaryBand = true
+		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 30 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) <= 40"
+	case "p20_30", "20-30l", "20-30", "20_30":
+		isSalaryBand = true
+		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 20 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 30"
+	case "p10_20", "10-20l", "10-20", "10_20":
+		isSalaryBand = true
+		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 10 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 20"
+	case "p6_10", "6-10l", "6-10", "6_10":
+		isSalaryBand = true
+		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 6 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 10"
+	case "p4_6", "4-6l", "4-6", "4_6":
+		isSalaryBand = true
+		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 4 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 6"
+	case "p3_4", "3-4l", "3-4", "3_4":
+		isSalaryBand = true
+		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 3 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 4"
+	}
+
+	if isSalaryBand {
+		query := r.db.Table("master_users u").
+			Select("u.id, u.name, u.roll_no, u.department_id, COALESCE(d.name, '') as department_name, u.batch_id, b.name as batch_name, COALESCE(s.cgpa, 0) as cgpa, MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) as package_lpa").
+			Joins("JOIN batches b ON u.batch_id = b.id").
+			Joins("LEFT JOIN departments d ON u.department_id = d.id").
+			Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
+			Joins("JOIN placement_drive_students pds ON u.id = pds.user_id").
+			Joins("JOIN placement_drive_offers pdo ON pds.id = pdo.drive_student_id").
+			Joins("JOIN placement_drive pd ON pds.drive_id = pd.id").
+			Where("u.role_id = 1")
+
+		if cleanBatch != "" && cleanBatch != "all" && cleanBatch != "All" {
+			query = query.Where("u.batch_id = ? OR b.name = ? OR b.name LIKE ? OR REPLACE(REPLACE(b.name, '–', '-'), '—', '-') LIKE ?",
+				cleanBatch, cleanBatch, "%"+cleanBatch+"%", "%"+cleanBatch+"%")
+		}
+
+		if deptParam != "" && deptParam != "all" && deptParam != "All" && deptParam != "All Departments" {
+			lowerDept := strings.ToLower(deptParam)
+			searchPattern := "%" + deptParam + "%"
+			if lowerDept == "cse" || strings.Contains(lowerDept, "computer") {
+				searchPattern = "%Computer Science%"
+			} else if lowerDept == "it" || strings.Contains(lowerDept, "information") {
+				searchPattern = "%Information Technology%"
+			} else if lowerDept == "ece" || strings.Contains(lowerDept, "electronics") {
+				searchPattern = "%Electronics%"
+			} else if lowerDept == "eee" || strings.Contains(lowerDept, "electrical") {
+				searchPattern = "%Electrical%"
+			} else if lowerDept == "mech" || strings.Contains(lowerDept, "mechanical") {
+				searchPattern = "%Mechanical%"
+			} else if lowerDept == "civil" {
+				searchPattern = "%Civil%"
+			}
+			query = query.Where("u.department_id = ? OR d.name = ? OR d.name LIKE ?", deptParam, deptParam, searchPattern)
+		}
+
+		query = query.Group("u.id, u.name, u.roll_no, u.department_id, d.name, u.batch_id, b.name, s.cgpa").
+			Having(havingClause).
+			Order("package_lpa DESC, u.name ASC")
+
+		type SalaryStudentRow struct {
+			ID             uint64  `gorm:"column:id"`
+			Name           string  `gorm:"column:name"`
+			RollNo         string  `gorm:"column:roll_no"`
+			DepartmentID   uint64  `gorm:"column:department_id"`
+			DepartmentName string  `gorm:"column:department_name"`
+			BatchID        uint64  `gorm:"column:batch_id"`
+			BatchName      string  `gorm:"column:batch_name"`
+			CGPA           float64 `gorm:"column:cgpa"`
+			PackageLPA     float64 `gorm:"column:package_lpa"`
+		}
+
+		var rawSalaryList []SalaryStudentRow
+		if err := query.Scan(&rawSalaryList).Error; err != nil {
+			return nil, err
+		}
+
+		result := make([]models.IntelligenceOutcomeStudent, 0, len(rawSalaryList))
+		for _, s := range rawSalaryList {
+			code := getDeptCode(s.DepartmentName)
+			statusStr := fmt.Sprintf("₹%g LPA", s.PackageLPA)
+			result = append(result, models.IntelligenceOutcomeStudent{
+				ID:             s.ID,
+				Name:           s.Name,
+				RollNo:         s.RollNo,
+				DepartmentID:   s.DepartmentID,
+				DepartmentName: s.DepartmentName,
+				DepartmentCode: code,
+				BatchID:        s.BatchID,
+				BatchName:      s.BatchName,
+				CGPA:           s.CGPA,
+				Status:         statusStr,
+				OutcomeGroup:   normalizedOutcome,
+				PackageLPA:     s.PackageLPA,
+			})
+		}
+		return result, nil
+	}
 
 	query := r.db.Table("master_users u").
 		Select("u.id, u.name, u.roll_no, u.department_id, COALESCE(d.name, '') as department_name, u.batch_id, b.name as batch_name, COALESCE(s.cgpa, 0) as cgpa").
@@ -674,8 +782,6 @@ func (r *PlacementIntelligenceRepository) GetOutcomeGroupStudents(outcomeParam, 
 		query = query.Where("u.department_id = ? OR d.name = ? OR d.name LIKE ?", deptParam, deptParam, searchPattern)
 	}
 
-	// Outcome group condition
-	normalizedOutcome := strings.ToLower(strings.TrimSpace(outcomeParam))
 	var statusLabel string
 
 	switch normalizedOutcome {

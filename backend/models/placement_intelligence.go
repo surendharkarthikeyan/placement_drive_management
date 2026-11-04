@@ -81,7 +81,8 @@ type IntelligenceOutcomeStudent struct {
 	BatchID        uint64  `json:"batch_id"`
 	BatchName      string  `json:"batch_name"`
 	CGPA           float64 `json:"cgpa"`
-	Status         string  `json:"status"` // "Not Placed", "Higher Studies", "Entrepreneurship"
+	Status         string  `json:"status"` // "Not Placed", "Higher Studies", "Entrepreneurship", or "₹20 LPA"
 	OutcomeGroup   string  `json:"outcome_group"`
+	PackageLPA     float64 `json:"package_lpa,omitempty"`
 }
 
