@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"placement-management/config"
 	"placement-management/middleware"
+	"placement-management/repositories"
 	"placement-management/routes"
 )
 
@@ -17,6 +18,10 @@ func main() {
 
 	// Initialize MySQL connection with GORM
 	config.ConnectDB()
+
+	// Retroactively sync batch placement counts for any completed drives
+	driveRepo := repositories.NewDriveRepository(config.DB)
+	_ = driveRepo.SyncAllCompletedDrivesBatchPlacements()
 
 	// Set Gin mode
 	ginMode := os.Getenv("GIN_MODE")

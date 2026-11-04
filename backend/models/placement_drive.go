@@ -233,3 +233,17 @@ type PlacementDriveActivityLog struct {
 func (PlacementDriveActivityLog) TableName() string {
 	return "placement_drive_activity_log"
 }
+
+// PlacementCompanyBatchPlacement records the number of students placed per participating batch for a completed drive
+type PlacementCompanyBatchPlacement struct {
+	ID             uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
+	CompanyID      int64  `gorm:"column:company_id;not null" json:"company_id"`
+	DriveID        uint64 `gorm:"column:drive_id;not null" json:"drive_id"`
+	Batch          string `gorm:"column:batch;size:9;not null" json:"batch"`
+	StudentsPlaced int    `gorm:"column:students_placed;default:0" json:"students_placed"`
+	Status         string `gorm:"column:status;type:enum('0','1');default:'1'" json:"status"`
+}
+
+func (PlacementCompanyBatchPlacement) TableName() string {
+	return "placement_company_batch_placements"
+}

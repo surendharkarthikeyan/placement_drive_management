@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"log"
 	"fmt"
 	"math"
 	"strings"
@@ -2277,6 +2278,20 @@ func (r *DriveRepository) SaveFinalSelections(
 		}
 		_ = r.LogActivityWithSuppression(tx, &actLog)
 
+		// If drive is marked completed or was already completed, record/sync batch placements
+		if markCompleted {
+			if err := r.SyncDriveBatchPlacements(tx, driveID); err != nil {
+				return err
+			}
+		} else {
+			var d models.PlacementDrive
+			if err := tx.Select("overall_status").First(&d, driveID).Error; err == nil && d.OverallStatus == "completed" {
+				if err := r.SyncDriveBatchPlacements(tx, driveID); err != nil {
+					return err
+				}
+			}
+		}
+
 		return nil
 	})
 }
@@ -2303,9 +2318,123 @@ func (r *DriveRepository) UpdateStudentOffer(driveID uint64, driveStudentID uint
 		return r.db.Create(&newOffer).Error
 	}
 
-	return r.db.Model(&existing).Updates(map[string]interface{}{
+	err = r.db.Model(&existing).Updates(map[string]interface{}{
 		"final_role":   role,
 		"package_lpa":  packageLPA,
 		"confirmed_at": now,
 	}).Error
+	if err == nil && drive.OverallStatus == "completed" {
+		_ = r.SyncDriveBatchPlacements(r.db, driveID)
+	}
+	return err
+}
+
+
+// SyncDriveBatchPlacements records or updates the students placed per participating batch for a completed drive in placement_company_batch_placements
+func (r *DriveRepository) SyncDriveBatchPlacements(tx *gorm.DB, driveID uint64) error {
+	var drive models.PlacementDrive
+	if err := tx.First(&drive, driveID).Error; err != nil {
+		return err
+	}
+
+	// Only record if drive is completed
+	if drive.OverallStatus != "completed" {
+		return nil
+	}
+
+	// 1. Gather all participating batch IDs for this drive
+	batchIDMap := make(map[uint64]bool)
+
+	// A) From drive.BatchIDs (JSON array)
+	for _, bID := range drive.BatchIDs {
+		if bID > 0 {
+			batchIDMap[bID] = true
+		}
+	}
+
+	// B) From students who participated in this drive
+	var studentBatchIDs []uint64
+	tx.Table("placement_drive_students pds").
+		Joins("JOIN master_users u ON pds.user_id = u.id").
+		Where("pds.drive_id = ? AND u.batch_id IS NOT NULL", driveID).
+		Pluck("DISTINCT u.batch_id", &studentBatchIDs)
+
+	for _, bID := range studentBatchIDs {
+		if bID > 0 {
+			batchIDMap[bID] = true
+		}
+	}
+
+	if len(batchIDMap) == 0 {
+		return nil
+	}
+
+	var batchIDsList []uint64
+	for bID := range batchIDMap {
+		batchIDsList = append(batchIDsList, bID)
+	}
+
+	// Fetch batch details
+	type BatchInfo struct {
+		ID   uint64 `gorm:"column:id"`
+		Name string `gorm:"column:name"`
+	}
+	var batches []BatchInfo
+	if err := tx.Table("batches").Where("id IN ?", batchIDsList).Order("id ASC").Scan(&batches).Error; err != nil {
+		return err
+	}
+
+	// 2. Remove any existing batch placement records for this drive
+	if err := tx.Where("drive_id = ?", driveID).Delete(&models.PlacementCompanyBatchPlacement{}).Error; err != nil {
+		return err
+	}
+
+	// 3. For each participating batch, count students placed in this drive
+	for _, b := range batches {
+		var placedCount int64
+		err := tx.Table("placement_drive_offers pdo").
+			Joins("JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id").
+			Joins("JOIN master_users u ON pds.user_id = u.id").
+			Where("pds.drive_id = ? AND u.batch_id = ?", driveID, b.ID).
+			Distinct("pds.user_id").
+			Count(&placedCount).Error
+		if err != nil {
+			return err
+		}
+
+		batchName := strings.TrimSpace(b.Name)
+		if len(batchName) > 9 {
+			batchName = batchName[:9]
+		}
+
+		rec := models.PlacementCompanyBatchPlacement{
+			CompanyID:      drive.CompanyID,
+			DriveID:        driveID,
+			Batch:          batchName,
+			StudentsPlaced: int(placedCount),
+			Status:         "1",
+		}
+		if err := tx.Create(&rec).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SyncAllCompletedDrivesBatchPlacements syncs batch placement records for all completed drives in the system
+func (r *DriveRepository) SyncAllCompletedDrivesBatchPlacements() error {
+	var completedDriveIDs []uint64
+	if err := r.db.Table("placement_drive").
+		Where("overall_status = 'completed'").
+		Pluck("id", &completedDriveIDs).Error; err != nil {
+		return err
+	}
+
+	for _, dID := range completedDriveIDs {
+		if err := r.SyncDriveBatchPlacements(r.db, dID); err != nil {
+			log.Printf("[WARN] Failed to sync batch placements for completed drive %d: %v", dID, err)
+		}
+	}
+	return nil
 }

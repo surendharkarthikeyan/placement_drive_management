@@ -108,12 +108,15 @@ DROP TABLE IF EXISTS `placement_company_batch_placements`;
 CREATE TABLE `placement_company_batch_placements` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `company_id` bigint NOT NULL,
+  `drive_id` bigint unsigned NOT NULL,
   `batch` varchar(9) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `students_placed` int NOT NULL DEFAULT '0',
   `status` enum('0','1') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `company_id` (`company_id`),
-  CONSTRAINT `placement_company_batch_placements_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `placement_company` (`id`)
+  KEY `drive_id` (`drive_id`),
+  CONSTRAINT `placement_company_batch_placements_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `placement_company` (`id`),
+  CONSTRAINT `fk_batch_placements_drive` FOREIGN KEY (`drive_id`) REFERENCES `placement_drive` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
