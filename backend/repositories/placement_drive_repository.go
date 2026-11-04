@@ -2,9 +2,10 @@ package repositories
 
 import (
 	"errors"
-	"log"
 	"fmt"
+	"log"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -420,7 +421,14 @@ func (r *DriveRepository) SaveDriveFields(drive *models.PlacementDrive, fields .
 
 // UpdateStatus updates the overall_status of a drive
 func (r *DriveRepository) UpdateStatus(id string, status string) error {
-	return r.db.Model(&models.PlacementDrive{}).Where("id = ?", id).Update("overall_status", status).Error
+	err := r.db.Model(&models.PlacementDrive{}).Where("id = ?", id).Update("overall_status", status).Error
+	if err == nil && status == "completed" {
+		driveIDUint, _ := strconv.ParseUint(id, 10, 64)
+		if driveIDUint > 0 {
+			_ = r.SyncDriveBatchPlacements(r.db, driveIDUint)
+		}
+	}
+	return err
 }
 
 // LogActivityWithSuppression logs an activity event if a matching event hasn't occurred within 30 minutes
@@ -2332,6 +2340,10 @@ func (r *DriveRepository) UpdateStudentOffer(driveID uint64, driveStudentID uint
 
 // SyncDriveBatchPlacements records or updates the students placed per participating batch for a completed drive in placement_company_batch_placements
 func (r *DriveRepository) SyncDriveBatchPlacements(tx *gorm.DB, driveID uint64) error {
+	if tx == nil {
+		tx = r.db
+	}
+
 	var drive models.PlacementDrive
 	if err := tx.First(&drive, driveID).Error; err != nil {
 		return err
