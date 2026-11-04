@@ -26,9 +26,15 @@ export default function App() {
   const [selectedIntelligenceBatch, setSelectedIntelligenceBatch] = useState(null)
   const [selectedIntelligenceDept, setSelectedIntelligenceDept] = useState('All')
   const [selectedIntelligenceOutcome, setSelectedIntelligenceOutcome] = useState(null)
+  const [selectedIntelligenceOutcomeType, setSelectedIntelligenceOutcomeType] = useState('offers')
   const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState('__overall__')
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
   const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
+
+  const handleSelectIntelligenceOutcome = (outcome, type = 'offers') => {
+    setSelectedIntelligenceOutcome(outcome)
+    setSelectedIntelligenceOutcomeType(type)
+  }
 
   // Student Placement Review state
   const [reviewFilters, setReviewFilters] = useState({})
@@ -173,7 +179,7 @@ export default function App() {
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
             selectedOutcome={selectedIntelligenceOutcome}
-            onSelectOutcome={setSelectedIntelligenceOutcome}
+            onSelectOutcome={(outcome) => handleSelectIntelligenceOutcome(outcome, 'unique')}
             selectedIndustry={selectedIntelligenceIndustry}
             onSelectIndustry={setSelectedIntelligenceIndustry}
             selectedCompany={selectedIntelligenceCompany}
@@ -190,7 +196,8 @@ export default function App() {
             selectedDepartment={selectedIntelligenceDept}
             onSelectDepartment={setSelectedIntelligenceDept}
             selectedOutcome={selectedIntelligenceOutcome}
-            onSelectOutcome={setSelectedIntelligenceOutcome}
+            selectedOutcomeType={selectedIntelligenceOutcomeType}
+            onSelectOutcome={handleSelectIntelligenceOutcome}
           />
 
           {/* Right Panel */}
@@ -199,7 +206,8 @@ export default function App() {
             selectedBatch={selectedIntelligenceBatch}
             selectedDepartment={selectedIntelligenceDept}
             selectedOutcome={selectedIntelligenceOutcome}
-            onSelectOutcome={setSelectedIntelligenceOutcome}
+            selectedOutcomeType={selectedIntelligenceOutcomeType}
+            onSelectOutcome={handleSelectIntelligenceOutcome}
           />
         </main>
       )}

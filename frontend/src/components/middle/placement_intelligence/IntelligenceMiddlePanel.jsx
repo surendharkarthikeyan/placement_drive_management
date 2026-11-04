@@ -354,7 +354,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.offers.gt40 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('gt40')
+                                  onSelectOutcome('gt40', 'offers')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.gt40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -365,7 +365,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.offers.p30_40 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p30_40')
+                                  onSelectOutcome('p30_40', 'offers')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p30_40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -376,7 +376,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.offers.p20_30 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p20_30')
+                                  onSelectOutcome('p20_30', 'offers')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p20_30 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -387,7 +387,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.offers.p10_20 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p10_20')
+                                  onSelectOutcome('p10_20', 'offers')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p10_20 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -398,7 +398,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.offers.p6_10 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p6_10')
+                                  onSelectOutcome('p6_10', 'offers')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p6_10 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -409,7 +409,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.offers.p4_6 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p4_6')
+                                  onSelectOutcome('p4_6', 'offers')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p4_6 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -420,7 +420,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.offers.p3_4 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p3_4')
+                                  onSelectOutcome('p3_4', 'offers')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.offers.p3_4 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -519,7 +519,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.unique.gt40 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('gt40')
+                                  onSelectOutcome('gt40', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.gt40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -530,7 +530,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.unique.p30_40 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p30_40')
+                                  onSelectOutcome('p30_40', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p30_40 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -541,7 +541,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.unique.p20_30 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p20_30')
+                                  onSelectOutcome('p20_30', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p20_30 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -552,7 +552,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.unique.p10_20 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p10_20')
+                                  onSelectOutcome('p10_20', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p10_20 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -563,7 +563,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.unique.p6_10 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p6_10')
+                                  onSelectOutcome('p6_10', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p6_10 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -574,7 +574,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.unique.p4_6 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p4_6')
+                                  onSelectOutcome('p4_6', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p4_6 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -585,7 +585,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.unique.p3_4 > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('p3_4')
+                                  onSelectOutcome('p3_4', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.unique.p3_4 > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -595,7 +595,7 @@ export default function IntelligenceMiddlePanel({
                             <td
                               onClick={() => {
                                 onSelectBatch(row.batch)
-                                onSelectOutcome('notEligible')
+                                onSelectOutcome('notEligible', 'unique')
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.not_eligible > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
                             >
@@ -605,7 +605,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.entrepreneurship > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('entrepreneur')
+                                  onSelectOutcome('entrepreneur', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.entrepreneurship > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -616,7 +616,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.higher_studies > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('higherStudies')
+                                  onSelectOutcome('higherStudies', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.higher_studies > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}
@@ -627,7 +627,7 @@ export default function IntelligenceMiddlePanel({
                               onClick={() => {
                                 if (row.not_placed > 0) {
                                   onSelectBatch(row.batch)
-                                  onSelectOutcome('notPlaced')
+                                  onSelectOutcome('notPlaced', 'unique')
                                 }
                               }}
                               className={`px-4 py-3 text-center whitespace-nowrap ${row.not_placed > 0 ? 'text-[#2563eb] font-[850] cursor-pointer hover:bg-[#eff6ff] hover:underline' : 'text-[#94a3b8]'}`}

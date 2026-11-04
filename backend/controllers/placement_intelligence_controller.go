@@ -70,8 +70,9 @@ func (ctrl *PlacementIntelligenceController) GetOutcomeGroupStudents(c *gin.Cont
 	outcome := c.Query("outcome")
 	batch := c.Query("batch")
 	department := c.Query("department")
+	typeParam := c.Query("type")
 
-	students, err := ctrl.repo.GetOutcomeGroupStudents(outcome, batch, department)
+	students, err := ctrl.repo.GetOutcomeGroupStudents(outcome, batch, department, typeParam)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch outcome students: " + err.Error()})
 		return

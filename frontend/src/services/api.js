@@ -291,9 +291,10 @@ export const getIntelligenceOutcomeSummary = async (batch = '') => {
   return response.data?.data || {}
 }
 
-export const getIntelligenceOutcomeStudents = async ({ outcome = 'notPlaced', batch = '', department = '' } = {}) => {
+export const getIntelligenceOutcomeStudents = async ({ outcome = 'notPlaced', batch = '', department = '', type = '' } = {}) => {
   const params = {}
   if (outcome) params.outcome = outcome
+  if (type) params.type = type
   if (batch && batch !== 'all' && batch !== 'All') {
     params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
   }

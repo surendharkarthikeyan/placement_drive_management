@@ -27,6 +27,7 @@ export default function IntelligenceRightPanel({
   selectedBatch = null,
   selectedDepartment = 'All',
   selectedOutcome = null,
+  selectedOutcomeType = 'offers',
   onSelectOutcome = () => {}
 }) {
   const [activeMode, setActiveMode] = useState('overview') // Default view is Overview
@@ -109,7 +110,8 @@ export default function IntelligenceRightPanel({
         const students = await getIntelligenceOutcomeStudents({
           outcome: effectiveOutcome,
           batch: selectedBatch || '',
-          department: selectedDepartment || 'All'
+          department: selectedDepartment || 'All',
+          type: selectedOutcomeType || 'offers'
         })
         if (isMounted) {
           setOutcomeStudents(students || [])
@@ -124,14 +126,14 @@ export default function IntelligenceRightPanel({
     return () => {
       isMounted = false
     }
-  }, [effectiveOutcome, selectedBatch, selectedDepartment])
+  }, [effectiveOutcome, selectedBatch, selectedDepartment, selectedOutcomeType])
 
   // Clear search query and selected student when outcome group, batch, or dept changes
   useEffect(() => {
     setStudentSearchQuery('')
     setSelectedStudentId(null)
     setSelectedStudentDetail(null)
-  }, [effectiveOutcome, selectedBatch, selectedDepartment])
+  }, [effectiveOutcome, selectedBatch, selectedDepartment, selectedOutcomeType])
 
   // Fetch student review detail when a student is selected
   useEffect(() => {
@@ -329,12 +331,12 @@ export default function IntelligenceRightPanel({
                   {SALARY_BAND_LABELS[effectiveOutcome]}
                 </span>
                 <span className="text-[12px] font-[750] text-[#1e40af] truncate">
-                  Highest Confirmed Offer
+                  {selectedOutcomeType === 'unique' ? 'Highest Confirmed Offer' : 'Offer Volume'}
                 </span>
               </div>
               <button
                 type="button"
-                onClick={() => onSelectOutcome('notPlaced')}
+                onClick={() => onSelectOutcome('notPlaced', 'unique')}
                 className="text-[11.5px] font-[750] text-[#2563eb] hover:text-[#1d4ed8] hover:underline cursor-pointer shrink-0"
               >
                 Outcome Groups →
@@ -344,7 +346,7 @@ export default function IntelligenceRightPanel({
             <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[#f1f5f9]">
               <button
                 type="button"
-                onClick={() => onSelectOutcome('notPlaced')}
+                onClick={() => onSelectOutcome('notPlaced', 'unique')}
                 className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
                   effectiveOutcome === 'notPlaced'
                     ? 'bg-[#fef3c7] text-[#92400e] ring-1 ring-[#fde68a] shadow-2xs'
@@ -355,7 +357,7 @@ export default function IntelligenceRightPanel({
               </button>
               <button
                 type="button"
-                onClick={() => onSelectOutcome('notEligible')}
+                onClick={() => onSelectOutcome('notEligible', 'unique')}
                 className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
                   effectiveOutcome === 'notEligible'
                     ? 'bg-[#fee2e2] text-[#991b1b] ring-1 ring-[#fecaca] shadow-2xs'
@@ -366,7 +368,7 @@ export default function IntelligenceRightPanel({
               </button>
               <button
                 type="button"
-                onClick={() => onSelectOutcome('higherStudies')}
+                onClick={() => onSelectOutcome('higherStudies', 'unique')}
                 className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
                   effectiveOutcome === 'higherStudies'
                     ? 'bg-[#f3e8ff] text-[#7e22ce] ring-1 ring-[#e9d5ff] shadow-2xs'
@@ -377,7 +379,7 @@ export default function IntelligenceRightPanel({
               </button>
               <button
                 type="button"
-                onClick={() => onSelectOutcome('entrepreneur')}
+                onClick={() => onSelectOutcome('entrepreneur', 'unique')}
                 className={`flex-1 py-1.5 px-1 rounded-[7px] text-[11px] font-[800] transition cursor-pointer text-center truncate ${
                   effectiveOutcome === 'entrepreneur'
                     ? 'bg-[#ecfeff] text-[#0e7490] ring-1 ring-[#cffafe] shadow-2xs'
@@ -448,7 +450,9 @@ export default function IntelligenceRightPanel({
                     Students
                   </div>
                   <div className="text-[11.5px] font-medium text-[#64748b] mt-0.5">
-                    Institutional count
+                    {isSalaryBand
+                      ? (selectedOutcomeType === 'unique' ? 'Unique students with best offer' : 'Offer recipients in salary band')
+                      : 'Institutional count'}
                   </div>
                 </div>
 

@@ -636,38 +636,47 @@ func (r *PlacementIntelligenceRepository) ExportOverallPlacementMatrixExcel(batc
 }
 
 // GetOutcomeGroupStudents returns students belonging to the chosen outcome group (notPlaced, higherStudies, entrepreneur, or salary bands)
-func (r *PlacementIntelligenceRepository) GetOutcomeGroupStudents(outcomeParam, batchParam, deptParam string) ([]models.IntelligenceOutcomeStudent, error) {
+func (r *PlacementIntelligenceRepository) GetOutcomeGroupStudents(outcomeParam, batchParam, deptParam, typeParam string) ([]models.IntelligenceOutcomeStudent, error) {
 	cleanBatch := strings.ReplaceAll(batchParam, "–", "-")
 	cleanBatch = strings.ReplaceAll(cleanBatch, "—", "-")
 	cleanBatch = strings.TrimSpace(cleanBatch)
+	cleanBatch = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(cleanBatch, "Batch"), "batch"))
 
 	normalizedOutcome := strings.ToLower(strings.TrimSpace(outcomeParam))
 
 	// Check if outcomeParam is a salary band
 	var isSalaryBand bool
+	var whereBand string
 	var havingClause string
 
 	switch normalizedOutcome {
 	case "gt40", ">40l", ">40", "> 40l":
 		isSalaryBand = true
+		whereBand = "COALESCE(pdo.package_lpa, pd.package_lpa, 0) > 40"
 		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) > 40"
 	case "p30_40", "30-40l", "30-40", "30_40":
 		isSalaryBand = true
+		whereBand = "COALESCE(pdo.package_lpa, pd.package_lpa, 0) >= 30 AND COALESCE(pdo.package_lpa, pd.package_lpa, 0) <= 40"
 		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 30 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) <= 40"
 	case "p20_30", "20-30l", "20-30", "20_30":
 		isSalaryBand = true
+		whereBand = "COALESCE(pdo.package_lpa, pd.package_lpa, 0) >= 20 AND COALESCE(pdo.package_lpa, pd.package_lpa, 0) < 30"
 		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 20 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 30"
 	case "p10_20", "10-20l", "10-20", "10_20":
 		isSalaryBand = true
+		whereBand = "COALESCE(pdo.package_lpa, pd.package_lpa, 0) >= 10 AND COALESCE(pdo.package_lpa, pd.package_lpa, 0) < 20"
 		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 10 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 20"
 	case "p6_10", "6-10l", "6-10", "6_10":
 		isSalaryBand = true
+		whereBand = "COALESCE(pdo.package_lpa, pd.package_lpa, 0) >= 6 AND COALESCE(pdo.package_lpa, pd.package_lpa, 0) < 10"
 		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 6 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 10"
 	case "p4_6", "4-6l", "4-6", "4_6":
 		isSalaryBand = true
+		whereBand = "COALESCE(pdo.package_lpa, pd.package_lpa, 0) >= 4 AND COALESCE(pdo.package_lpa, pd.package_lpa, 0) < 6"
 		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 4 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 6"
 	case "p3_4", "3-4l", "3-4", "3_4":
 		isSalaryBand = true
+		whereBand = "COALESCE(pdo.package_lpa, pd.package_lpa, 0) >= 3 AND COALESCE(pdo.package_lpa, pd.package_lpa, 0) < 4"
 		havingClause = "MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) >= 3 AND MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) < 4"
 	}
 
@@ -706,9 +715,16 @@ func (r *PlacementIntelligenceRepository) GetOutcomeGroupStudents(outcomeParam, 
 			query = query.Where("u.department_id = ? OR d.name = ? OR d.name LIKE ?", deptParam, deptParam, searchPattern)
 		}
 
-		query = query.Group("u.id, u.name, u.roll_no, u.department_id, d.name, u.batch_id, b.name, s.cgpa").
-			Having(havingClause).
-			Order("package_lpa DESC, u.name ASC")
+		if strings.ToLower(strings.TrimSpace(typeParam)) == "unique" {
+			query = query.Group("u.id, u.name, u.roll_no, u.department_id, d.name, u.batch_id, b.name, s.cgpa").
+				Having(havingClause).
+				Order("package_lpa DESC, u.name ASC")
+		} else {
+			// type is offers / offer volume (default): include all students with an offer in this band
+			query = query.Where(whereBand).
+				Group("u.id, u.name, u.roll_no, u.department_id, d.name, u.batch_id, b.name, s.cgpa").
+				Order("package_lpa DESC, u.name ASC")
+		}
 
 		type SalaryStudentRow struct {
 			ID             uint64  `gorm:"column:id"`
