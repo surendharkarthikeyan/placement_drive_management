@@ -19,6 +19,8 @@ export default function IntelligenceLeftPanel({
   onViewChange = () => {},
   selectedBatch: externalSelectedBatch,
   onSelectBatch: externalOnSelectBatch,
+  globalBatch = 'all',
+  onGlobalBatchChange = () => {},
   selectedOutcome: externalSelectedOutcome,
   onSelectOutcome: externalOnSelectOutcome,
   selectedIndustry = null,
@@ -113,7 +115,16 @@ export default function IntelligenceLeftPanel({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Fetch drives whenever in 'industries' view or when selectedBatch changes
+  const effectiveBatch = (globalBatch && globalBatch !== 'all')
+    ? globalBatch
+    : (selectedBatch && selectedBatch !== 'all' ? selectedBatch : 'all')
+
+  const handleBatchSelect = (batchVal) => {
+    if (onGlobalBatchChange) onGlobalBatchChange(batchVal)
+    if (externalOnSelectBatch) externalOnSelectBatch(batchVal === 'all' ? null : batchVal)
+  }
+
+  // Fetch drives whenever in 'industries' view or when effectiveBatch changes
   useEffect(() => {
     if (currentView !== 'industries') return
     let isMounted = true
@@ -121,12 +132,10 @@ export default function IntelligenceLeftPanel({
     const fetchIndustryDrives = async () => {
       try {
         setIsLoadingDrives(true)
-        const data = await getDrives({ status: 'all', batch: selectedBatch || 'all' })
+        const data = await getDrives({ status: 'all', batch: effectiveBatch })
         if (isMounted) {
           setIndustryDrives(data || [])
-          if ((!selectedIndustry || selectedIndustry === '__overall__') && data && data.length > 0) {
-            onSelectIndustry(data[0].id)
-          }
+          // Zero default selection per user requirement: selectedIndustry remains null initially
         }
       } catch (err) {
         console.error('Failed to load industry drives:', err)
@@ -140,7 +149,7 @@ export default function IntelligenceLeftPanel({
     return () => {
       isMounted = false
     }
-  }, [currentView, selectedBatch])
+  }, [currentView, effectiveBatch])
 
   const toggleStatus = (statusValue) => {
     const next = new Set(selectedStatuses)
@@ -464,35 +473,43 @@ export default function IntelligenceLeftPanel({
               </div>
 
               {/* Filter Trigger Button */}
-              <button
-                type="button"
-                onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
-                title="Filter by recruitment status"
-                className={`h-[38px] px-2.5 rounded-[10px] border flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
-                  selectedStatuses.size > 0
-                    ? 'bg-[#eff6ff] text-[#2563eb] border-[#93c5fd] font-bold shadow-xs'
-                    : 'bg-white text-[#64748b] hover:text-[#1e293b] border-[#dbe5f1] hover:border-[#cbd5e1]'
-                }`}
-              >
-                <Filter size={15} />
-                {selectedStatuses.size > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-[#2563eb] text-white text-[10px] font-bold flex items-center justify-center">
-                    {selectedStatuses.size}
-                  </span>
-                )}
-              </button>
+              {(() => {
+                const activeFilterCount = selectedStatuses.size + (effectiveBatch !== 'all' ? 1 : 0)
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
+                    title="Filter by recruitment status & batch"
+                    className={`h-[38px] px-2.5 rounded-[10px] border flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                      activeFilterCount > 0
+                        ? 'bg-[#eff6ff] text-[#2563eb] border-[#93c5fd] font-bold shadow-xs'
+                        : 'bg-white text-[#64748b] hover:text-[#1e293b] border-[#dbe5f1] hover:border-[#cbd5e1]'
+                    }`}
+                  >
+                    <Filter size={15} />
+                    {activeFilterCount > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-[#2563eb] text-white text-[10px] font-bold flex items-center justify-center">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+                )
+              })()}
 
-              {/* Status Filter Dropdown Menu */}
+              {/* Status & Batch Filter Dropdown Menu */}
               {isFilterDropdownOpen && (
                 <div className="absolute top-[44px] right-0 w-[240px] bg-white/95 backdrop-blur-md rounded-[14px] shadow-[0_12px_36px_rgba(15,23,42,0.18)] border border-[#dbe5f1] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#f1f5f9]">
                     <span className="text-[11px] font-[850] uppercase tracking-wider text-[#64748b]">
-                      Status Filter
+                      Filters
                     </span>
-                    {selectedStatuses.size > 0 && (
+                    {(selectedStatuses.size > 0 || effectiveBatch !== 'all') && (
                       <button
                         type="button"
-                        onClick={clearStatusFilters}
+                        onClick={() => {
+                          clearStatusFilters()
+                          handleBatchSelect('all')
+                        }}
                         className="text-[11px] text-[#2563eb] hover:underline font-semibold cursor-pointer"
                       >
                         Reset All
@@ -500,28 +517,70 @@ export default function IntelligenceLeftPanel({
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto pr-1">
-                    {statusOptions.map((opt) => {
-                      const isChecked = selectedStatuses.has(opt.value)
-                      return (
+                  {/* Batch Filter Section */}
+                  <div className="mb-2">
+                    <span className="text-[10px] font-[800] uppercase tracking-wider text-[#94a3b8] px-1">
+                      Academic Batch
+                    </span>
+                    <div className="flex flex-col gap-0.5 mt-1 max-h-[110px] overflow-y-auto pr-1">
+                      <button
+                        type="button"
+                        onClick={() => handleBatchSelect('all')}
+                        className={`w-full px-2 py-1.5 rounded-[7px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
+                          effectiveBatch === 'all'
+                            ? 'bg-[#eff6ff] text-[#2563eb] font-bold'
+                            : 'text-[#334155] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        <span>All Batches</span>
+                        {effectiveBatch === 'all' && <Check size={14} className="text-[#2563eb]" />}
+                      </button>
+                      {batches.map((b) => (
                         <button
-                          key={opt.value}
+                          key={b.batch_id || b.batch_name}
                           type="button"
-                          onClick={() => toggleStatus(opt.value)}
-                          className={`w-full px-2.5 py-1.5 rounded-[8px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
-                            isChecked
-                              ? 'bg-[#eff6ff] text-[#2563eb] font-semibold'
+                          onClick={() => handleBatchSelect(b.batch_name)}
+                          className={`w-full px-2 py-1.5 rounded-[7px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
+                            effectiveBatch === b.batch_name
+                              ? 'bg-[#eff6ff] text-[#2563eb] font-bold'
                               : 'text-[#334155] hover:bg-[#f8fafc]'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${opt.dotColor}`} />
-                            <span>{opt.label}</span>
-                          </div>
-                          {isChecked && <Check size={14} className="text-[#2563eb]" />}
+                          <span>Batch {b.batch_name}</span>
+                          {effectiveBatch === b.batch_name && <Check size={14} className="text-[#2563eb]" />}
                         </button>
-                      )
-                    })}
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Status Filter Section */}
+                  <div className="pt-2 border-t border-[#f1f5f9]">
+                    <span className="text-[10px] font-[800] uppercase tracking-wider text-[#94a3b8] px-1">
+                      Recruitment Status
+                    </span>
+                    <div className="flex flex-col gap-0.5 mt-1 max-h-[140px] overflow-y-auto pr-1">
+                      {statusOptions.map((opt) => {
+                        const isChecked = selectedStatuses.has(opt.value)
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => toggleStatus(opt.value)}
+                            className={`w-full px-2 py-1.5 rounded-[7px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
+                              isChecked
+                                ? 'bg-[#eff6ff] text-[#2563eb] font-semibold'
+                                : 'text-[#334155] hover:bg-[#f8fafc]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${opt.dotColor}`} />
+                              <span>{opt.label}</span>
+                            </div>
+                            {isChecked && <Check size={14} className="text-[#2563eb]" />}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -564,9 +623,19 @@ export default function IntelligenceLeftPanel({
               })}
             </div>
 
-            {/* Active Filter Chips (if any specific status is checked) */}
-            {selectedStatuses.size > 0 && (
+            {/* Active Filter Chips (Batch and/or Statuses) */}
+            {(selectedStatuses.size > 0 || effectiveBatch !== 'all') && (
               <div className="mt-1 flex items-center flex-wrap gap-1.5 shrink-0">
+                {effectiveBatch !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#eff6ff] text-[#1e40af] border border-[#bfdbfe]">
+                    <span>Batch {effectiveBatch}</span>
+                    <X
+                      size={11}
+                      className="cursor-pointer hover:text-[#dc2626]"
+                      onClick={() => handleBatchSelect('all')}
+                    />
+                  </span>
+                )}
                 {Array.from(selectedStatuses).map((st) => {
                   const opt = statusOptions.find((o) => o.value === st)
                   return (
@@ -585,10 +654,13 @@ export default function IntelligenceLeftPanel({
                 })}
                 <button
                   type="button"
-                  onClick={clearStatusFilters}
+                  onClick={() => {
+                    clearStatusFilters()
+                    handleBatchSelect('all')
+                  }}
                   className="text-[10.5px] text-[#64748b] hover:text-[#dc2626] font-medium ml-1 underline cursor-pointer"
                 >
-                  Clear
+                  Clear All
                 </button>
               </div>
             )}
@@ -825,7 +897,7 @@ export default function IntelligenceLeftPanel({
                       return (
                         <div
                           key={drive.id}
-                          onClick={() => onSelectIndustry(drive.id)}
+                          onClick={() => onSelectIndustry(String(selectedIndustry) === String(drive.id) ? null : drive.id)}
                           className={`group relative mb-2 p-[12px_14px] rounded-[11px] transition-all duration-200 cursor-pointer ${
                             isSelected
                               ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'

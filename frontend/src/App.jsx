@@ -27,7 +27,7 @@ export default function App() {
   const [selectedIntelligenceDept, setSelectedIntelligenceDept] = useState('All')
   const [selectedIntelligenceOutcome, setSelectedIntelligenceOutcome] = useState(null)
   const [selectedIntelligenceOutcomeType, setSelectedIntelligenceOutcomeType] = useState('offers')
-  const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState('__overall__')
+  const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState(null)
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
   const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
 
@@ -178,6 +178,8 @@ export default function App() {
             onViewChange={setIntelligenceView}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
+            globalBatch={selectedBatch}
+            onGlobalBatchChange={setSelectedBatch}
             selectedOutcome={selectedIntelligenceOutcome}
             onSelectOutcome={(outcome) => handleSelectIntelligenceOutcome(outcome, 'unique')}
             selectedIndustry={selectedIntelligenceIndustry}
@@ -193,6 +195,8 @@ export default function App() {
             currentView={intelligenceView}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
+            globalBatch={selectedBatch}
+            onGlobalBatchChange={setSelectedBatch}
             selectedDepartment={selectedIntelligenceDept}
             onSelectDepartment={setSelectedIntelligenceDept}
             selectedOutcome={selectedIntelligenceOutcome}
@@ -205,6 +209,7 @@ export default function App() {
           <IntelligenceRightPanel
             currentView={intelligenceView}
             selectedBatch={selectedIntelligenceBatch}
+            globalBatch={selectedBatch}
             selectedDepartment={selectedIntelligenceDept}
             selectedOutcome={selectedIntelligenceOutcome}
             selectedOutcomeType={selectedIntelligenceOutcomeType}

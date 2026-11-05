@@ -123,7 +123,7 @@ export default function ModuleNavigationTabs({
           Placement Team Workspace
         </div>
 
-        {currentModule === 'Placement Drive' && (
+        {(currentModule === 'Placement Drive' || currentModule === 'Placement Intelligence') && (
           <>
             <div className="hidden xl:block h-4 w-[1px] bg-[#e2e8f0]" />
 
