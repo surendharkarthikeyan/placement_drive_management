@@ -92,3 +92,16 @@ func (ctrl *PlacementIntelligenceController) GetIndustryMatrix(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": matrix})
 }
 
+// GetIndustryRightPanel returns the 6 metric cards, attention recruiters, top recruiters and recent activities
+func (ctrl *PlacementIntelligenceController) GetIndustryRightPanel(c *gin.Context) {
+	batch := c.Query("batch")
+	sector := c.Query("sector")
+	dept := c.Query("department")
+	data, err := ctrl.repo.GetIndustryRightPanelData(batch, sector, dept)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch industry right panel: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+

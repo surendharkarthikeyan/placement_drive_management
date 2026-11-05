@@ -111,3 +111,57 @@ type IndustryNetworkHealthResponse struct {
 	Matrix  []IndustryMetricRow          `json:"matrix"`
 }
 
+// IndustryMetricCardStats holds the 6 KPI cards for the right panel
+type IndustryMetricCardStats struct {
+	TotalActiveRecruiters int64   `json:"total_active_recruiters"` // 1. Total Active Recruiters - placement_company table
+	VisitedRecruiters     int64   `json:"visited_recruiters"`       // 2. Visited Recruiters - placement_drive
+	OngoingRecruitments   int64   `json:"ongoing_recruitments"`     // 3. Ongoing recruitments - placement_drive
+	CompletedRecruitments int64   `json:"completed_recruitments"`   // 4. Completed recruitments - placement_company_batch_placements
+	NewRecruiters         int64   `json:"new_recruiters"`           // 5. New Recruiters
+	HighestOfferLPA       float64 `json:"highest_offer_lpa"`        // 6. Highest Offer - in this batch
+}
+
+// AttentionRecruiter represents companies that participated in previous year but have not started a drive this year
+type AttentionRecruiter struct {
+	CompanyID          int64   `json:"company_id"`
+	CompanyName        string  `json:"company_name"`
+	Category           string  `json:"category"`
+	CollaborationType  string  `json:"collaboration_type"`
+	LastYearBatch      string  `json:"last_year_batch"`
+	LastYearPlacements int64   `json:"last_year_placements"`
+	LastYearPackageLPA float64 `json:"last_year_package_lpa"`
+}
+
+// TopRecruiterItem represents a ranked company by salary or students count
+type TopRecruiterItem struct {
+	Rank          int     `json:"rank"`
+	CompanyID     int64   `json:"company_id"`
+	CompanyName   string  `json:"company_name"`
+	Category      string  `json:"category"`
+	JobRole       string  `json:"job_role,omitempty"`
+	PackageLPA    float64 `json:"package_lpa"`
+	StudentsCount int64   `json:"students_count"`
+}
+
+// RecentRecruitmentActivity represents historical activity logs for drives in this batch
+type RecentRecruitmentActivity struct {
+	ID                  uint64 `json:"id"`
+	DriveID             uint64 `json:"drive_id"`
+	CompanyID           int64  `json:"company_id"`
+	CompanyName         string `json:"company_name"`
+	JobRole             string `json:"job_role"`
+	ActivityDescription string `json:"activity_description"`
+	CreatedAt           string `json:"created_at"`
+	TimeAgo             string `json:"time_ago"`
+}
+
+// IndustryRightPanelResponse is the response payload for the industry intelligence right panel
+type IndustryRightPanelResponse struct {
+	SelectedBatch        string                      `json:"selected_batch"`
+	Cards                IndustryMetricCardStats     `json:"cards"`
+	AttentionRecruiters  []AttentionRecruiter        `json:"attention_recruiters"`
+	TopRecruitersSalary  []TopRecruiterItem          `json:"top_recruiters_salary"`
+	TopRecruitersCount   []TopRecruiterItem          `json:"top_recruiters_count"`
+	RecentActivities     []RecentRecruitmentActivity `json:"recent_activities"`
+}
+

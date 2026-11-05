@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	"strings"
+	"time"
 	"placement-management/config"
 	"placement-management/models"
 	"github.com/xuri/excelize/v2"
@@ -1231,6 +1232,441 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 	}
 
 	return &resp, nil
+}
+
+func formatTimeAgo(t time.Time) string {
+	now := time.Now()
+	diff := now.Sub(t)
+	if diff < time.Minute {
+		return "Just now"
+	} else if diff < time.Hour {
+		mins := int(diff.Minutes())
+		return fmt.Sprintf("%d mins ago", mins)
+	} else if diff < 24*time.Hour {
+		hrs := int(diff.Hours())
+		if hrs == 1 {
+			return "1 hour ago"
+		}
+		return fmt.Sprintf("%d hours ago", hrs)
+	} else if diff < 48*time.Hour {
+		return "Yesterday"
+	}
+	return t.Format("Jan 02, 2006")
+}
+
+// GetIndustryRightPanelData computes the right panel data for Industry Intelligence
+func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, sectorParam, deptParam string) (*models.IndustryRightPanelResponse, error) {
+	// 1. Fetch all batches in DB ordered DESC
+	var dbBatches []models.Batch
+	r.db.Order("name DESC").Find(&dbBatches)
+
+	batchIDToYear := make(map[uint64]string)
+	yearToBatchID := make(map[string]uint64)
+	for _, b := range dbBatches {
+		parts := strings.Split(b.Name, "-")
+		gradYear := b.Name
+		if len(parts) == 2 {
+			gradYear = strings.TrimSpace(parts[1])
+		}
+		batchIDToYear[b.ID] = gradYear
+		yearToBatchID[gradYear] = b.ID
+	}
+
+	// Determine targeted batch
+	cleanBatch := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(batchParam, "Batch"), "batch"))
+	cleanBatch = strings.ReplaceAll(cleanBatch, "–", "-")
+	cleanBatch = strings.ReplaceAll(cleanBatch, "—", "-")
+	cleanBatch = strings.TrimSpace(cleanBatch)
+
+	var targetBatch models.Batch
+	if cleanBatch != "" && cleanBatch != "All" && cleanBatch != "all" {
+		for _, b := range dbBatches {
+			if strings.Contains(b.Name, cleanBatch) || fmt.Sprintf("%d", b.ID) == cleanBatch {
+				targetBatch = b
+				break
+			}
+		}
+	}
+	// Default to batch 2026 or latest with drives
+	if targetBatch.ID == 0 {
+		for _, b := range dbBatches {
+			if strings.Contains(b.Name, "2026") {
+				targetBatch = b
+				break
+			}
+		}
+		if targetBatch.ID == 0 && len(dbBatches) > 0 {
+			targetBatch = dbBatches[0]
+		}
+	}
+
+	targetGradYear := targetBatch.Name
+	parts := strings.Split(targetBatch.Name, "-")
+	if len(parts) == 2 {
+		targetGradYear = strings.TrimSpace(parts[1])
+	}
+
+	// 2. Sector filtering
+	var sectorCategories []string
+	if sectorParam == "software" {
+		sectorCategories = []string{"PRODUCT", "SERVICE", "NETWORKING"}
+	} else if sectorParam == "core" {
+		sectorCategories = []string{"CORE_FINANCE", "HEALTHCARE"}
+	}
+
+	// 3. Department filtering
+	var deptID uint64
+	hasDeptFilter := deptParam != "" && deptParam != "All" && deptParam != "All Departments"
+	if hasDeptFilter {
+		searchPattern := "%" + deptParam + "%"
+		lowerDept := strings.ToLower(deptParam)
+		if lowerDept == "cse" || strings.Contains(lowerDept, "computer") {
+			searchPattern = "%Computer Science%"
+		} else if lowerDept == "it" || strings.Contains(lowerDept, "information") {
+			searchPattern = "%Information Technology%"
+		} else if lowerDept == "ece" || strings.Contains(lowerDept, "electronics") {
+			searchPattern = "%Electronics%"
+		} else if lowerDept == "eee" || strings.Contains(lowerDept, "electrical") {
+			searchPattern = "%Electrical%"
+		} else if lowerDept == "mech" || strings.Contains(lowerDept, "mechanical") {
+			searchPattern = "%Mechanical%"
+		}
+		r.db.Table("departments").Where("id = ? OR name = ? OR name LIKE ?", deptParam, deptParam, searchPattern).Pluck("id", &deptID)
+	}
+
+	// 4. Base matching companies
+	baseCompQuery := r.db.Table("placement_company pc").Where("pc.status = ?", "1")
+	if len(sectorCategories) > 0 {
+		baseCompQuery = baseCompQuery.Where("pc.category IN ?", sectorCategories)
+	}
+	if hasDeptFilter && deptID > 0 {
+		baseCompQuery = baseCompQuery.Where(`pc.id IN (
+			SELECT DISTINCT pd.company_id FROM placement_drive pd 
+			LEFT JOIN placement_drive_eligibility pde ON pd.id = pde.drive_id
+			LEFT JOIN placement_drive_students pds ON pd.id = pds.drive_id
+			LEFT JOIN master_users u ON pds.user_id = u.id
+			WHERE JSON_CONTAINS(pde.department_ids, CAST(? AS JSON)) OR u.department_id = ?
+		)`, fmt.Sprintf("[%d]", deptID), deptID)
+	}
+
+	type CompBasic struct {
+		ID                int64  `gorm:"column:id"`
+		CompanyName       string `gorm:"column:company_name"`
+		CollaborationType string `gorm:"column:collaboration_type"`
+		Category          string `gorm:"column:category"`
+	}
+	var matchingCompanies []CompBasic
+	baseCompQuery.Find(&matchingCompanies)
+
+	compIDs := make([]int64, 0, len(matchingCompanies))
+	compMap := make(map[int64]CompBasic)
+	for _, c := range matchingCompanies {
+		compIDs = append(compIDs, c.ID)
+		compMap[c.ID] = c
+	}
+
+	// 5. Query batch-specific drives
+	batchJsonPattern := fmt.Sprintf("[%d]", targetBatch.ID)
+	batchStrPattern := fmt.Sprintf("%d", targetBatch.ID)
+	driveWhere := "(JSON_CONTAINS(pd.batch_id, ?) OR pd.batch_id LIKE ?)"
+	driveWhereArgs := []interface{}{batchJsonPattern, "%" + batchStrPattern + "%"}
+
+	// --- 6 CARDS ---
+	var cards models.IndustryMetricCardStats
+
+	// 1. Total Active Recruiters - placement_company table
+	var activeCount int64
+	compActiveQuery := r.db.Table("placement_company pc").Where("pc.status = '1' AND pc.collaboration_type = 'ACTIVE'")
+	if len(sectorCategories) > 0 {
+		compActiveQuery = compActiveQuery.Where("pc.category IN ?", sectorCategories)
+	}
+	compActiveQuery.Count(&activeCount)
+	cards.TotalActiveRecruiters = activeCount
+
+	if len(compIDs) > 0 {
+		// 2. Visited Recruiters - placement_drive
+		var visitedCount int64
+		r.db.Table("placement_drive pd").
+			Where(driveWhere, driveWhereArgs...).
+			Where("pd.company_id IN ?", compIDs).
+			Distinct("pd.company_id").
+			Count(&visitedCount)
+		cards.VisitedRecruiters = visitedCount
+
+		// 3. Ongoing recruitments - placement_drive
+		var ongoingCount int64
+		r.db.Table("placement_drive pd").
+			Where(driveWhere, driveWhereArgs...).
+			Where("pd.company_id IN ?", compIDs).
+			Where("pd.overall_status IN ('registration_open', 'scheduled', 'in_progress', 'awaiting_next_round', 'awaiting_final_result', 'draft')").
+			Count(&ongoingCount)
+		cards.OngoingRecruitments = ongoingCount
+
+		// 4. Completed recruitments - placement_company_batch_placements & placement_drive
+		var completedCount int64
+		r.db.Table("placement_company_batch_placements pcbp").
+			Where("pcbp.status = '1' AND (pcbp.batch = ? OR pcbp.batch LIKE ?)", targetBatch.Name, "%"+targetGradYear+"%").
+			Where("pcbp.company_id IN ?", compIDs).
+			Count(&completedCount)
+
+		var completedDrives int64
+		r.db.Table("placement_drive pd").
+			Where(driveWhere, driveWhereArgs...).
+			Where("pd.company_id IN ?", compIDs).
+			Where("pd.overall_status = 'completed'").
+			Count(&completedDrives)
+		if completedDrives > completedCount {
+			completedCount = completedDrives
+		}
+		cards.CompletedRecruitments = completedCount
+
+		// 5. New Recruiters
+		type AllBatchVisit struct {
+			CompanyID int64  `gorm:"column:company_id"`
+			Batch     string `gorm:"column:batch"`
+		}
+		var allVisits []AllBatchVisit
+		r.db.Table("placement_company_batch_placements").
+			Where("status = '1' AND company_id IN ?", compIDs).
+			Scan(&allVisits)
+
+		compMinBatch := make(map[int64]string)
+		for _, v := range allVisits {
+			parts := strings.Split(v.Batch, "-")
+			gYear := v.Batch
+			if len(parts) == 2 {
+				gYear = strings.TrimSpace(parts[1])
+			}
+			if cur, exists := compMinBatch[v.CompanyID]; !exists || gYear < cur {
+				compMinBatch[v.CompanyID] = gYear
+			}
+		}
+
+		type DriveBatchVisit struct {
+			CompanyID int64  `gorm:"column:company_id"`
+			BatchID   string `gorm:"column:batch_id"`
+		}
+		var driveVisits []DriveBatchVisit
+		r.db.Table("placement_drive").
+			Select("company_id, batch_id").
+			Where("company_id IN ?", compIDs).
+			Scan(&driveVisits)
+
+		for _, dv := range driveVisits {
+			for bID, bYear := range batchIDToYear {
+				jsonPat := fmt.Sprintf("[%d]", bID)
+				if strings.Contains(dv.BatchID, jsonPat) || strings.Contains(dv.BatchID, fmt.Sprintf("%d", bID)) {
+					if cur, exists := compMinBatch[dv.CompanyID]; !exists || bYear < cur {
+						compMinBatch[dv.CompanyID] = bYear
+					}
+				}
+			}
+		}
+
+		var newRecruitersCount int64
+		for _, minB := range compMinBatch {
+			if minB == targetGradYear {
+				newRecruitersCount++
+			}
+		}
+		cards.NewRecruiters = newRecruitersCount
+
+		// 6. Highest Offer - in this batch
+		var highestOffer float64
+		r.db.Table("placement_drive pd").
+			Select("COALESCE(MAX(pd.package_lpa), 0)").
+			Where(driveWhere, driveWhereArgs...).
+			Where("pd.company_id IN ?", compIDs).
+			Scan(&highestOffer)
+		cards.HighestOfferLPA = highestOffer
+	}
+
+	// --- SECTION A: Recruiters requiring attention ---
+	attentionList := make([]models.AttentionRecruiter, 0)
+	if len(compIDs) > 0 {
+		var prevBatchNames []string
+		foundTarget := false
+		for _, b := range dbBatches {
+			if b.ID == targetBatch.ID {
+				foundTarget = true
+				continue
+			}
+			if foundTarget {
+				prevBatchNames = append(prevBatchNames, b.Name)
+				parts := strings.Split(b.Name, "-")
+				if len(parts) == 2 {
+					prevBatchNames = append(prevBatchNames, strings.TrimSpace(parts[1]))
+				}
+				break
+			}
+		}
+
+		if len(prevBatchNames) == 0 {
+			for _, b := range dbBatches {
+				parts := strings.Split(b.Name, "-")
+				gYear := b.Name
+				if len(parts) == 2 {
+					gYear = strings.TrimSpace(parts[1])
+				}
+				if gYear < targetGradYear {
+					prevBatchNames = append(prevBatchNames, b.Name, gYear)
+					break
+				}
+			}
+		}
+
+		if len(prevBatchNames) > 0 {
+			var visitedInCurrent []int64
+			r.db.Table("placement_drive pd").
+				Where(driveWhere, driveWhereArgs...).
+				Pluck("DISTINCT pd.company_id", &visitedInCurrent)
+
+			currentVisitedSet := make(map[int64]bool)
+			for _, id := range visitedInCurrent {
+				currentVisitedSet[id] = true
+			}
+
+			type PrevPlacement struct {
+				CompanyID      int64   `gorm:"column:company_id"`
+				Batch          string  `gorm:"column:batch"`
+				StudentsPlaced int64   `gorm:"column:students_placed"`
+				PackageLPA     float64 `gorm:"column:package_lpa"`
+			}
+			var prevPlacements []PrevPlacement
+			r.db.Table("placement_company_batch_placements pcbp").
+				Select("pcbp.company_id, pcbp.batch, SUM(pcbp.students_placed) as students_placed, COALESCE(MAX(pd.package_lpa), 0) as package_lpa").
+				Joins("LEFT JOIN placement_drive pd ON pcbp.drive_id = pd.id").
+				Where("pcbp.status = '1' AND pcbp.company_id IN ?", compIDs).
+				Where("pcbp.batch IN ?", prevBatchNames).
+				Group("pcbp.company_id, pcbp.batch").
+				Scan(&prevPlacements)
+
+			for _, pp := range prevPlacements {
+				if !currentVisitedSet[pp.CompanyID] {
+					c := compMap[pp.CompanyID]
+					attentionList = append(attentionList, models.AttentionRecruiter{
+						CompanyID:          pp.CompanyID,
+						CompanyName:        c.CompanyName,
+						Category:           c.Category,
+						CollaborationType:  c.CollaborationType,
+						LastYearBatch:      pp.Batch,
+						LastYearPlacements: pp.StudentsPlaced,
+						LastYearPackageLPA: pp.PackageLPA,
+					})
+				}
+			}
+		}
+	}
+
+	// --- SECTION B: Top recruiters ---
+	topSalary := make([]models.TopRecruiterItem, 0)
+	topCount := make([]models.TopRecruiterItem, 0)
+
+	if len(compIDs) > 0 {
+		// Top by Salary
+		type SalaryRankRow struct {
+			CompanyID   int64   `gorm:"column:company_id"`
+			CompanyName string  `gorm:"column:company_name"`
+			Category    string  `gorm:"column:category"`
+			JobRole     string  `gorm:"column:job_role"`
+			PackageLPA  float64 `gorm:"column:package_lpa"`
+		}
+		var rawSalary []SalaryRankRow
+		r.db.Table("placement_drive pd").
+			Select("pd.company_id, pc.company_name, pc.category, pd.job_role, MAX(pd.package_lpa) as package_lpa").
+			Joins("JOIN placement_company pc ON pd.company_id = pc.id").
+			Where(driveWhere, driveWhereArgs...).
+			Where("pd.company_id IN ?", compIDs).
+			Group("pd.company_id, pc.company_name, pc.category, pd.job_role").
+			Order("package_lpa DESC").
+			Limit(10).
+			Scan(&rawSalary)
+
+		for idx, s := range rawSalary {
+			topSalary = append(topSalary, models.TopRecruiterItem{
+				Rank:        idx + 1,
+				CompanyID:   s.CompanyID,
+				CompanyName: s.CompanyName,
+				Category:    s.Category,
+				JobRole:     s.JobRole,
+				PackageLPA:  s.PackageLPA,
+			})
+		}
+
+		// Top by Students Count
+		type CountRankRow struct {
+			CompanyID     int64  `gorm:"column:company_id"`
+			CompanyName   string `gorm:"column:company_name"`
+			Category      string `gorm:"column:category"`
+			StudentsCount int64  `gorm:"column:students_count"`
+		}
+		var rawCount []CountRankRow
+		r.db.Table("placement_company_batch_placements pcbp").
+			Select("pcbp.company_id, pc.company_name, pc.category, SUM(pcbp.students_placed) as students_count").
+			Joins("JOIN placement_company pc ON pcbp.company_id = pc.id").
+			Where("pcbp.status = '1' AND (pcbp.batch = ? OR pcbp.batch LIKE ?)", targetBatch.Name, "%"+targetGradYear+"%").
+			Where("pcbp.company_id IN ?", compIDs).
+			Group("pcbp.company_id, pc.company_name, pc.category").
+			Order("students_count DESC").
+			Limit(10).
+			Scan(&rawCount)
+
+		for idx, c := range rawCount {
+			topCount = append(topCount, models.TopRecruiterItem{
+				Rank:          idx + 1,
+				CompanyID:     c.CompanyID,
+				CompanyName:   c.CompanyName,
+				Category:      c.Category,
+				StudentsCount: c.StudentsCount,
+			})
+		}
+	}
+
+	// --- SECTION C: Recent recruitment activity ---
+	activities := make([]models.RecentRecruitmentActivity, 0)
+	if len(compIDs) > 0 {
+		type ActRow struct {
+			ID                  uint64    `gorm:"column:id"`
+			DriveID             uint64    `gorm:"column:drive_id"`
+			CompanyID           int64     `gorm:"column:company_id"`
+			CompanyName         string    `gorm:"column:company_name"`
+			JobRole             string    `gorm:"column:job_role"`
+			ActivityDescription string    `gorm:"column:activity_description"`
+			CreatedAt           time.Time `gorm:"column:created_at"`
+		}
+		var rawActs []ActRow
+		r.db.Table("placement_drive_activity_log al").
+			Select("al.id, al.drive_id, pd.company_id, pc.company_name, pd.job_role, al.activity_description, al.created_at").
+			Joins("JOIN placement_drive pd ON al.drive_id = pd.id").
+			Joins("JOIN placement_company pc ON pd.company_id = pc.id").
+			Where(driveWhere, driveWhereArgs...).
+			Where("pd.company_id IN ?", compIDs).
+			Order("al.created_at DESC").
+			Limit(15).
+			Scan(&rawActs)
+
+		for _, a := range rawActs {
+			activities = append(activities, models.RecentRecruitmentActivity{
+				ID:                  a.ID,
+				DriveID:             a.DriveID,
+				CompanyID:           a.CompanyID,
+				CompanyName:         a.CompanyName,
+				JobRole:             a.JobRole,
+				ActivityDescription: a.ActivityDescription,
+				CreatedAt:           a.CreatedAt.Format("2006-01-02 15:04:05"),
+				TimeAgo:             formatTimeAgo(a.CreatedAt),
+			})
+		}
+	}
+
+	return &models.IndustryRightPanelResponse{
+		SelectedBatch:       targetBatch.Name,
+		Cards:               cards,
+		AttentionRecruiters: attentionList,
+		TopRecruitersSalary: topSalary,
+		TopRecruitersCount:  topCount,
+		RecentActivities:    activities,
+	}, nil
 }
 
 
