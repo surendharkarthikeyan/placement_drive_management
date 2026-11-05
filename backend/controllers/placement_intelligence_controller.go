@@ -80,3 +80,15 @@ func (ctrl *PlacementIntelligenceController) GetOutcomeGroupStudents(c *gin.Cont
 	c.JSON(http.StatusOK, gin.H{"data": students})
 }
 
+// GetIndustryMatrix returns recruiter network health matrix computed from database
+func (ctrl *PlacementIntelligenceController) GetIndustryMatrix(c *gin.Context) {
+	sector := c.Query("sector")
+	dept := c.Query("department")
+	matrix, err := ctrl.repo.GetIndustryMatrix(sector, dept)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch industry matrix: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": matrix})
+}
+

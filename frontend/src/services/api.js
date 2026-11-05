@@ -351,4 +351,14 @@ export const exportIntelligenceExcel = async (batch = '', department = '') => {
   window.URL.revokeObjectURL(url)
 }
 
+export const getIntelligenceIndustryMatrix = async ({ sector = 'all', department = 'All' } = {}) => {
+  const params = {}
+  if (sector && sector !== 'all') params.sector = sector
+  if (department && department !== 'All' && department !== 'All Departments') {
+    params.department = department
+  }
+  const response = await api.get('/intelligence/industry-matrix', { params })
+  return response.data?.data !== undefined ? response.data.data : response.data
+}
+
 export default api

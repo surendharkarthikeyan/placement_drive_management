@@ -876,3 +876,361 @@ func getDeptCode(name string) string {
 	return name
 }
 
+// GetIndustryMatrix calculates real recruiter network health metrics from MySQL database
+func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptParam string) (*models.IndustryNetworkHealthResponse, error) {
+	// 1. Sector filtering
+	var sectorCategories []string
+	if sectorParam == "software" {
+		sectorCategories = []string{"PRODUCT", "SERVICE", "NETWORKING"}
+	} else if sectorParam == "core" {
+		sectorCategories = []string{"CORE_FINANCE", "HEALTHCARE"}
+	}
+
+	// 2. Department filtering
+	var deptID uint64
+	hasDeptFilter := deptParam != "" && deptParam != "All" && deptParam != "All Departments"
+	if hasDeptFilter {
+		searchPattern := "%" + deptParam + "%"
+		lowerDept := strings.ToLower(deptParam)
+		if lowerDept == "cse" || strings.Contains(lowerDept, "computer") {
+			searchPattern = "%Computer Science%"
+		} else if lowerDept == "it" || strings.Contains(lowerDept, "information") {
+			searchPattern = "%Information Technology%"
+		} else if lowerDept == "ece" || strings.Contains(lowerDept, "electronics") {
+			searchPattern = "%Electronics%"
+		} else if lowerDept == "eee" || strings.Contains(lowerDept, "electrical") {
+			searchPattern = "%Electrical%"
+		} else if lowerDept == "mech" || strings.Contains(lowerDept, "mechanical") {
+			searchPattern = "%Mechanical%"
+		}
+		r.db.Table("departments").Where("id = ? OR name = ? OR name LIKE ?", deptParam, deptParam, searchPattern).Pluck("id", &deptID)
+	}
+
+	// 3. Base company query
+	baseCompQuery := r.db.Table("placement_company pc").Where("pc.status = ?", "1")
+	if len(sectorCategories) > 0 {
+		baseCompQuery = baseCompQuery.Where("pc.category IN ?", sectorCategories)
+	}
+	if hasDeptFilter && deptID > 0 {
+		baseCompQuery = baseCompQuery.Where(`pc.id IN (
+			SELECT DISTINCT pd.company_id FROM placement_drive pd 
+			LEFT JOIN placement_drive_eligibility pde ON pd.id = pde.drive_id
+			LEFT JOIN placement_drive_students pds ON pd.id = pds.drive_id
+			LEFT JOIN master_users u ON pds.user_id = u.id
+			WHERE JSON_CONTAINS(pde.department_ids, CAST(? AS JSON)) OR u.department_id = ?
+		)`, fmt.Sprintf("[%d]", deptID), deptID)
+	}
+
+	var totalCompaniesInDB int64
+	baseCompQuery.Count(&totalCompaniesInDB)
+
+	// Fetch all matching companies
+	type CompInfo struct {
+		ID                int64  `gorm:"column:id"`
+		CompanyName       string `gorm:"column:company_name"`
+		CollaborationType string `gorm:"column:collaboration_type"`
+		Category          string `gorm:"column:category"`
+		CreatedAt         string `gorm:"column:created_at"`
+	}
+	var companies []CompInfo
+	baseCompQuery.Find(&companies)
+
+	companyIDs := make([]int64, 0, len(companies))
+	companyMap := make(map[int64]CompInfo)
+	for _, c := range companies {
+		companyIDs = append(companyIDs, c.ID)
+		companyMap[c.ID] = c
+	}
+
+	// 4. Batches in database
+	var dbBatches []models.Batch
+	r.db.Order("name ASC").Find(&dbBatches)
+	batchIDToYear := make(map[uint64]string)
+	yearToBatchID := make(map[string]uint64)
+	for _, b := range dbBatches {
+		// "2022-2026" -> "2026"
+		parts := strings.Split(b.Name, "-")
+		gradYear := b.Name
+		if len(parts) == 2 {
+			gradYear = strings.TrimSpace(parts[1])
+		}
+		batchIDToYear[b.ID] = gradYear
+		yearToBatchID[gradYear] = b.ID
+	}
+
+	// Active batches list to return (5-year default + extended)
+	allBatches := []string{"2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"}
+
+	// 5. Gather drives and offers per company and batch
+	// Map: batchYear -> companyID -> offerCount
+	batchCompanyOffers := make(map[string]map[int64]int64)
+	// Map: batchYear -> set of participating companyIDs
+	batchParticipatingCompanies := make(map[string]map[int64]bool)
+
+	for _, bYear := range allBatches {
+		batchCompanyOffers[bYear] = make(map[int64]int64)
+		batchParticipatingCompanies[bYear] = make(map[int64]bool)
+	}
+
+	if len(companyIDs) > 0 {
+		// Query drives
+		type DriveResult struct {
+			CompanyID   int64  `gorm:"column:company_id"`
+			BatchIDs    string `gorm:"column:batch_id"`
+			OffersCount int64  `gorm:"column:offers_count"`
+		}
+		var driveResults []DriveResult
+		r.db.Table("placement_drive pd").
+			Select("pd.company_id, pd.batch_id, COUNT(pdo.id) as offers_count").
+			Joins("LEFT JOIN placement_drive_students pds ON pd.id = pds.drive_id").
+			Joins("LEFT JOIN placement_drive_offers pdo ON pds.id = pdo.drive_student_id").
+			Where("pd.company_id IN ?", companyIDs).
+			Group("pd.id, pd.company_id, pd.batch_id").
+			Scan(&driveResults)
+
+		for _, dr := range driveResults {
+			// Check which batch year this drive belongs to
+			for bID, bYear := range batchIDToYear {
+				jsonPattern := fmt.Sprintf("[%d]", bID)
+				containsID := strings.Contains(dr.BatchIDs, jsonPattern) || 
+					strings.Contains(dr.BatchIDs, fmt.Sprintf("%d", bID))
+				if containsID {
+					if batchParticipatingCompanies[bYear] == nil {
+						batchParticipatingCompanies[bYear] = make(map[int64]bool)
+					}
+					if batchCompanyOffers[bYear] == nil {
+						batchCompanyOffers[bYear] = make(map[int64]int64)
+					}
+					batchParticipatingCompanies[bYear][dr.CompanyID] = true
+					batchCompanyOffers[bYear][dr.CompanyID] += dr.OffersCount
+				}
+			}
+		}
+
+		// Also check placement_company_batch_placements
+		type PlacedResult struct {
+			Batch          string `gorm:"column:batch"`
+			CompanyID      int64  `gorm:"column:company_id"`
+			StudentsPlaced int64  `gorm:"column:students_placed"`
+		}
+		var placedResults []PlacedResult
+		r.db.Table("placement_company_batch_placements").
+			Where("company_id IN ?", companyIDs).
+			Scan(&placedResults)
+
+		for _, pr := range placedResults {
+			parts := strings.Split(pr.Batch, "-")
+			gradYear := pr.Batch
+			if len(parts) == 2 {
+				gradYear = strings.TrimSpace(parts[1])
+			}
+			if batchParticipatingCompanies[gradYear] == nil {
+				batchParticipatingCompanies[gradYear] = make(map[int64]bool)
+			}
+			if batchCompanyOffers[gradYear] == nil {
+				batchCompanyOffers[gradYear] = make(map[int64]int64)
+			}
+			batchParticipatingCompanies[gradYear][pr.CompanyID] = true
+			if pr.StudentsPlaced > batchCompanyOffers[gradYear][pr.CompanyID] {
+				batchCompanyOffers[gradYear][pr.CompanyID] = pr.StudentsPlaced
+			}
+		}
+	}
+
+	// 6. Build the 7 metric rows
+	rowDatabase := models.IndustryMetricRow{
+		Key:    "database",
+		Title:  "Total industries in database",
+		Note:   "Recruiters maintained in the institutional recruiter database.",
+		Values: make(map[string]interface{}),
+	}
+	rowNew := models.IndustryMetricRow{
+		Key:    "new",
+		Title:  "New industries visited / committed",
+		Note:   "First-time recruiters or newly activated relationships.",
+		Values: make(map[string]interface{}),
+	}
+	rowMissed := models.IndustryMetricRow{
+		Key:    "missed",
+		Title:  "Visited in previous 3 years but not this year",
+		Note:   "Previously active recruiters that have not participated this year.",
+		Values: make(map[string]interface{}),
+	}
+	rowEqualLast := models.IndustryMetricRow{
+		Key:    "equalLast",
+		Title:  "Offers equal to or higher than last year",
+		Note:   "Recruiters maintaining or improving year-on-year offer volume.",
+		Values: make(map[string]interface{}),
+	}
+	rowEqualMax3 := models.IndustryMetricRow{
+		Key:    "equalMax3",
+		Title:  "Offers ≥ previous 3-year maximum",
+		Note:   "Recruiters achieving or exceeding their recent historical best.",
+		Values: make(map[string]interface{}),
+	}
+	rowLessLast := models.IndustryMetricRow{
+		Key:    "lessLast",
+		Title:  "Offers lower than last year",
+		Note:   "Recruiters showing year-on-year reduction in offer volume.",
+		Values: make(map[string]interface{}),
+	}
+	rowLessMin3 := models.IndustryMetricRow{
+		Key:    "lessMin3",
+		Title:  "Offers below previous 3-year minimum",
+		Note:   "Recruiters with offer volume falling below their 3-year floor.",
+		Values: make(map[string]interface{}),
+	}
+
+	for i, bYear := range allBatches {
+		// Total in DB for this batch
+		// For the primary current batch (2026), it's totalCompaniesInDB
+		if bYear == "2026" {
+			rowDatabase.Values[bYear] = totalCompaniesInDB
+		} else {
+			// If older batch has participating companies, show count or scaled count
+			pCount := int64(len(batchParticipatingCompanies[bYear]))
+			if pCount > 0 {
+				rowDatabase.Values[bYear] = pCount
+			} else {
+				rowDatabase.Values[bYear] = 0
+			}
+		}
+
+		// New recruiters
+		var newCount int64
+		for cID := range batchParticipatingCompanies[bYear] {
+			comp := companyMap[cID]
+			if comp.CollaborationType == "NEW" {
+				newCount++
+			}
+		}
+		// Also count companies registered as NEW in DB for current batch
+		if bYear == "2026" {
+			for _, comp := range companies {
+				if comp.CollaborationType == "NEW" {
+					newCount++
+					break
+				}
+			}
+			// Exact distinct count of NEW companies in DB
+			var dbNewCount int64
+			baseCompQuery.Where("pc.collaboration_type = ?", "NEW").Count(&dbNewCount)
+			rowNew.Values[bYear] = dbNewCount
+		} else {
+			rowNew.Values[bYear] = newCount
+		}
+
+		// Visited in previous 3 years but not this year
+		// Requires looking back at i+1, i+2, i+3
+		if i+3 < len(allBatches) {
+			prevYears := []string{allBatches[i+1], allBatches[i+2], allBatches[i+3]}
+			var missedCount int64
+			for _, cID := range companyIDs {
+				visitedPrev := false
+				for _, py := range prevYears {
+					if batchParticipatingCompanies[py][cID] {
+						visitedPrev = true
+						break
+					}
+				}
+				if visitedPrev && !batchParticipatingCompanies[bYear][cID] {
+					missedCount++
+				}
+			}
+			rowMissed.Values[bYear] = missedCount
+		} else {
+			rowMissed.Values[bYear] = "—"
+		}
+
+		// Offers comparisons with last year (i+1)
+		if i+1 < len(allBatches) {
+			prevYear := allBatches[i+1]
+			var eqLast int64
+			var lessLast int64
+			for _, cID := range companyIDs {
+				curOff := batchCompanyOffers[bYear][cID]
+				prevOff := batchCompanyOffers[prevYear][cID]
+				if curOff > 0 && curOff >= prevOff {
+					eqLast++
+				} else if prevOff > 0 && curOff < prevOff {
+					lessLast++
+				}
+			}
+			rowEqualLast.Values[bYear] = eqLast
+			rowLessLast.Values[bYear] = lessLast
+		} else {
+			rowEqualLast.Values[bYear] = "—"
+			rowLessLast.Values[bYear] = "—"
+		}
+
+		// Offers comparisons with previous 3 years (i+1, i+2, i+3)
+		if i+3 < len(allBatches) {
+			prevYears := []string{allBatches[i+1], allBatches[i+2], allBatches[i+3]}
+			var eqMax3 int64
+			var lessMin3 int64
+			for _, cID := range companyIDs {
+				curOff := batchCompanyOffers[bYear][cID]
+				var maxPrev int64 = 0
+				var minPrev int64 = 999999
+				hasPrev := false
+				for _, py := range prevYears {
+					pOff := batchCompanyOffers[py][cID]
+					if pOff > 0 {
+						hasPrev = true
+						if pOff > maxPrev {
+							maxPrev = pOff
+						}
+						if pOff < minPrev {
+							minPrev = pOff
+						}
+					}
+				}
+				if hasPrev {
+					if curOff >= maxPrev && curOff > 0 {
+						eqMax3++
+					} else if curOff < minPrev {
+						lessMin3++
+					}
+				} else if curOff > 0 {
+					eqMax3++
+				}
+			}
+			rowEqualMax3.Values[bYear] = eqMax3
+			rowLessMin3.Values[bYear] = lessMin3
+		} else {
+			rowEqualMax3.Values[bYear] = "—"
+			rowLessMin3.Values[bYear] = "—"
+		}
+	}
+
+	// 7. Extract signals from current batch (2026)
+	var resp models.IndustryNetworkHealthResponse
+	resp.Batches = allBatches
+	resp.Signals.TotalDatabase = totalCompaniesInDB
+	if val, ok := rowNew.Values["2026"].(int64); ok {
+		resp.Signals.NewRecruiters = val
+	}
+	if val, ok := rowMissed.Values["2026"].(int64); ok {
+		resp.Signals.MissedRecruiters = val
+	}
+	if val, ok := rowEqualLast.Values["2026"].(int64); ok {
+		resp.Signals.GrowthRecruiters = val
+	}
+	if val, ok := rowEqualMax3.Values["2026"].(int64); ok {
+		resp.Signals.Max3Recruiters = val
+	}
+
+	resp.Matrix = []models.IndustryMetricRow{
+		rowDatabase,
+		rowNew,
+		rowMissed,
+		rowEqualLast,
+		rowEqualMax3,
+		rowLessLast,
+		rowLessMin3,
+	}
+
+	return &resp, nil
+}
+
+
