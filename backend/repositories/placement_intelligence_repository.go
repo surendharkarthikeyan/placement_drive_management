@@ -960,19 +960,51 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 		yearToBatchID[gradYear] = b.ID
 	}
 
-	// 5. Gather drives and offers per company and batch
+	// 5. Gather placement records and drives per company and batch
 	// Map: batchYear -> companyID -> offerCount
 	batchCompanyOffers := make(map[string]map[int64]int64)
 	// Map: batchYear -> set of participating companyIDs
-	batchParticipatingCompanies := make(map[string]map[int64]bool)
+	batchVisitedCompanies := make(map[string]map[int64]bool)
+	// Map: companyID -> list of all batch years visited
+	compVisitedBatches := make(map[int64][]string)
 
 	for _, bYear := range allBatches {
 		batchCompanyOffers[bYear] = make(map[int64]int64)
-		batchParticipatingCompanies[bYear] = make(map[int64]bool)
+		batchVisitedCompanies[bYear] = make(map[int64]bool)
 	}
 
 	if len(companyIDs) > 0 {
-		// Query drives
+		// 5a. Listen to placement_company_batch_placements table
+		type PlacedResult struct {
+			Batch          string `gorm:"column:batch"`
+			CompanyID      int64  `gorm:"column:company_id"`
+			StudentsPlaced int64  `gorm:"column:students_placed"`
+		}
+		var placedResults []PlacedResult
+		r.db.Table("placement_company_batch_placements").
+			Where("status = '1' AND company_id IN ?", companyIDs).
+			Scan(&placedResults)
+
+		for _, pr := range placedResults {
+			parts := strings.Split(pr.Batch, "-")
+			gradYear := pr.Batch
+			if len(parts) == 2 {
+				gradYear = strings.TrimSpace(parts[1])
+			}
+			if batchVisitedCompanies[gradYear] == nil {
+				batchVisitedCompanies[gradYear] = make(map[int64]bool)
+			}
+			if batchCompanyOffers[gradYear] == nil {
+				batchCompanyOffers[gradYear] = make(map[int64]int64)
+			}
+			batchVisitedCompanies[gradYear][pr.CompanyID] = true
+			compVisitedBatches[pr.CompanyID] = append(compVisitedBatches[pr.CompanyID], gradYear)
+			if pr.StudentsPlaced > batchCompanyOffers[gradYear][pr.CompanyID] {
+				batchCompanyOffers[gradYear][pr.CompanyID] = pr.StudentsPlaced
+			}
+		}
+
+		// 5b. Also listen to placement_drive table for active drives
 		type DriveResult struct {
 			CompanyID   int64  `gorm:"column:company_id"`
 			BatchIDs    string `gorm:"column:batch_id"`
@@ -988,59 +1020,44 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 			Scan(&driveResults)
 
 		for _, dr := range driveResults {
-			// Check which batch year this drive belongs to
 			for bID, bYear := range batchIDToYear {
 				jsonPattern := fmt.Sprintf("[%d]", bID)
 				containsID := strings.Contains(dr.BatchIDs, jsonPattern) || 
 					strings.Contains(dr.BatchIDs, fmt.Sprintf("%d", bID))
 				if containsID {
-					if batchParticipatingCompanies[bYear] == nil {
-						batchParticipatingCompanies[bYear] = make(map[int64]bool)
+					if batchVisitedCompanies[bYear] == nil {
+						batchVisitedCompanies[bYear] = make(map[int64]bool)
 					}
 					if batchCompanyOffers[bYear] == nil {
 						batchCompanyOffers[bYear] = make(map[int64]int64)
 					}
-					batchParticipatingCompanies[bYear][dr.CompanyID] = true
-					batchCompanyOffers[bYear][dr.CompanyID] += dr.OffersCount
+					batchVisitedCompanies[bYear][dr.CompanyID] = true
+					compVisitedBatches[dr.CompanyID] = append(compVisitedBatches[dr.CompanyID], bYear)
+					if dr.OffersCount > batchCompanyOffers[bYear][dr.CompanyID] {
+						batchCompanyOffers[bYear][dr.CompanyID] = dr.OffersCount
+					}
 				}
-			}
-		}
-
-		// Also check placement_company_batch_placements
-		type PlacedResult struct {
-			Batch          string `gorm:"column:batch"`
-			CompanyID      int64  `gorm:"column:company_id"`
-			StudentsPlaced int64  `gorm:"column:students_placed"`
-		}
-		var placedResults []PlacedResult
-		r.db.Table("placement_company_batch_placements").
-			Where("company_id IN ?", companyIDs).
-			Scan(&placedResults)
-
-		for _, pr := range placedResults {
-			parts := strings.Split(pr.Batch, "-")
-			gradYear := pr.Batch
-			if len(parts) == 2 {
-				gradYear = strings.TrimSpace(parts[1])
-			}
-			if batchParticipatingCompanies[gradYear] == nil {
-				batchParticipatingCompanies[gradYear] = make(map[int64]bool)
-			}
-			if batchCompanyOffers[gradYear] == nil {
-				batchCompanyOffers[gradYear] = make(map[int64]int64)
-			}
-			batchParticipatingCompanies[gradYear][pr.CompanyID] = true
-			if pr.StudentsPlaced > batchCompanyOffers[gradYear][pr.CompanyID] {
-				batchCompanyOffers[gradYear][pr.CompanyID] = pr.StudentsPlaced
 			}
 		}
 	}
 
-	// 6. Build the 7 metric rows
-	rowDatabase := models.IndustryMetricRow{
-		Key:    "database",
-		Title:  "Total industries in database",
-		Note:   "Recruiters maintained in the institutional recruiter database.",
+	// 5c. Identify earliest / first batch each company started visiting
+	firstVisitBatch := make(map[int64]string)
+	for cID, bList := range compVisitedBatches {
+		earliest := ""
+		for _, b := range bList {
+			if earliest == "" || b < earliest {
+				earliest = b
+			}
+		}
+		firstVisitBatch[cID] = earliest
+	}
+
+	// 6. Build the metric rows (Total industries removed as requested)
+	rowVisited := models.IndustryMetricRow{
+		Key:    "visited",
+		Title:  "Industries visited",
+		Note:   "Recruitment process conducted / placements recorded during the academic batch.",
 		Values: make(map[string]interface{}),
 	}
 	rowNew := models.IndustryMetricRow{
@@ -1081,41 +1098,31 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 	}
 
 	for i, bYear := range allBatches {
-		// Total in DB for this batch
-		rowDatabase.Values[bYear] = totalCompaniesInDB
+		// Industries visited (from placement_company_batch_placements & drives)
+		rowVisited.Values[bYear] = int64(len(batchVisitedCompanies[bYear]))
 
-		// New recruiters
+		// New industries visited: count companies whose first-ever recorded visit is in bYear
 		var newCount int64
-		for cID := range batchParticipatingCompanies[bYear] {
-			comp := companyMap[cID]
-			if comp.CollaborationType == "NEW" {
+		for _, firstB := range firstVisitBatch {
+			if firstB == bYear {
 				newCount++
-			}
-		}
-		// Also count companies registered as NEW in DB for current batch
-		if bYear == "2026" {
-			var dbNewCount int64
-			baseCompQuery.Where("pc.collaboration_type = ?", "NEW").Count(&dbNewCount)
-			if dbNewCount > newCount {
-				newCount = dbNewCount
 			}
 		}
 		rowNew.Values[bYear] = newCount
 
 		// Visited in previous 3 years but not this year
-		// Check if there are earlier batches in allBatches
 		if i > 0 {
 			var missedCount int64
 			for _, cID := range companyIDs {
 				visitedPrev := false
 				for prevIdx := 0; prevIdx < i && prevIdx >= i-3; prevIdx++ {
 					py := allBatches[prevIdx]
-					if batchParticipatingCompanies[py][cID] {
+					if batchVisitedCompanies[py][cID] {
 						visitedPrev = true
 						break
 					}
 				}
-				if visitedPrev && !batchParticipatingCompanies[bYear][cID] {
+				if visitedPrev && !batchVisitedCompanies[bYear][cID] {
 					missedCount++
 				}
 			}
@@ -1202,6 +1209,9 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 	var resp models.IndustryNetworkHealthResponse
 	resp.Batches = allBatches
 	resp.Signals.TotalDatabase = totalCompaniesInDB
+	if val, ok := rowVisited.Values["2026"].(int64); ok {
+		resp.Signals.VisitedRecruiters = val
+	}
 	if val, ok := rowNew.Values["2026"].(int64); ok {
 		resp.Signals.NewRecruiters = val
 	}
@@ -1216,7 +1226,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 	}
 
 	resp.Matrix = []models.IndustryMetricRow{
-		rowDatabase,
+		rowVisited,
 		rowNew,
 		rowMissed,
 		rowEqualLast,

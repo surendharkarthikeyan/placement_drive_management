@@ -96,11 +96,12 @@ type IndustryMetricRow struct {
 
 // IndustryNetworkHealthSignals holds the top KPI indicators for industries
 type IndustryNetworkHealthSignals struct {
-	TotalDatabase    int64 `json:"total_database"`
-	NewRecruiters    int64 `json:"new_recruiters"`
-	MissedRecruiters int64 `json:"missed_recruiters"`
-	GrowthRecruiters int64 `json:"growth_recruiters"`
-	Max3Recruiters   int64 `json:"max3_recruiters"`
+	TotalDatabase     int64 `json:"total_database"`
+	VisitedRecruiters int64 `json:"visited_recruiters"`
+	NewRecruiters     int64 `json:"new_recruiters"`
+	MissedRecruiters  int64 `json:"missed_recruiters"`
+	GrowthRecruiters  int64 `json:"growth_recruiters"`
+	Max3Recruiters    int64 `json:"max3_recruiters"`
 }
 
 // IndustryNetworkHealthResponse is the response for Industry Intelligence

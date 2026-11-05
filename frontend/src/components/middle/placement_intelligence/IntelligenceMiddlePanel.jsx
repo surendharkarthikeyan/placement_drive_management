@@ -192,6 +192,7 @@ export default function IntelligenceMiddlePanel({
     const sig = industryData?.signals || {}
     return {
       totalDatabase: sig.total_database ?? sig.totalDatabase ?? 0,
+      visitedRecruiters: sig.visited_recruiters ?? sig.visitedRecruiters ?? 0,
       newRecruiters: sig.new_recruiters ?? sig.newRecruiters ?? 0,
       missedRecruiters: sig.missed_recruiters ?? sig.missedRecruiters ?? 0,
       growthRecruiters: sig.growth_recruiters ?? sig.growthRecruiters ?? 0,
@@ -323,7 +324,12 @@ export default function IntelligenceMiddlePanel({
         <div className="mx-[20px] my-[14px] p-[10px_14px] bg-[#eff6ff] border border-[#bfdbfe]/80 rounded-[10px] flex items-center gap-5 flex-wrap text-[12px] shrink-0 shadow-2xs">
           <div className="flex items-center gap-1.5 font-medium text-[#1e40af]">
             <span className="w-2 h-2 rounded-full bg-[#2563eb] shrink-0" />
-            <span className="font-[850] text-[#172554]">{industrySignals.totalDatabase}</span> recruiters in database
+            <span className="font-[850] text-[#172554]">{industrySignals.totalDatabase}</span> in database
+          </div>
+
+          <div className="flex items-center gap-1.5 font-medium text-[#1e40af]">
+            <span className="w-2 h-2 rounded-full bg-[#0284c7] shrink-0" />
+            <span className="font-[850] text-[#172554]">{industrySignals.visitedRecruiters}</span> visited this year
           </div>
 
           <div className="flex items-center gap-1.5 font-medium text-[#1e40af]">
