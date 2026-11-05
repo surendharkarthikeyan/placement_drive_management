@@ -942,9 +942,9 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 		companyMap[c.ID] = c
 	}
 
-	// 4. Batches strictly from database
+	// 4. Batches strictly from database (ordered DESC so current / latest batch is in front)
 	var dbBatches []models.Batch
-	r.db.Order("name ASC").Find(&dbBatches)
+	r.db.Order("name DESC").Find(&dbBatches)
 	var allBatches []string
 	batchIDToYear := make(map[uint64]string)
 	yearToBatchID := make(map[string]uint64)
@@ -1111,12 +1111,13 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 		rowNew.Values[bYear] = newCount
 
 		// Visited in previous 3 years but not this year
-		if i > 0 {
+		// In DESC order, previous batches are at i+1, i+2, i+3
+		if i+1 < len(allBatches) {
 			var missedCount int64
 			for _, cID := range companyIDs {
 				visitedPrev := false
-				for prevIdx := 0; prevIdx < i && prevIdx >= i-3; prevIdx++ {
-					py := allBatches[prevIdx]
+				for nextIdx := i + 1; nextIdx < len(allBatches) && nextIdx <= i+3; nextIdx++ {
+					py := allBatches[nextIdx]
 					if batchVisitedCompanies[py][cID] {
 						visitedPrev = true
 						break
@@ -1131,9 +1132,9 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 			rowMissed.Values[bYear] = "—"
 		}
 
-		// Offers comparisons with last year
-		if i > 0 {
-			prevYear := allBatches[i-1]
+		// Offers comparisons with last year (i+1 in DESC order)
+		if i+1 < len(allBatches) {
+			prevYear := allBatches[i+1]
 			var eqLast int64
 			var lessLast int64
 			for _, cID := range companyIDs {
@@ -1148,18 +1149,12 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 			rowEqualLast.Values[bYear] = eqLast
 			rowLessLast.Values[bYear] = lessLast
 		} else {
-			var initialOffers int64
-			for _, cID := range companyIDs {
-				if batchCompanyOffers[bYear][cID] > 0 {
-					initialOffers++
-				}
-			}
-			rowEqualLast.Values[bYear] = initialOffers
+			rowEqualLast.Values[bYear] = "—"
 			rowLessLast.Values[bYear] = "—"
 		}
 
-		// Offers comparisons with previous 3 years
-		if i >= 3 {
+		// Offers comparisons with previous 3 years (i+1, i+2, i+3 in DESC order)
+		if i+3 < len(allBatches) {
 			var eqMax3 int64
 			var lessMin3 int64
 			for _, cID := range companyIDs {
@@ -1167,8 +1162,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 				var maxPrev int64 = 0
 				var minPrev int64 = 999999
 				hasPrev := false
-				for prevIdx := i - 3; prevIdx < i; prevIdx++ {
-					pOff := batchCompanyOffers[allBatches[prevIdx]][cID]
+				for nextIdx := i + 1; nextIdx <= i+3; nextIdx++ {
+					pOff := batchCompanyOffers[allBatches[nextIdx]][cID]
 					if pOff > 0 {
 						hasPrev = true
 						if pOff > maxPrev {
@@ -1190,38 +1185,38 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 			rowEqualMax3.Values[bYear] = eqMax3
 			rowLessMin3.Values[bYear] = lessMin3
 		} else {
-			if i == 0 {
-				var activeWithOffers int64
-				for _, cID := range companyIDs {
-					if batchCompanyOffers[bYear][cID] > 0 {
-						activeWithOffers++
-					}
-				}
-				rowEqualMax3.Values[bYear] = activeWithOffers
-			} else {
-				rowEqualMax3.Values[bYear] = "—"
-			}
+			rowEqualMax3.Values[bYear] = "—"
 			rowLessMin3.Values[bYear] = "—"
 		}
 	}
 
-	// 7. Extract signals from current batch (2026)
+	// 7. Extract signals from the current active batch
 	var resp models.IndustryNetworkHealthResponse
 	resp.Batches = allBatches
 	resp.Signals.TotalDatabase = totalCompaniesInDB
-	if val, ok := rowVisited.Values["2026"].(int64); ok {
+	currentBatch := ""
+	for _, b := range allBatches {
+		if v, ok := rowVisited.Values[b].(int64); ok && v > 0 {
+			currentBatch = b
+			break
+		}
+	}
+	if currentBatch == "" && len(allBatches) > 0 {
+		currentBatch = allBatches[0]
+	}
+	if val, ok := rowVisited.Values[currentBatch].(int64); ok {
 		resp.Signals.VisitedRecruiters = val
 	}
-	if val, ok := rowNew.Values["2026"].(int64); ok {
+	if val, ok := rowNew.Values[currentBatch].(int64); ok {
 		resp.Signals.NewRecruiters = val
 	}
-	if val, ok := rowMissed.Values["2026"].(int64); ok {
+	if val, ok := rowMissed.Values[currentBatch].(int64); ok {
 		resp.Signals.MissedRecruiters = val
 	}
-	if val, ok := rowEqualLast.Values["2026"].(int64); ok {
+	if val, ok := rowEqualLast.Values[currentBatch].(int64); ok {
 		resp.Signals.GrowthRecruiters = val
 	}
-	if val, ok := rowEqualMax3.Values["2026"].(int64); ok {
+	if val, ok := rowEqualMax3.Values[currentBatch].(int64); ok {
 		resp.Signals.Max3Recruiters = val
 	}
 
