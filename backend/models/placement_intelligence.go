@@ -165,3 +165,29 @@ type IndustryRightPanelResponse struct {
 	RecentActivities     []RecentRecruitmentActivity `json:"recent_activities"`
 }
 
+// IndustryMetricCompanyDetail represents a company returned when inspecting a metric cell or KPI card
+type IndustryMetricCompanyDetail struct {
+	CompanyID         int64   `json:"company_id"`
+	CompanyName       string  `json:"company_name"`
+	Category          string  `json:"category"`
+	CollaborationType string  `json:"collaboration_type"`
+	DriveStatus       string  `json:"drive_status"`
+	StudentsPlaced    int64   `json:"students_placed"`
+	OffersCount       int64   `json:"offers_count"`
+	PackageLPA        float64 `json:"package_lpa"`
+	JobRoles          string  `json:"job_roles,omitempty"`
+	FirstVisitedBatch string  `json:"first_visited_batch,omitempty"`
+	LastVisitedBatch  string  `json:"last_visited_batch,omitempty"`
+	ContextNote       string  `json:"context_note,omitempty"`
+}
+
+// IndustryMetricCompaniesResponse is the response payload for company drilldown
+type IndustryMetricCompaniesResponse struct {
+	MetricKey    string                        `json:"metric_key"`
+	MetricTitle  string                        `json:"metric_title"`
+	Batch        string                        `json:"batch"`
+	TotalCount   int                           `json:"total_count"`
+	Companies    []IndustryMetricCompanyDetail `json:"companies"`
+}
+
+

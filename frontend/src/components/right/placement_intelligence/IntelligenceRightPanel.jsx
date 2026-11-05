@@ -3,6 +3,7 @@ import {
   Loader2,
   Search,
   X,
+  ArrowLeft,
   Building2,
   CheckCircle2,
   Clock,
@@ -20,6 +21,7 @@ import {
   getIntelligenceOutcomeStudents,
   getStudentReviewDetail,
   getIntelligenceIndustryRightPanel,
+  getIntelligenceIndustryCompanies,
   getBatches
 } from '../../../services/api'
 import {
@@ -46,7 +48,10 @@ export default function IntelligenceRightPanel({
   selectedOutcome = null,
   selectedOutcomeType = 'offers',
   onSelectOutcome = () => {},
-  selectedIndustry = null
+  selectedIndustry = null,
+  selectedIndustryCell = null,
+  onSelectIndustryCell = () => {},
+  onClearIndustryCell = () => {}
 }) {
   const [activeMode, setActiveMode] = useState('overview') // Default view is Overview
   const [loading, setLoading] = useState(false)
@@ -71,6 +76,12 @@ export default function IntelligenceRightPanel({
   const [industrySectionTab, setIndustrySectionTab] = useState('attention') // 'attention' | 'topRecruiters' | 'activityHistory'
   const [isIndustryBatchOpen, setIsIndustryBatchOpen] = useState(false)
   const industryBatchRef = useRef(null)
+
+  // Companies drilldown state for Industries view (e.g. clicking table cell like '1' in Batch 2027)
+  const [industryCompanies, setIndustryCompanies] = useState([])
+  const [industryCompaniesData, setIndustryCompaniesData] = useState(null)
+  const [loadingIndustryCompanies, setLoadingIndustryCompanies] = useState(false)
+  const [companySearchQuery, setCompanySearchQuery] = useState('')
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -126,6 +137,54 @@ export default function IntelligenceRightPanel({
       isMounted = false
     }
   }, [currentView, selectedIndustryBatch, selectedDepartment])
+
+  // Fetch drilldown companies when a table metric cell is clicked
+  useEffect(() => {
+    if (currentView !== 'industries' || !selectedIndustryCell) {
+      setIndustryCompanies([])
+      setIndustryCompaniesData(null)
+      setCompanySearchQuery('')
+      return
+    }
+    let isMounted = true
+    const fetchCompanies = async () => {
+      setLoadingIndustryCompanies(true)
+      try {
+        const resp = await getIntelligenceIndustryCompanies({
+          metric: selectedIndustryCell.metricKey,
+          batch: selectedIndustryCell.batch,
+          department: selectedDepartment
+        })
+        if (isMounted) {
+          setIndustryCompaniesData(resp)
+          setIndustryCompanies(resp?.companies || [])
+        }
+      } catch (err) {
+        console.error('Failed to load industry companies for metric cell:', err)
+      } finally {
+        if (isMounted) {
+          setLoadingIndustryCompanies(false)
+        }
+      }
+    }
+    fetchCompanies()
+    return () => {
+      isMounted = false
+    }
+  }, [currentView, selectedIndustryCell, selectedDepartment])
+
+  const filteredIndustryCompanies = useMemo(() => {
+    if (!companySearchQuery.trim()) return industryCompanies
+    const q = companySearchQuery.toLowerCase()
+    return industryCompanies.filter(
+      (c) =>
+        c.company_name?.toLowerCase().includes(q) ||
+        c.category?.toLowerCase().includes(q) ||
+        c.job_roles?.toLowerCase().includes(q) ||
+        c.drive_status?.toLowerCase().includes(q) ||
+        c.collaboration_type?.toLowerCase().includes(q)
+    )
+  }, [industryCompanies, companySearchQuery])
 
   const SALARY_BAND_LABELS = {
     gt40: '> ₹40L',
@@ -265,6 +324,170 @@ export default function IntelligenceRightPanel({
   }, [outcomeStudents, studentSearchQuery])
 
   if (currentView === 'industries') {
+    // When a specific table metric cell (or KPI card) is clicked, drill down to company list
+    if (selectedIndustryCell) {
+      return (
+        <aside className="w-[475px] min-w-[475px] bg-[#fbfdff] border-l border-[#dbe5f1] h-full flex flex-col select-none overflow-hidden">
+          {/* Header */}
+          <div className="p-[16px_20px] bg-white border-b border-[#edf2f7] shrink-0">
+            <div className="flex items-center justify-between gap-3 mb-2.5">
+              <button
+                type="button"
+                onClick={onClearIndustryCell}
+                className="flex items-center gap-1.5 text-[12px] font-[750] text-[#2563eb] hover:text-[#1d4ed8] cursor-pointer transition active:scale-95"
+              >
+                <ArrowLeft size={14} />
+                <span>Back to Overview</span>
+              </button>
+
+              <span className="px-2.5 py-0.5 rounded-[6px] bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe] text-[11px] font-[800]">
+                Batch {selectedIndustryCell.batch}
+              </span>
+            </div>
+
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="text-[17px] font-[850] text-[#1e293b] tracking-tight leading-tight m-0">
+                  {industryCompaniesData?.metric_title || selectedIndustryCell.metricTitle || 'Companies'}
+                </h2>
+                <p className="text-[11.5px] text-[#64748b] mt-0.5 font-medium">
+                  {loadingIndustryCompanies
+                    ? 'Loading recruiters...'
+                    : `${filteredIndustryCompanies.length} ${filteredIndustryCompanies.length === 1 ? 'Recruiter' : 'Recruiters'} matching this criteria`}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClearIndustryCell}
+                title="Close"
+                className="w-7 h-7 rounded-[7px] text-[#64748b] hover:text-[#1e293b] hover:bg-[#f1f5f9] flex items-center justify-center transition cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Search filter input */}
+            <div className="relative mt-3">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+              <input
+                type="text"
+                value={companySearchQuery}
+                onChange={(e) => setCompanySearchQuery(e.target.value)}
+                placeholder="Search recruiters by name, category, or role..."
+                className="w-full h-[34px] pl-9 pr-8 bg-[#f8fafc] hover:bg-white focus:bg-white rounded-[8px] border border-[#dbe5f1] focus:border-[#2563eb] text-[12px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none transition shadow-2xs"
+              />
+              {companySearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setCompanySearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#1e293b] cursor-pointer"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Companies List */}
+          {loadingIndustryCompanies ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-[#94a3b8] py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-[#2563eb] mb-2" />
+              <span className="text-[12.5px] font-semibold text-[#64748b]">
+                Loading company records from database...
+              </span>
+            </div>
+          ) : filteredIndustryCompanies.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-[#94a3b8]">
+              <div className="w-12 h-12 rounded-full bg-[#f1f5f9] flex items-center justify-center mb-2.5 text-[#94a3b8]">
+                <Building2 size={24} />
+              </div>
+              <span className="text-[13.5px] font-[800] text-[#475569]">No Recruiters Found</span>
+              <span className="text-[11.5px] text-[#94a3b8] mt-1 max-w-[260px] leading-relaxed">
+                {companySearchQuery
+                  ? `No recruiters match "${companySearchQuery}" for Batch ${selectedIndustryCell.batch}.`
+                  : `No recruitment processes recorded under this criteria for Batch ${selectedIndustryCell.batch}.`}
+              </span>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto hide-scrollbar p-[16px_18px] space-y-2.5">
+              {filteredIndustryCompanies.map((c) => (
+                <div
+                  key={c.company_id}
+                  className="p-3.5 bg-white border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-xs rounded-[11px] transition flex flex-col gap-2.5 shadow-2xs"
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-[9px] bg-[#eff6ff] text-[#2563eb] font-[850] text-[13px] flex items-center justify-center shrink-0 border border-[#dbe5f1]">
+                        {c.company_name?.slice(0, 2).toUpperCase() || 'CO'}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-[13.5px] font-[850] text-[#1e293b] leading-tight truncate m-0">
+                          {c.company_name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="px-1.5 py-0.5 rounded-[4px] bg-[#f1f5f9] text-[#475569] text-[9.5px] font-[800] uppercase tracking-wider">
+                            {c.category}
+                          </span>
+                          {c.collaboration_type && (
+                            <span className="text-[10.5px] text-[#64748b] font-medium">
+                              · {c.collaboration_type}
+                            </span>
+                          )}
+                          {c.first_visited_batch && (
+                            <span className="text-[10px] text-[#94a3b8] font-medium">
+                              (Since {c.first_visited_batch})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`px-2 py-0.8 rounded-[6px] text-[10.5px] font-[800] whitespace-nowrap shrink-0 border capitalize ${
+                        c.drive_status?.toLowerCase().includes('complete')
+                          ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]'
+                          : c.drive_status === 'Not Started'
+                          ? 'bg-[#fff1f2] text-[#e11d48] border-[#fecdd3]'
+                          : 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
+                      }`}
+                    >
+                      {c.drive_status}
+                    </span>
+                  </div>
+
+                  {/* Metrics Row */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f1f5f9] text-[11.5px]">
+                    <div>
+                      <span className="text-[10px] font-[750] uppercase text-[#94a3b8] block">Offers / Placed</span>
+                      <span className="font-[850] text-[#1e293b]">
+                        {c.students_placed > 0
+                          ? `${c.students_placed} Placed`
+                          : (c.offers_count > 0 ? `${c.offers_count} Offers` : '—')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-[750] uppercase text-[#94a3b8] block">Package (LPA)</span>
+                      <span className="font-[850] text-[#1e293b]">
+                        {c.package_lpa > 0 ? `₹${c.package_lpa} LPA` : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Context Note */}
+                  {c.context_note && (
+                    <div className="text-[10.5px] text-[#64748b] font-medium bg-[#f8fafc] px-2.5 py-1 rounded-[6px] border border-[#f1f5f9]">
+                      {c.context_note}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+      )
+    }
+
     const cards = industryPanelData?.cards || {
       total_active_recruiters: 0,
       visited_recruiters: 0,
@@ -352,16 +575,20 @@ export default function IntelligenceRightPanel({
             {/* Metric Cards in 2 Rows (3 columns per row) */}
             <div className="grid grid-cols-3 gap-2 shrink-0">
               {/* Card 1: Total Recruiters */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
+              <div
+                onClick={() => onSelectIndustryCell({ metricKey: 'total', metricTitle: 'Total Active Recruiters', batch: selectedIndustryBatch, value: cards.total_active_recruiters })}
+                className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#2563eb] hover:shadow-xs transition flex flex-col justify-between cursor-pointer active:scale-98 group"
+                title="Click to view all active recruiters"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
+                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] group-hover:text-[#2563eb] transition truncate">
                     Total
                   </span>
                   <div className="w-5 h-5 rounded-[6px] bg-[#eff6ff] text-[#2563eb] flex items-center justify-center shrink-0">
                     <Building2 size={12} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight group-hover:text-[#2563eb] transition">
                   {cards.total_active_recruiters}
                 </div>
                 <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
@@ -370,16 +597,20 @@ export default function IntelligenceRightPanel({
               </div>
 
               {/* Card 2: Visited Recruiters */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
+              <div
+                onClick={() => onSelectIndustryCell({ metricKey: 'visited', metricTitle: 'Visited Recruiters', batch: selectedIndustryBatch, value: cards.visited_recruiters })}
+                className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#16a34a] hover:shadow-xs transition flex flex-col justify-between cursor-pointer active:scale-98 group"
+                title="Click to view visited recruiters"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
+                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] group-hover:text-[#16a34a] transition truncate">
                     Visited
                   </span>
                   <div className="w-5 h-5 rounded-[6px] bg-[#f0fdf4] text-[#16a34a] flex items-center justify-center shrink-0">
                     <CheckCircle2 size={12} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight group-hover:text-[#16a34a] transition">
                   {cards.visited_recruiters}
                 </div>
                 <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
@@ -388,16 +619,20 @@ export default function IntelligenceRightPanel({
               </div>
 
               {/* Card 3: Ongoing recruitments */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
+              <div
+                onClick={() => onSelectIndustryCell({ metricKey: 'ongoing', metricTitle: 'Ongoing Recruitments', batch: selectedIndustryBatch, value: cards.ongoing_recruitments })}
+                className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#d97706] hover:shadow-xs transition flex flex-col justify-between cursor-pointer active:scale-98 group"
+                title="Click to view ongoing recruitments"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
+                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] group-hover:text-[#d97706] transition truncate">
                     Ongoing
                   </span>
                   <div className="w-5 h-5 rounded-[6px] bg-[#fffbeb] text-[#d97706] flex items-center justify-center shrink-0">
                     <Clock size={12} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight group-hover:text-[#d97706] transition">
                   {cards.ongoing_recruitments}
                 </div>
                 <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
@@ -406,16 +641,20 @@ export default function IntelligenceRightPanel({
               </div>
 
               {/* Card 4: Completed recruitments */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
+              <div
+                onClick={() => onSelectIndustryCell({ metricKey: 'completed', metricTitle: 'Completed Recruitments', batch: selectedIndustryBatch, value: cards.completed_recruitments })}
+                className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#059669] hover:shadow-xs transition flex flex-col justify-between cursor-pointer active:scale-98 group"
+                title="Click to view completed recruitments"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
+                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] group-hover:text-[#059669] transition truncate">
                     Completed
                   </span>
                   <div className="w-5 h-5 rounded-[6px] bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0">
                     <Layers size={12} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight group-hover:text-[#059669] transition">
                   {cards.completed_recruitments}
                 </div>
                 <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
@@ -424,16 +663,20 @@ export default function IntelligenceRightPanel({
               </div>
 
               {/* Card 5: New Recruiters */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
+              <div
+                onClick={() => onSelectIndustryCell({ metricKey: 'new', metricTitle: 'New Recruiters', batch: selectedIndustryBatch, value: cards.new_recruiters })}
+                className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#9333ea] hover:shadow-xs transition flex flex-col justify-between cursor-pointer active:scale-98 group"
+                title="Click to view new recruiters"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
+                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] group-hover:text-[#9333ea] transition truncate">
                     New
                   </span>
                   <div className="w-5 h-5 rounded-[6px] bg-[#faf5ff] text-[#9333ea] flex items-center justify-center shrink-0">
                     <Sparkles size={12} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight group-hover:text-[#9333ea] transition">
                   {cards.new_recruiters}
                 </div>
                 <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
@@ -442,16 +685,20 @@ export default function IntelligenceRightPanel({
               </div>
 
               {/* Card 6: Highest Offer */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
+              <div
+                onClick={() => onSelectIndustryCell({ metricKey: 'highest', metricTitle: 'Highest Offer Recruiter', batch: selectedIndustryBatch, value: cards.highest_offer_lpa })}
+                className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#e11d48] hover:shadow-xs transition flex flex-col justify-between cursor-pointer active:scale-98 group"
+                title="Click to view highest offer recruiter"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
+                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] group-hover:text-[#e11d48] transition truncate">
                     Highest
                   </span>
                   <div className="w-5 h-5 rounded-[6px] bg-[#fff1f2] text-[#e11d48] flex items-center justify-center shrink-0">
                     <Award size={12} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight group-hover:text-[#e11d48] transition">
                   {cards.highest_offer_lpa > 0 ? `₹${cards.highest_offer_lpa}L` : '—'}
                 </div>
                 <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">

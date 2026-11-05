@@ -99,6 +99,7 @@ func SetupRoutes(r *gin.Engine) {
 			intelligence.GET("/outcome-students", intelligenceCtrl.GetOutcomeGroupStudents)
 			intelligence.GET("/industry-matrix", intelligenceCtrl.GetIndustryMatrix)
 			intelligence.GET("/industry-right-panel", intelligenceCtrl.GetIndustryRightPanel)
+			intelligence.GET("/industry-companies", intelligenceCtrl.GetIndustryCompanies)
 		}
 
 		// Health Check

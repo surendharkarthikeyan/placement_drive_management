@@ -30,6 +30,7 @@ export default function App() {
   const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState(null)
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
   const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
+  const [selectedIndustryMetricCell, setSelectedIndustryMetricCell] = useState(null)
 
   const handleSelectIntelligenceOutcome = (outcome, type = 'offers') => {
     setSelectedIntelligenceOutcome(outcome)
@@ -175,7 +176,10 @@ export default function App() {
           {/* Left Panel */}
           <IntelligenceLeftPanel
             currentView={intelligenceView}
-            onViewChange={setIntelligenceView}
+            onViewChange={(v) => {
+              setIntelligenceView(v)
+              setSelectedIndustryMetricCell(null)
+            }}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
             selectedOutcome={selectedIntelligenceOutcome}
@@ -199,6 +203,8 @@ export default function App() {
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
             selectedIndustry={selectedIntelligenceIndustry}
+            selectedIndustryCell={selectedIndustryMetricCell}
+            onSelectDetail={setSelectedIndustryMetricCell}
           />
 
           {/* Right Panel */}
@@ -210,6 +216,9 @@ export default function App() {
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
             selectedIndustry={selectedIntelligenceIndustry}
+            selectedIndustryCell={selectedIndustryMetricCell}
+            onSelectIndustryCell={setSelectedIndustryMetricCell}
+            onClearIndustryCell={() => setSelectedIndustryMetricCell(null)}
           />
         </main>
       )}

@@ -374,4 +374,17 @@ export const getIntelligenceIndustryRightPanel = async ({ batch = '', sector = '
   return response.data?.data !== undefined ? response.data.data : response.data
 }
 
+export const getIntelligenceIndustryCompanies = async ({ metric = 'visited', batch = '', sector = 'all', department = 'All' } = {}) => {
+  const params = { metric }
+  if (batch && batch !== 'all' && batch !== 'All') {
+    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+  }
+  if (sector && sector !== 'all') params.sector = sector
+  if (department && department !== 'All' && department !== 'All Departments') {
+    params.department = department
+  }
+  const response = await api.get('/intelligence/industry-companies', { params })
+  return response.data?.data !== undefined ? response.data.data : response.data
+}
+
 export default api

@@ -1669,4 +1669,571 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 	}, nil
 }
 
+// GetIndustryMetricCompanies returns the companies corresponding to a clicked metric cell or KPI card
+func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, batchParam, sectorParam, deptParam string) (*models.IndustryMetricCompaniesResponse, error) {
+	// 1. Fetch batches from DB
+	var dbBatches []models.Batch
+	r.db.Order("name DESC").Find(&dbBatches)
+
+	var allBatches []string
+	batchIDToYear := make(map[uint64]string)
+	yearToBatchID := make(map[string]uint64)
+	for _, b := range dbBatches {
+		parts := strings.Split(b.Name, "-")
+		gradYear := b.Name
+		if len(parts) == 2 {
+			gradYear = strings.TrimSpace(parts[1])
+		}
+		allBatches = append(allBatches, gradYear)
+		batchIDToYear[b.ID] = gradYear
+		yearToBatchID[gradYear] = b.ID
+	}
+
+	// 2. Identify target batch
+	cleanBatch := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(batchParam, "Batch"), "batch"))
+	cleanBatch = strings.ReplaceAll(cleanBatch, "–", "-")
+	cleanBatch = strings.ReplaceAll(cleanBatch, "—", "-")
+	cleanBatch = strings.TrimSpace(cleanBatch)
+
+	var targetBatch models.Batch
+	if cleanBatch != "" && cleanBatch != "All" && cleanBatch != "all" {
+		for _, b := range dbBatches {
+			if strings.Contains(b.Name, cleanBatch) || fmt.Sprintf("%d", b.ID) == cleanBatch {
+				targetBatch = b
+				break
+			}
+		}
+	}
+	if targetBatch.ID == 0 {
+		for _, b := range dbBatches {
+			if strings.Contains(b.Name, "2027") || strings.Contains(b.Name, "2026") {
+				targetBatch = b
+				break
+			}
+		}
+		if targetBatch.ID == 0 && len(dbBatches) > 0 {
+			targetBatch = dbBatches[0]
+		}
+	}
+
+	targetGradYear := targetBatch.Name
+	parts := strings.Split(targetBatch.Name, "-")
+	if len(parts) == 2 {
+		targetGradYear = strings.TrimSpace(parts[1])
+	}
+
+	// Find index of targetGradYear in allBatches
+	batchIndex := -1
+	for idx, bY := range allBatches {
+		if bY == targetGradYear {
+			batchIndex = idx
+			break
+		}
+	}
+
+	// 3. Sector & Department filtering
+	var sectorCategories []string
+	if sectorParam == "software" {
+		sectorCategories = []string{"PRODUCT", "SERVICE", "NETWORKING"}
+	} else if sectorParam == "core" {
+		sectorCategories = []string{"CORE_FINANCE", "HEALTHCARE"}
+	}
+
+	var deptID uint64
+	hasDeptFilter := deptParam != "" && deptParam != "All" && deptParam != "All Departments"
+	if hasDeptFilter {
+		searchPattern := "%" + deptParam + "%"
+		lowerDept := strings.ToLower(deptParam)
+		if lowerDept == "cse" || strings.Contains(lowerDept, "computer") {
+			searchPattern = "%Computer Science%"
+		} else if lowerDept == "it" || strings.Contains(lowerDept, "information") {
+			searchPattern = "%Information Technology%"
+		} else if lowerDept == "ece" || strings.Contains(lowerDept, "electronics") {
+			searchPattern = "%Electronics%"
+		} else if lowerDept == "eee" || strings.Contains(lowerDept, "electrical") {
+			searchPattern = "%Electrical%"
+		} else if lowerDept == "mech" || strings.Contains(lowerDept, "mechanical") {
+			searchPattern = "%Mechanical%"
+		}
+		r.db.Table("departments").Where("id = ? OR name = ? OR name LIKE ?", deptParam, deptParam, searchPattern).Pluck("id", &deptID)
+	}
+
+	baseCompQuery := r.db.Table("placement_company pc").Where("pc.status = ?", "1")
+	if len(sectorCategories) > 0 {
+		baseCompQuery = baseCompQuery.Where("pc.category IN ?", sectorCategories)
+	}
+	if hasDeptFilter && deptID > 0 {
+		baseCompQuery = baseCompQuery.Where(`pc.id IN (
+			SELECT DISTINCT pd.company_id FROM placement_drive pd 
+			LEFT JOIN placement_drive_eligibility pde ON pd.id = pde.drive_id
+			LEFT JOIN placement_drive_students pds ON pd.id = pds.drive_id
+			LEFT JOIN master_users u ON pds.user_id = u.id
+			WHERE JSON_CONTAINS(pde.department_ids, CAST(? AS JSON)) OR u.department_id = ?
+		)`, fmt.Sprintf("[%d]", deptID), deptID)
+	}
+
+	type CompBasic struct {
+		ID                int64  `gorm:"column:id"`
+		CompanyName       string `gorm:"column:company_name"`
+		CollaborationType string `gorm:"column:collaboration_type"`
+		Category          string `gorm:"column:category"`
+	}
+	var matchingCompanies []CompBasic
+	baseCompQuery.Find(&matchingCompanies)
+
+	compIDs := make([]int64, 0, len(matchingCompanies))
+	compMap := make(map[int64]CompBasic)
+	for _, c := range matchingCompanies {
+		compIDs = append(compIDs, c.ID)
+		compMap[c.ID] = c
+	}
+
+	// 4. Gather visits and offers per batch
+	batchCompanyOffers := make(map[string]map[int64]int64)
+	batchVisitedCompanies := make(map[string]map[int64]bool)
+	compVisitedBatches := make(map[int64][]string)
+	batchCompanyDriveStatus := make(map[string]map[int64]string)
+	batchCompanyPackageLPA := make(map[string]map[int64]float64)
+	batchCompanyJobRoles := make(map[string]map[int64]string)
+
+	for _, bYear := range allBatches {
+		batchCompanyOffers[bYear] = make(map[int64]int64)
+		batchVisitedCompanies[bYear] = make(map[int64]bool)
+		batchCompanyDriveStatus[bYear] = make(map[int64]string)
+		batchCompanyPackageLPA[bYear] = make(map[int64]float64)
+		batchCompanyJobRoles[bYear] = make(map[int64]string)
+	}
+
+	if len(compIDs) > 0 {
+		// 4a. placement_company_batch_placements
+		type PlacedResult struct {
+			Batch          string `gorm:"column:batch"`
+			CompanyID      int64  `gorm:"column:company_id"`
+			StudentsPlaced int64  `gorm:"column:students_placed"`
+		}
+		var placedResults []PlacedResult
+		r.db.Table("placement_company_batch_placements").
+			Where("status = '1' AND company_id IN ?", compIDs).
+			Scan(&placedResults)
+
+		for _, pr := range placedResults {
+			parts := strings.Split(pr.Batch, "-")
+			gradYear := pr.Batch
+			if len(parts) == 2 {
+				gradYear = strings.TrimSpace(parts[1])
+			}
+			if batchVisitedCompanies[gradYear] == nil {
+				batchVisitedCompanies[gradYear] = make(map[int64]bool)
+				batchCompanyOffers[gradYear] = make(map[int64]int64)
+				batchCompanyDriveStatus[gradYear] = make(map[int64]string)
+				batchCompanyPackageLPA[gradYear] = make(map[int64]float64)
+				batchCompanyJobRoles[gradYear] = make(map[int64]string)
+			}
+			batchVisitedCompanies[gradYear][pr.CompanyID] = true
+			compVisitedBatches[pr.CompanyID] = append(compVisitedBatches[pr.CompanyID], gradYear)
+			if pr.StudentsPlaced > batchCompanyOffers[gradYear][pr.CompanyID] {
+				batchCompanyOffers[gradYear][pr.CompanyID] = pr.StudentsPlaced
+			}
+			if batchCompanyDriveStatus[gradYear][pr.CompanyID] == "" {
+				batchCompanyDriveStatus[gradYear][pr.CompanyID] = "Completed Placements"
+			}
+		}
+
+		// 4b. placement_drive
+		type DriveDetailResult struct {
+			CompanyID     int64   `gorm:"column:company_id"`
+			BatchIDs      string  `gorm:"column:batch_id"`
+			OverallStatus string  `gorm:"column:overall_status"`
+			JobRole       string  `gorm:"column:job_role"`
+			PackageLPA    float64 `gorm:"column:package_lpa"`
+			OffersCount   int64   `gorm:"column:offers_count"`
+		}
+		var driveDetails []DriveDetailResult
+		r.db.Table("placement_drive pd").
+			Select("pd.company_id, pd.batch_id, pd.overall_status, pd.job_role, pd.package_lpa, COUNT(pdo.id) as offers_count").
+			Joins("LEFT JOIN placement_drive_students pds ON pd.id = pds.drive_id").
+			Joins("LEFT JOIN placement_drive_offers pdo ON pds.id = pdo.drive_student_id").
+			Where("pd.company_id IN ?", compIDs).
+			Group("pd.id, pd.company_id, pd.batch_id, pd.overall_status, pd.job_role, pd.package_lpa").
+			Scan(&driveDetails)
+
+		for _, dd := range driveDetails {
+			for bID, bYear := range batchIDToYear {
+				jsonPattern := fmt.Sprintf("[%d]", bID)
+				containsID := strings.Contains(dd.BatchIDs, jsonPattern) || 
+					strings.Contains(dd.BatchIDs, fmt.Sprintf("%d", bID))
+				if containsID {
+					if batchVisitedCompanies[bYear] == nil {
+						batchVisitedCompanies[bYear] = make(map[int64]bool)
+						batchCompanyOffers[bYear] = make(map[int64]int64)
+						batchCompanyDriveStatus[bYear] = make(map[int64]string)
+						batchCompanyPackageLPA[bYear] = make(map[int64]float64)
+						batchCompanyJobRoles[bYear] = make(map[int64]string)
+					}
+					batchVisitedCompanies[bYear][dd.CompanyID] = true
+					compVisitedBatches[dd.CompanyID] = append(compVisitedBatches[dd.CompanyID], bYear)
+					if dd.OffersCount > batchCompanyOffers[bYear][dd.CompanyID] {
+						batchCompanyOffers[bYear][dd.CompanyID] = dd.OffersCount
+					}
+					if dd.PackageLPA > batchCompanyPackageLPA[bYear][dd.CompanyID] {
+						batchCompanyPackageLPA[bYear][dd.CompanyID] = dd.PackageLPA
+					}
+					if dd.OverallStatus != "" {
+						batchCompanyDriveStatus[bYear][dd.CompanyID] = dd.OverallStatus
+					}
+					if dd.JobRole != "" {
+						batchCompanyJobRoles[bYear][dd.CompanyID] = dd.JobRole
+					}
+				}
+			}
+		}
+	}
+
+	// 4c. First visited batch
+	firstVisitBatch := make(map[int64]string)
+	for cID, bList := range compVisitedBatches {
+		earliest := ""
+		for _, b := range bList {
+			if earliest == "" || b < earliest {
+				earliest = b
+			}
+		}
+		firstVisitBatch[cID] = earliest
+	}
+
+	// 5. Match companies based on selected metric
+	normalizedMetric := strings.ToLower(strings.TrimSpace(metricKey))
+	var resultList []models.IndustryMetricCompanyDetail
+	var metricTitle string
+
+	switch normalizedMetric {
+	case "visited", "visited_recruiters":
+		metricTitle = "Industries Visited"
+		for _, c := range matchingCompanies {
+			if batchVisitedCompanies[targetGradYear][c.ID] {
+				status := batchCompanyDriveStatus[targetGradYear][c.ID]
+				if status == "" {
+					status = "Visited"
+				}
+				placed := batchCompanyOffers[targetGradYear][c.ID]
+				pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+				roles := batchCompanyJobRoles[targetGradYear][c.ID]
+				resultList = append(resultList, models.IndustryMetricCompanyDetail{
+					CompanyID:         c.ID,
+					CompanyName:       c.CompanyName,
+					Category:          c.Category,
+					CollaborationType: c.CollaborationType,
+					DriveStatus:       status,
+					StudentsPlaced:    placed,
+					OffersCount:       placed,
+					PackageLPA:        pkg,
+					JobRoles:          roles,
+					FirstVisitedBatch: firstVisitBatch[c.ID],
+					ContextNote:       fmt.Sprintf("Recruitment process recorded for Batch %s", targetGradYear),
+				})
+			}
+		}
+
+	case "new", "new_recruiters":
+		metricTitle = "New Industries Visited"
+		for _, c := range matchingCompanies {
+			if firstVisitBatch[c.ID] == targetGradYear {
+				status := batchCompanyDriveStatus[targetGradYear][c.ID]
+				if status == "" {
+					status = "New Recruiter"
+				}
+				placed := batchCompanyOffers[targetGradYear][c.ID]
+				pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+				roles := batchCompanyJobRoles[targetGradYear][c.ID]
+				resultList = append(resultList, models.IndustryMetricCompanyDetail{
+					CompanyID:         c.ID,
+					CompanyName:       c.CompanyName,
+					Category:          c.Category,
+					CollaborationType: c.CollaborationType,
+					DriveStatus:       status,
+					StudentsPlaced:    placed,
+					OffersCount:       placed,
+					PackageLPA:        pkg,
+					JobRoles:          roles,
+					FirstVisitedBatch: targetGradYear,
+					ContextNote:       fmt.Sprintf("First-ever campus recruitment in Batch %s", targetGradYear),
+				})
+			}
+		}
+
+	case "missed", "attention":
+		metricTitle = "Visited in Previous 3 Years but Not This Year"
+		if batchIndex >= 0 && batchIndex+1 < len(allBatches) {
+			for _, c := range matchingCompanies {
+				visitedPrev := false
+				var lastVisited string
+				for nextIdx := batchIndex + 1; nextIdx < len(allBatches) && nextIdx <= batchIndex+3; nextIdx++ {
+					py := allBatches[nextIdx]
+					if batchVisitedCompanies[py][c.ID] {
+						visitedPrev = true
+						if lastVisited == "" {
+							lastVisited = py
+						}
+					}
+				}
+				if visitedPrev && !batchVisitedCompanies[targetGradYear][c.ID] {
+					prevOff := batchCompanyOffers[lastVisited][c.ID]
+					pkg := batchCompanyPackageLPA[lastVisited][c.ID]
+					resultList = append(resultList, models.IndustryMetricCompanyDetail{
+						CompanyID:         c.ID,
+						CompanyName:       c.CompanyName,
+						Category:          c.Category,
+						CollaborationType: c.CollaborationType,
+						DriveStatus:       "Not Started",
+						StudentsPlaced:    0,
+						OffersCount:       0,
+						PackageLPA:        pkg,
+						LastVisitedBatch:  lastVisited,
+						FirstVisitedBatch: firstVisitBatch[c.ID],
+						ContextNote:       fmt.Sprintf("Hired %d students in Batch %s - No drive started for Batch %s", prevOff, lastVisited, targetGradYear),
+					})
+				}
+			}
+		}
+
+	case "equallast", "equal_last":
+		metricTitle = "Offers Equal to or Higher Than Last Year"
+		if batchIndex >= 0 && batchIndex+1 < len(allBatches) {
+			prevYear := allBatches[batchIndex+1]
+			for _, c := range matchingCompanies {
+				curOff := batchCompanyOffers[targetGradYear][c.ID]
+				prevOff := batchCompanyOffers[prevYear][c.ID]
+				if curOff > 0 && curOff >= prevOff {
+					status := batchCompanyDriveStatus[targetGradYear][c.ID]
+					if status == "" {
+						status = "Maintained/Improved"
+					}
+					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+					roles := batchCompanyJobRoles[targetGradYear][c.ID]
+					resultList = append(resultList, models.IndustryMetricCompanyDetail{
+						CompanyID:         c.ID,
+						CompanyName:       c.CompanyName,
+						Category:          c.Category,
+						CollaborationType: c.CollaborationType,
+						DriveStatus:       status,
+						StudentsPlaced:    curOff,
+						OffersCount:       curOff,
+						PackageLPA:        pkg,
+						JobRoles:          roles,
+						FirstVisitedBatch: firstVisitBatch[c.ID],
+						ContextNote:       fmt.Sprintf("%d offers recorded in %s (≥ %d in %s)", curOff, targetGradYear, prevOff, prevYear),
+					})
+				}
+			}
+		}
+
+	case "lesslast", "less_last":
+		metricTitle = "Offers Lower Than Last Year"
+		if batchIndex >= 0 && batchIndex+1 < len(allBatches) {
+			prevYear := allBatches[batchIndex+1]
+			for _, c := range matchingCompanies {
+				curOff := batchCompanyOffers[targetGradYear][c.ID]
+				prevOff := batchCompanyOffers[prevYear][c.ID]
+				if prevOff > 0 && curOff < prevOff {
+					status := batchCompanyDriveStatus[targetGradYear][c.ID]
+					if status == "" {
+						status = "Reduced Offers"
+					}
+					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+					roles := batchCompanyJobRoles[targetGradYear][c.ID]
+					resultList = append(resultList, models.IndustryMetricCompanyDetail{
+						CompanyID:         c.ID,
+						CompanyName:       c.CompanyName,
+						Category:          c.Category,
+						CollaborationType: c.CollaborationType,
+						DriveStatus:       status,
+						StudentsPlaced:    curOff,
+						OffersCount:       curOff,
+						PackageLPA:        pkg,
+						JobRoles:          roles,
+						FirstVisitedBatch: firstVisitBatch[c.ID],
+						ContextNote:       fmt.Sprintf("%d offers recorded in %s (< %d in %s)", curOff, targetGradYear, prevOff, prevYear),
+					})
+				}
+			}
+		}
+
+	case "equalmax3", "equal_max_3":
+		metricTitle = "Offers ≥ Previous 3-Year Maximum"
+		if batchIndex >= 0 && batchIndex+3 < len(allBatches) {
+			for _, c := range matchingCompanies {
+				curOff := batchCompanyOffers[targetGradYear][c.ID]
+				var maxPrev int64 = 0
+				hasPrev := false
+				for nextIdx := batchIndex + 1; nextIdx <= batchIndex+3; nextIdx++ {
+					pOff := batchCompanyOffers[allBatches[nextIdx]][c.ID]
+					if pOff > 0 {
+						hasPrev = true
+						if pOff > maxPrev {
+							maxPrev = pOff
+						}
+					}
+				}
+				if hasPrev && curOff >= maxPrev && curOff > 0 {
+					status := batchCompanyDriveStatus[targetGradYear][c.ID]
+					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+					roles := batchCompanyJobRoles[targetGradYear][c.ID]
+					resultList = append(resultList, models.IndustryMetricCompanyDetail{
+						CompanyID:         c.ID,
+						CompanyName:       c.CompanyName,
+						Category:          c.Category,
+						CollaborationType: c.CollaborationType,
+						DriveStatus:       status,
+						StudentsPlaced:    curOff,
+						OffersCount:       curOff,
+						PackageLPA:        pkg,
+						JobRoles:          roles,
+						FirstVisitedBatch: firstVisitBatch[c.ID],
+						ContextNote:       fmt.Sprintf("%d offers (≥ 3-year peak of %d)", curOff, maxPrev),
+					})
+				}
+			}
+		}
+
+	case "lessmin3", "less_min_3":
+		metricTitle = "Offers Below Previous 3-Year Minimum"
+		if batchIndex >= 0 && batchIndex+3 < len(allBatches) {
+			for _, c := range matchingCompanies {
+				curOff := batchCompanyOffers[targetGradYear][c.ID]
+				var minPrev int64 = 999999
+				hasPrev := false
+				for nextIdx := batchIndex + 1; nextIdx <= batchIndex+3; nextIdx++ {
+					pOff := batchCompanyOffers[allBatches[nextIdx]][c.ID]
+					if pOff > 0 {
+						hasPrev = true
+						if pOff < minPrev {
+							minPrev = pOff
+						}
+					}
+				}
+				if hasPrev && curOff < minPrev {
+					status := batchCompanyDriveStatus[targetGradYear][c.ID]
+					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+					roles := batchCompanyJobRoles[targetGradYear][c.ID]
+					resultList = append(resultList, models.IndustryMetricCompanyDetail{
+						CompanyID:         c.ID,
+						CompanyName:       c.CompanyName,
+						Category:          c.Category,
+						CollaborationType: c.CollaborationType,
+						DriveStatus:       status,
+						StudentsPlaced:    curOff,
+						OffersCount:       curOff,
+						PackageLPA:        pkg,
+						JobRoles:          roles,
+						FirstVisitedBatch: firstVisitBatch[c.ID],
+						ContextNote:       fmt.Sprintf("%d offers (< 3-year floor of %d)", curOff, minPrev),
+					})
+				}
+			}
+		}
+
+	case "ongoing", "ongoing_recruitments":
+		metricTitle = "Ongoing Recruitments"
+		for _, c := range matchingCompanies {
+			st := strings.ToLower(batchCompanyDriveStatus[targetGradYear][c.ID])
+			if st == "in_progress" || st == "registration_open" || st == "awaiting_result" || st == "scheduled" {
+				placed := batchCompanyOffers[targetGradYear][c.ID]
+				pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+				roles := batchCompanyJobRoles[targetGradYear][c.ID]
+				resultList = append(resultList, models.IndustryMetricCompanyDetail{
+					CompanyID:         c.ID,
+					CompanyName:       c.CompanyName,
+					Category:          c.Category,
+					CollaborationType: c.CollaborationType,
+					DriveStatus:       batchCompanyDriveStatus[targetGradYear][c.ID],
+					StudentsPlaced:    placed,
+					OffersCount:       placed,
+					PackageLPA:        pkg,
+					JobRoles:          roles,
+					FirstVisitedBatch: firstVisitBatch[c.ID],
+					ContextNote:       "Live recruitment drive active",
+				})
+			}
+		}
+
+	case "completed", "completed_recruitments":
+		metricTitle = "Completed Recruitments"
+		for _, c := range matchingCompanies {
+			st := strings.ToLower(batchCompanyDriveStatus[targetGradYear][c.ID])
+			placed := batchCompanyOffers[targetGradYear][c.ID]
+			if st == "completed" || st == "completed placements" || placed > 0 {
+				pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+				roles := batchCompanyJobRoles[targetGradYear][c.ID]
+				resultList = append(resultList, models.IndustryMetricCompanyDetail{
+					CompanyID:         c.ID,
+					CompanyName:       c.CompanyName,
+					Category:          c.Category,
+					CollaborationType: c.CollaborationType,
+					DriveStatus:       "Completed",
+					StudentsPlaced:    placed,
+					OffersCount:       placed,
+					PackageLPA:        pkg,
+					JobRoles:          roles,
+					FirstVisitedBatch: firstVisitBatch[c.ID],
+					ContextNote:       fmt.Sprintf("%d students confirmed placed", placed),
+				})
+			}
+		}
+
+	case "total", "total_active_recruiters":
+		metricTitle = "Total Active Recruiters"
+		for _, c := range matchingCompanies {
+			placed := batchCompanyOffers[targetGradYear][c.ID]
+			pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
+			roles := batchCompanyJobRoles[targetGradYear][c.ID]
+			st := batchCompanyDriveStatus[targetGradYear][c.ID]
+			if st == "" {
+				st = "Registered"
+			}
+			resultList = append(resultList, models.IndustryMetricCompanyDetail{
+				CompanyID:         c.ID,
+				CompanyName:       c.CompanyName,
+				Category:          c.Category,
+				CollaborationType: c.CollaborationType,
+				DriveStatus:       st,
+				StudentsPlaced:    placed,
+				OffersCount:       placed,
+				PackageLPA:        pkg,
+				JobRoles:          roles,
+				FirstVisitedBatch: firstVisitBatch[c.ID],
+				ContextNote:       "Maintained in company database",
+			})
+		}
+
+	default:
+		metricTitle = "Recruiters"
+		for _, c := range matchingCompanies {
+			if batchVisitedCompanies[targetGradYear][c.ID] {
+				resultList = append(resultList, models.IndustryMetricCompanyDetail{
+					CompanyID:         c.ID,
+					CompanyName:       c.CompanyName,
+					Category:          c.Category,
+					CollaborationType: c.CollaborationType,
+					DriveStatus:       batchCompanyDriveStatus[targetGradYear][c.ID],
+					StudentsPlaced:    batchCompanyOffers[targetGradYear][c.ID],
+					OffersCount:       batchCompanyOffers[targetGradYear][c.ID],
+					PackageLPA:        batchCompanyPackageLPA[targetGradYear][c.ID],
+					JobRoles:          batchCompanyJobRoles[targetGradYear][c.ID],
+					FirstVisitedBatch: firstVisitBatch[c.ID],
+					ContextNote:       fmt.Sprintf("Batch %s", targetGradYear),
+				})
+			}
+		}
+	}
+
+	return &models.IndustryMetricCompaniesResponse{
+		MetricKey:   normalizedMetric,
+		MetricTitle: metricTitle,
+		Batch:       targetBatch.Name,
+		TotalCount:  len(resultList),
+		Companies:   resultList,
+	}, nil
+}
+
+
 

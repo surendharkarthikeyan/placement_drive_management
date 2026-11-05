@@ -22,7 +22,8 @@ export default function IntelligenceMiddlePanel({
   selectedOutcome = 'notPlaced',
   onSelectOutcome = () => {},
   onSelectDetail = () => {},
-  selectedIndustry = null
+  selectedIndustry = null,
+  selectedIndustryCell = null
 }) {
   // Filters State
   const [selectedBatchFilter, setSelectedBatchFilter] = useState('All')
@@ -435,6 +436,7 @@ export default function IntelligenceMiddlePanel({
                           {activeIndustryBatches.map((batch) => {
                             const val = row.values?.[batch] ?? '—'
                             const isDash = val === '—'
+                            const isSelected = !isDash && selectedIndustryCell?.metricKey === row.key && String(selectedIndustryCell?.batch) === String(batch)
                             return (
                               <td
                                 key={batch}
@@ -448,9 +450,11 @@ export default function IntelligenceMiddlePanel({
                                     })
                                   }
                                 }}
-                                className={`px-6 py-3.5 text-center whitespace-nowrap text-[13px] font-[750] transition-colors min-w-[130px] ${
+                                className={`px-6 py-3.5 text-center whitespace-nowrap text-[13px] font-[750] transition min-w-[130px] ${
                                   isDash
                                     ? 'text-[#94a3b8]'
+                                    : isSelected
+                                    ? 'bg-[#eff6ff] text-[#2563eb] font-[850] ring-2 ring-inset ring-[#2563eb] cursor-pointer'
                                     : 'text-[#1e293b] cursor-pointer hover:bg-[#eff6ff] hover:text-[#2563eb] hover:underline'
                                 }`}
                               >

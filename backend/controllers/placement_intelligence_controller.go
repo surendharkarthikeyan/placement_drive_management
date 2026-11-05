@@ -105,3 +105,19 @@ func (ctrl *PlacementIntelligenceController) GetIndustryRightPanel(c *gin.Contex
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
+// GetIndustryCompanies returns the list of companies for a specific metric cell or KPI card
+func (ctrl *PlacementIntelligenceController) GetIndustryCompanies(c *gin.Context) {
+	metric := c.Query("metric")
+	batch := c.Query("batch")
+	sector := c.Query("sector")
+	dept := c.Query("department")
+
+	data, err := ctrl.repo.GetIndustryMetricCompanies(metric, batch, sector, dept)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch industry companies: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
+
