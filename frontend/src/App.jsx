@@ -178,8 +178,6 @@ export default function App() {
             onViewChange={setIntelligenceView}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
-            globalBatch={selectedBatch}
-            onGlobalBatchChange={setSelectedBatch}
             selectedOutcome={selectedIntelligenceOutcome}
             onSelectOutcome={(outcome) => handleSelectIntelligenceOutcome(outcome, 'unique')}
             selectedIndustry={selectedIntelligenceIndustry}
@@ -195,8 +193,6 @@ export default function App() {
             currentView={intelligenceView}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
-            globalBatch={selectedBatch}
-            onGlobalBatchChange={setSelectedBatch}
             selectedDepartment={selectedIntelligenceDept}
             onSelectDepartment={setSelectedIntelligenceDept}
             selectedOutcome={selectedIntelligenceOutcome}
@@ -209,7 +205,6 @@ export default function App() {
           <IntelligenceRightPanel
             currentView={intelligenceView}
             selectedBatch={selectedIntelligenceBatch}
-            globalBatch={selectedBatch}
             selectedDepartment={selectedIntelligenceDept}
             selectedOutcome={selectedIntelligenceOutcome}
             selectedOutcomeType={selectedIntelligenceOutcomeType}

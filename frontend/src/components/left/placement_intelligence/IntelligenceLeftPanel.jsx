@@ -19,8 +19,6 @@ export default function IntelligenceLeftPanel({
   onViewChange = () => {},
   selectedBatch: externalSelectedBatch,
   onSelectBatch: externalOnSelectBatch,
-  globalBatch = 'all',
-  onGlobalBatchChange = () => {},
   selectedOutcome: externalSelectedOutcome,
   onSelectOutcome: externalOnSelectOutcome,
   selectedIndustry = null,
@@ -115,13 +113,11 @@ export default function IntelligenceLeftPanel({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const effectiveBatch = (globalBatch && globalBatch !== 'all')
-    ? globalBatch
-    : (selectedBatch && selectedBatch !== 'all' ? selectedBatch : 'all')
+  const [industryBatch, setIndustryBatch] = useState('all')
+  const effectiveBatch = industryBatch
 
   const handleBatchSelect = (batchVal) => {
-    if (onGlobalBatchChange) onGlobalBatchChange(batchVal)
-    if (externalOnSelectBatch) externalOnSelectBatch(batchVal === 'all' ? null : batchVal)
+    setIndustryBatch(batchVal)
   }
 
   // Fetch drives whenever in 'industries' view or when effectiveBatch changes
