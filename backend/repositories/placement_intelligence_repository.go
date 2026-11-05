@@ -879,12 +879,15 @@ func getDeptCode(name string) string {
 
 // GetIndustryMatrix calculates real recruiter network health metrics from MySQL database
 func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptParam string) (*models.IndustryNetworkHealthResponse, error) {
-	// 1. Sector filtering
-	var sectorCategories []string
-	if sectorParam == "software" {
-		sectorCategories = []string{"PRODUCT", "SERVICE", "NETWORKING"}
-	} else if sectorParam == "core" {
-		sectorCategories = []string{"CORE_FINANCE", "HEALTHCARE"}
+	// 1. Domain filtering using company_domain ('SOFTWARE', 'CORE', 'BOTH')
+	var domainFilter []string
+	cleanSector := strings.ToUpper(strings.TrimSpace(sectorParam))
+	if cleanSector == "SOFTWARE" {
+		domainFilter = []string{"SOFTWARE", "BOTH"}
+	} else if cleanSector == "CORE" {
+		domainFilter = []string{"CORE", "BOTH"}
+	} else if cleanSector == "BOTH" {
+		domainFilter = []string{"BOTH"}
 	}
 
 	// 2. Department filtering
@@ -909,8 +912,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 
 	// 3. Base company query
 	baseCompQuery := r.db.Table("placement_company pc").Where("pc.status = ?", "1")
-	if len(sectorCategories) > 0 {
-		baseCompQuery = baseCompQuery.Where("pc.category IN ?", sectorCategories)
+	if len(domainFilter) > 0 {
+		baseCompQuery = baseCompQuery.Where("pc.company_domain IN ?", domainFilter)
 	}
 	if hasDeptFilter && deptID > 0 {
 		baseCompQuery = baseCompQuery.Where(`pc.id IN (
@@ -931,6 +934,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 		CompanyName       string `gorm:"column:company_name"`
 		CollaborationType string `gorm:"column:collaboration_type"`
 		Category          string `gorm:"column:category"`
+		CompanyDomain     string `gorm:"column:company_domain"`
 		CreatedAt         string `gorm:"column:created_at"`
 	}
 	var companies []CompInfo
@@ -1306,12 +1310,15 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 		targetGradYear = strings.TrimSpace(parts[1])
 	}
 
-	// 2. Sector filtering
-	var sectorCategories []string
-	if sectorParam == "software" {
-		sectorCategories = []string{"PRODUCT", "SERVICE", "NETWORKING"}
-	} else if sectorParam == "core" {
-		sectorCategories = []string{"CORE_FINANCE", "HEALTHCARE"}
+	// 2. Domain filtering using company_domain ('SOFTWARE', 'CORE', 'BOTH')
+	var domainFilter []string
+	cleanSector := strings.ToUpper(strings.TrimSpace(sectorParam))
+	if cleanSector == "SOFTWARE" {
+		domainFilter = []string{"SOFTWARE", "BOTH"}
+	} else if cleanSector == "CORE" {
+		domainFilter = []string{"CORE", "BOTH"}
+	} else if cleanSector == "BOTH" {
+		domainFilter = []string{"BOTH"}
 	}
 
 	// 3. Department filtering
@@ -1336,8 +1343,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 
 	// 4. Base matching companies
 	baseCompQuery := r.db.Table("placement_company pc").Where("pc.status = ?", "1")
-	if len(sectorCategories) > 0 {
-		baseCompQuery = baseCompQuery.Where("pc.category IN ?", sectorCategories)
+	if len(domainFilter) > 0 {
+		baseCompQuery = baseCompQuery.Where("pc.company_domain IN ?", domainFilter)
 	}
 	if hasDeptFilter && deptID > 0 {
 		baseCompQuery = baseCompQuery.Where(`pc.id IN (
@@ -1354,6 +1361,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 		CompanyName       string `gorm:"column:company_name"`
 		CollaborationType string `gorm:"column:collaboration_type"`
 		Category          string `gorm:"column:category"`
+		CompanyDomain     string `gorm:"column:company_domain"`
 	}
 	var matchingCompanies []CompBasic
 	baseCompQuery.Find(&matchingCompanies)
@@ -1377,8 +1385,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 	// 1. Total Recruiters - placement_company table
 	var totalRecruitersCount int64
 	compActiveQuery := r.db.Table("placement_company pc").Where("pc.status = '1'")
-	if len(sectorCategories) > 0 {
-		compActiveQuery = compActiveQuery.Where("pc.category IN ?", sectorCategories)
+	if len(domainFilter) > 0 {
+		compActiveQuery = compActiveQuery.Where("pc.company_domain IN ?", domainFilter)
 	}
 	compActiveQuery.Count(&totalRecruitersCount)
 	cards.TotalActiveRecruiters = totalRecruitersCount
@@ -1731,12 +1739,15 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		}
 	}
 
-	// 3. Sector & Department filtering
-	var sectorCategories []string
-	if sectorParam == "software" {
-		sectorCategories = []string{"PRODUCT", "SERVICE", "NETWORKING"}
-	} else if sectorParam == "core" {
-		sectorCategories = []string{"CORE_FINANCE", "HEALTHCARE"}
+	// 3. Domain filtering using company_domain ('SOFTWARE', 'CORE', 'BOTH')
+	var domainFilter []string
+	cleanSector := strings.ToUpper(strings.TrimSpace(sectorParam))
+	if cleanSector == "SOFTWARE" {
+		domainFilter = []string{"SOFTWARE", "BOTH"}
+	} else if cleanSector == "CORE" {
+		domainFilter = []string{"CORE", "BOTH"}
+	} else if cleanSector == "BOTH" {
+		domainFilter = []string{"BOTH"}
 	}
 
 	var deptID uint64
@@ -1759,8 +1770,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 	}
 
 	baseCompQuery := r.db.Table("placement_company pc").Where("pc.status = ?", "1")
-	if len(sectorCategories) > 0 {
-		baseCompQuery = baseCompQuery.Where("pc.category IN ?", sectorCategories)
+	if len(domainFilter) > 0 {
+		baseCompQuery = baseCompQuery.Where("pc.company_domain IN ?", domainFilter)
 	}
 	if hasDeptFilter && deptID > 0 {
 		baseCompQuery = baseCompQuery.Where(`pc.id IN (
@@ -1777,6 +1788,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		CompanyName       string `gorm:"column:company_name"`
 		CollaborationType string `gorm:"column:collaboration_type"`
 		Category          string `gorm:"column:category"`
+		CompanyDomain     string `gorm:"column:company_domain"`
 	}
 	var matchingCompanies []CompBasic
 	baseCompQuery.Find(&matchingCompanies)
@@ -1922,6 +1934,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					CompanyID:         c.ID,
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
+					CompanyDomain:     c.CompanyDomain,
 					CollaborationType: c.CollaborationType,
 					DriveStatus:       status,
 					StudentsPlaced:    placed,
@@ -1949,6 +1962,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					CompanyID:         c.ID,
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
+					CompanyDomain:     c.CompanyDomain,
 					CollaborationType: c.CollaborationType,
 					DriveStatus:       status,
 					StudentsPlaced:    placed,
@@ -1983,6 +1997,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						CompanyID:         c.ID,
 						CompanyName:       c.CompanyName,
 						Category:          c.Category,
+						CompanyDomain:     c.CompanyDomain,
 						CollaborationType: c.CollaborationType,
 						DriveStatus:       "Not Started",
 						StudentsPlaced:    0,
@@ -2014,6 +2029,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						CompanyID:         c.ID,
 						CompanyName:       c.CompanyName,
 						Category:          c.Category,
+						CompanyDomain:     c.CompanyDomain,
 						CollaborationType: c.CollaborationType,
 						DriveStatus:       status,
 						StudentsPlaced:    curOff,
@@ -2045,6 +2061,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						CompanyID:         c.ID,
 						CompanyName:       c.CompanyName,
 						Category:          c.Category,
+						CompanyDomain:     c.CompanyDomain,
 						CollaborationType: c.CollaborationType,
 						DriveStatus:       status,
 						StudentsPlaced:    curOff,
@@ -2082,6 +2099,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						CompanyID:         c.ID,
 						CompanyName:       c.CompanyName,
 						Category:          c.Category,
+						CompanyDomain:     c.CompanyDomain,
 						CollaborationType: c.CollaborationType,
 						DriveStatus:       status,
 						StudentsPlaced:    curOff,
@@ -2119,6 +2137,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						CompanyID:         c.ID,
 						CompanyName:       c.CompanyName,
 						Category:          c.Category,
+						CompanyDomain:     c.CompanyDomain,
 						CollaborationType: c.CollaborationType,
 						DriveStatus:       status,
 						StudentsPlaced:    curOff,
@@ -2144,6 +2163,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					CompanyID:         c.ID,
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
+					CompanyDomain:     c.CompanyDomain,
 					CollaborationType: c.CollaborationType,
 					DriveStatus:       batchCompanyDriveStatus[targetGradYear][c.ID],
 					StudentsPlaced:    placed,
@@ -2168,6 +2188,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					CompanyID:         c.ID,
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
+					CompanyDomain:     c.CompanyDomain,
 					CollaborationType: c.CollaborationType,
 					DriveStatus:       "Completed",
 					StudentsPlaced:    placed,
@@ -2194,6 +2215,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 				CompanyID:         c.ID,
 				CompanyName:       c.CompanyName,
 				Category:          c.Category,
+				CompanyDomain:     c.CompanyDomain,
 				CollaborationType: c.CollaborationType,
 				DriveStatus:       st,
 				StudentsPlaced:    placed,
@@ -2213,6 +2235,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					CompanyID:         c.ID,
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
+					CompanyDomain:     c.CompanyDomain,
 					CollaborationType: c.CollaborationType,
 					DriveStatus:       batchCompanyDriveStatus[targetGradYear][c.ID],
 					StudentsPlaced:    batchCompanyOffers[targetGradYear][c.ID],

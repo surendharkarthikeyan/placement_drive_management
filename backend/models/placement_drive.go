@@ -66,6 +66,7 @@ type PlacementCompany struct {
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 	Status            string    `gorm:"type:enum('0','1');default:'1'" json:"status"`
+	CompanyDomain     string    `gorm:"column:company_domain;type:enum('SOFTWARE','CORE','BOTH');default:'SOFTWARE'" json:"company_domain"`
 }
 
 func (PlacementCompany) TableName() string {

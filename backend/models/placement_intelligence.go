@@ -170,6 +170,7 @@ type IndustryMetricCompanyDetail struct {
 	CompanyID         int64   `json:"company_id"`
 	CompanyName       string  `json:"company_name"`
 	Category          string  `json:"category"`
+	CompanyDomain     string  `json:"company_domain,omitempty"`
 	CollaborationType string  `json:"collaboration_type"`
 	DriveStatus       string  `json:"drive_status"`
 	StudentsPlaced    int64   `json:"students_placed"`

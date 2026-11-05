@@ -51,7 +51,8 @@ export default function IntelligenceRightPanel({
   selectedIndustry = null,
   selectedIndustryCell = null,
   onSelectIndustryCell = () => {},
-  onClearIndustryCell = () => {}
+  onClearIndustryCell = () => {},
+  selectedIndustryDomain = 'all'
 }) {
   const [activeMode, setActiveMode] = useState('overview') // Default view is Overview
   const [loading, setLoading] = useState(false)
@@ -119,7 +120,8 @@ export default function IntelligenceRightPanel({
       try {
         const data = await getIntelligenceIndustryRightPanel({
           batch: selectedIndustryBatch,
-          department: selectedDepartment
+          department: selectedDepartment,
+          sector: selectedIndustryDomain
         })
         if (isMounted) {
           setIndustryPanelData(data)
@@ -136,7 +138,7 @@ export default function IntelligenceRightPanel({
     return () => {
       isMounted = false
     }
-  }, [currentView, selectedIndustryBatch, selectedDepartment])
+  }, [currentView, selectedIndustryBatch, selectedDepartment, selectedIndustryDomain])
 
   // Fetch drilldown companies when a table metric cell is clicked
   useEffect(() => {
@@ -153,7 +155,8 @@ export default function IntelligenceRightPanel({
         const resp = await getIntelligenceIndustryCompanies({
           metric: selectedIndustryCell.metricKey,
           batch: selectedIndustryCell.batch,
-          department: selectedDepartment
+          department: selectedDepartment,
+          sector: selectedIndustryDomain
         })
         if (isMounted) {
           setIndustryCompaniesData(resp)
@@ -171,7 +174,7 @@ export default function IntelligenceRightPanel({
     return () => {
       isMounted = false
     }
-  }, [currentView, selectedIndustryCell, selectedDepartment])
+  }, [currentView, selectedIndustryCell, selectedDepartment, selectedIndustryDomain])
 
   const filteredIndustryCompanies = useMemo(() => {
     if (!companySearchQuery.trim()) return industryCompanies
@@ -180,6 +183,7 @@ export default function IntelligenceRightPanel({
       (c) =>
         c.company_name?.toLowerCase().includes(q) ||
         c.category?.toLowerCase().includes(q) ||
+        c.company_domain?.toLowerCase().includes(q) ||
         c.job_roles?.toLowerCase().includes(q) ||
         c.drive_status?.toLowerCase().includes(q) ||
         c.collaboration_type?.toLowerCase().includes(q)
@@ -429,6 +433,19 @@ export default function IntelligenceRightPanel({
                           <span className="px-1.5 py-0.5 rounded-[4px] bg-[#f1f5f9] text-[#475569] text-[9.5px] font-[800] uppercase tracking-wider">
                             {c.category}
                           </span>
+                          {c.company_domain && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded-[4px] text-[9.5px] font-[800] uppercase tracking-wider border ${
+                                c.company_domain === 'SOFTWARE'
+                                  ? 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
+                                  : c.company_domain === 'CORE'
+                                  ? 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]'
+                                  : 'bg-[#faf5ff] text-[#9333ea] border-[#e9d5ff]'
+                              }`}
+                            >
+                              {c.company_domain}
+                            </span>
+                          )}
                           {c.collaboration_type && (
                             <span className="text-[10.5px] text-[#64748b] font-medium">
                               · {c.collaboration_type}

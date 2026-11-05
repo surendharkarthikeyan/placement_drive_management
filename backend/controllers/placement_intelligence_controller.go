@@ -83,6 +83,9 @@ func (ctrl *PlacementIntelligenceController) GetOutcomeGroupStudents(c *gin.Cont
 // GetIndustryMatrix returns recruiter network health matrix computed from database
 func (ctrl *PlacementIntelligenceController) GetIndustryMatrix(c *gin.Context) {
 	sector := c.Query("sector")
+	if sector == "" {
+		sector = c.Query("domain")
+	}
 	dept := c.Query("department")
 	matrix, err := ctrl.repo.GetIndustryMatrix(sector, dept)
 	if err != nil {
@@ -96,6 +99,9 @@ func (ctrl *PlacementIntelligenceController) GetIndustryMatrix(c *gin.Context) {
 func (ctrl *PlacementIntelligenceController) GetIndustryRightPanel(c *gin.Context) {
 	batch := c.Query("batch")
 	sector := c.Query("sector")
+	if sector == "" {
+		sector = c.Query("domain")
+	}
 	dept := c.Query("department")
 	data, err := ctrl.repo.GetIndustryRightPanelData(batch, sector, dept)
 	if err != nil {
@@ -110,6 +116,9 @@ func (ctrl *PlacementIntelligenceController) GetIndustryCompanies(c *gin.Context
 	metric := c.Query("metric")
 	batch := c.Query("batch")
 	sector := c.Query("sector")
+	if sector == "" {
+		sector = c.Query("domain")
+	}
 	dept := c.Query("department")
 
 	data, err := ctrl.repo.GetIndustryMetricCompanies(metric, batch, sector, dept)

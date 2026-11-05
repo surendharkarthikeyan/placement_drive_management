@@ -23,7 +23,9 @@ export default function IntelligenceMiddlePanel({
   onSelectOutcome = () => {},
   onSelectDetail = () => {},
   selectedIndustry = null,
-  selectedIndustryCell = null
+  selectedIndustryCell = null,
+  selectedIndustryDomain = 'all',
+  onSelectIndustryDomain = () => {}
 }) {
   // Filters State
   const [selectedBatchFilter, setSelectedBatchFilter] = useState('All')
@@ -37,7 +39,6 @@ export default function IntelligenceMiddlePanel({
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Industries View State (Recruiter Network Health from Real DB)
-  const [industrySectorFilter, setIndustrySectorFilter] = useState('all') // 'all' | 'software' | 'core'
   const [industryDeptFilter, setIndustryDeptFilter] = useState('All')
   const [industryData, setIndustryData] = useState(null)
   const [isIndustryLoading, setIsIndustryLoading] = useState(false)
@@ -161,7 +162,7 @@ export default function IntelligenceMiddlePanel({
       else setIsIndustryLoading(true)
 
       const data = await getIntelligenceIndustryMatrix({
-        sector: industrySectorFilter,
+        sector: selectedIndustryDomain,
         department: industryDeptFilter
       })
       setIndustryData(data)
@@ -171,7 +172,7 @@ export default function IntelligenceMiddlePanel({
       if (isRefresh) setIsIndustryRefreshing(false)
       else setIsIndustryLoading(false)
     }
-  }, [industrySectorFilter, industryDeptFilter])
+  }, [selectedIndustryDomain, industryDeptFilter])
 
   useEffect(() => {
     if (currentView === 'industries') {
@@ -213,7 +214,7 @@ export default function IntelligenceMiddlePanel({
       const encodedUri = encodeURI(csv)
       const link = document.createElement('a')
       link.setAttribute('href', encodedUri)
-      link.setAttribute('download', `Industry_Intelligence_Recruiter_Health_${industrySectorFilter}_${industryDeptFilter}.csv`)
+      link.setAttribute('download', `Industry_Intelligence_Recruiter_Health_${selectedIndustryDomain}_${industryDeptFilter}.csv`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -269,21 +270,22 @@ export default function IntelligenceMiddlePanel({
           </div>
         </div>
 
-        {/* 2. Top Filter Controls Bar (Sector & Department only; No academic year) */}
+        {/* 2. Top Filter Controls Bar (Domain & Department from Database) */}
         <div className="px-[20px] py-[12px] bg-white border-b border-[#edf2f7] flex items-center gap-3 flex-wrap shrink-0">
-          {/* Sector Filter: all, software, core */}
+          {/* Domain Filter: all, software, core, both */}
           <div className="flex items-center gap-1.5">
             <label className="text-[11px] font-[800] uppercase tracking-[0.4px] text-[#64748b]">
-              Sector
+              Domain
             </label>
             <select
-              value={industrySectorFilter}
-              onChange={(e) => setIndustrySectorFilter(e.target.value)}
+              value={selectedIndustryDomain}
+              onChange={(e) => onSelectIndustryDomain(e.target.value)}
               className="h-[34px] px-2.5 bg-white border border-[#dbe5f1] hover:border-[#93c5fd] focus:border-[#2563eb] rounded-[8px] text-[12px] font-semibold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-[#2563eb]/15 transition cursor-pointer"
             >
-              <option value="all">All Sectors</option>
+              <option value="all">All Domains</option>
               <option value="software">Software</option>
               <option value="core">Core</option>
+              <option value="both">Both</option>
             </select>
           </div>
 
@@ -312,7 +314,7 @@ export default function IntelligenceMiddlePanel({
           <button
             type="button"
             onClick={() => {
-              setIndustrySectorFilter('all')
+              onSelectIndustryDomain('all')
               setIndustryDeptFilter('All')
             }}
             className="h-[30px] px-2.5 rounded-[7px] border border-[#dbe5f1] bg-white text-[#64748b] hover:text-[#1e293b] text-[11px] font-[750] hover:bg-[#f8fafc] transition cursor-pointer flex items-center gap-1 shadow-2xs"

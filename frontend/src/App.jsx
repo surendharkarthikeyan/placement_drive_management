@@ -31,6 +31,7 @@ export default function App() {
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
   const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
   const [selectedIndustryMetricCell, setSelectedIndustryMetricCell] = useState(null)
+  const [selectedIndustryDomain, setSelectedIndustryDomain] = useState('all')
 
   const handleSelectIntelligenceOutcome = (outcome, type = 'offers') => {
     setSelectedIntelligenceOutcome(outcome)
@@ -205,6 +206,8 @@ export default function App() {
             selectedIndustry={selectedIntelligenceIndustry}
             selectedIndustryCell={selectedIndustryMetricCell}
             onSelectDetail={setSelectedIndustryMetricCell}
+            selectedIndustryDomain={selectedIndustryDomain}
+            onSelectIndustryDomain={setSelectedIndustryDomain}
           />
 
           {/* Right Panel */}
@@ -219,6 +222,7 @@ export default function App() {
             selectedIndustryCell={selectedIndustryMetricCell}
             onSelectIndustryCell={setSelectedIndustryMetricCell}
             onClearIndustryCell={() => setSelectedIndustryMetricCell(null)}
+            selectedIndustryDomain={selectedIndustryDomain}
           />
         </main>
       )}
