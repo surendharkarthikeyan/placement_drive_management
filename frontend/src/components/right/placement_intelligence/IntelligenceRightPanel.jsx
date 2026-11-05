@@ -349,17 +349,10 @@ export default function IntelligenceRightPanel({
               </span>
             </div>
 
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h2 className="text-[17px] font-[850] text-[#1e293b] tracking-tight leading-tight m-0">
-                  {industryCompaniesData?.metric_title || selectedIndustryCell.metricTitle || 'Companies'}
-                </h2>
-                <p className="text-[11.5px] text-[#64748b] mt-0.5 font-medium">
-                  {loadingIndustryCompanies
-                    ? 'Loading recruiters...'
-                    : `${filteredIndustryCompanies.length} ${filteredIndustryCompanies.length === 1 ? 'Recruiter' : 'Recruiters'} matching this criteria`}
-                </p>
-              </div>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-[17px] font-[850] text-[#1e293b] tracking-tight leading-tight m-0">
+                {industryCompaniesData?.metric_title || selectedIndustryCell.metricTitle || 'Companies'}
+              </h2>
 
               <button
                 type="button"
@@ -378,7 +371,7 @@ export default function IntelligenceRightPanel({
                 type="text"
                 value={companySearchQuery}
                 onChange={(e) => setCompanySearchQuery(e.target.value)}
-                placeholder="Search recruiters by name, category, or role..."
+                placeholder="Search recruiters by name, domain, or role..."
                 className="w-full h-[34px] pl-9 pr-8 bg-[#f8fafc] hover:bg-white focus:bg-white rounded-[8px] border border-[#dbe5f1] focus:border-[#2563eb] text-[12px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none transition shadow-2xs"
               />
               {companySearchQuery && (
@@ -429,30 +422,20 @@ export default function IntelligenceRightPanel({
                         <h4 className="text-[13.5px] font-[850] text-[#1e293b] leading-tight truncate m-0">
                           {c.company_name}
                         </h4>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <span className="px-1.5 py-0.5 rounded-[4px] bg-[#f1f5f9] text-[#475569] text-[9.5px] font-[800] uppercase tracking-wider">
-                            {c.category}
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span
+                            className={`px-1.5 py-0.5 rounded-[4px] text-[9.5px] font-[800] uppercase tracking-wider border ${
+                              (c.company_domain || '').toUpperCase() === 'CORE'
+                                ? 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]'
+                                : (c.company_domain || '').toUpperCase() === 'BOTH'
+                                ? 'bg-[#faf5ff] text-[#9333ea] border-[#e9d5ff]'
+                                : 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
+                            }`}
+                          >
+                            {c.company_domain || 'SOFTWARE'}
                           </span>
-                          {c.company_domain && (
-                            <span
-                              className={`px-1.5 py-0.5 rounded-[4px] text-[9.5px] font-[800] uppercase tracking-wider border ${
-                                c.company_domain === 'SOFTWARE'
-                                  ? 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
-                                  : c.company_domain === 'CORE'
-                                  ? 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]'
-                                  : 'bg-[#faf5ff] text-[#9333ea] border-[#e9d5ff]'
-                              }`}
-                            >
-                              {c.company_domain}
-                            </span>
-                          )}
-                          {c.collaboration_type && (
-                            <span className="text-[10.5px] text-[#64748b] font-medium">
-                              · {c.collaboration_type}
-                            </span>
-                          )}
                           {c.first_visited_batch && (
-                            <span className="text-[10px] text-[#94a3b8] font-medium">
+                            <span className="text-[10.5px] text-[#64748b] font-medium">
                               (Since {c.first_visited_batch})
                             </span>
                           )}
@@ -490,13 +473,6 @@ export default function IntelligenceRightPanel({
                       </span>
                     </div>
                   </div>
-
-                  {/* Context Note */}
-                  {c.context_note && (
-                    <div className="text-[10.5px] text-[#64748b] font-medium bg-[#f8fafc] px-2.5 py-1 rounded-[6px] border border-[#f1f5f9]">
-                      {c.context_note}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -800,7 +776,7 @@ export default function IntelligenceRightPanel({
                           </div>
                           <div className="text-[11px] text-[#64748b] mt-0.5 font-medium flex items-center gap-1.5">
                             <span className="px-1.5 py-0.5 rounded-[4px] bg-[#f1f5f9] text-[#475569] text-[10px] font-bold">
-                              {c.category}
+                              {c.company_domain || c.category}
                             </span>
                             <span>Last year: {c.last_year_placements} placed {c.last_year_package_lpa > 0 ? `(₹${c.last_year_package_lpa} LPA)` : ''}</span>
                           </div>
@@ -888,7 +864,7 @@ export default function IntelligenceRightPanel({
                               {r.company_name}
                             </div>
                             <div className="text-[11px] text-[#64748b] font-medium">
-                              {r.job_role || r.category}
+                              {r.job_role || r.company_domain || r.category}
                             </div>
                           </div>
                         </div>

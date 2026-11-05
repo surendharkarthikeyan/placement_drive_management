@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 	"placement-management/config"
@@ -873,6 +875,8 @@ func getDeptCode(name string) string {
 		return "MECH"
 	} else if strings.Contains(lower, "civil") {
 		return "CIVIL"
+	} else if strings.Contains(lower, "artificial") || strings.Contains(lower, "ai") {
+		return "AI & ML"
 	}
 	return name
 }
@@ -1406,7 +1410,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 		r.db.Table("placement_drive pd").
 			Where(driveWhere, driveWhereArgs...).
 			Where("pd.company_id IN ?", compIDs).
-			Where("pd.overall_status IN ('registration_open', 'scheduled', 'in_progress', 'awaiting_next_round', 'awaiting_final_result', 'draft')").
+			Where("LOWER(pd.overall_status) NOT IN ('completed', 'completed placements', 'cancelled')").
+			Distinct("pd.company_id").
 			Count(&ongoingCount)
 		cards.OngoingRecruitments = ongoingCount
 
@@ -1556,6 +1561,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 						CompanyID:          pp.CompanyID,
 						CompanyName:        c.CompanyName,
 						Category:           c.Category,
+						CompanyDomain:      c.CompanyDomain,
 						CollaborationType:  c.CollaborationType,
 						LastYearBatch:      pp.Batch,
 						LastYearPlacements: pp.StudentsPlaced,
@@ -1591,13 +1597,15 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 			Scan(&rawSalary)
 
 		for idx, s := range rawSalary {
+			c := compMap[s.CompanyID]
 			topSalary = append(topSalary, models.TopRecruiterItem{
-				Rank:        idx + 1,
-				CompanyID:   s.CompanyID,
-				CompanyName: s.CompanyName,
-				Category:    s.Category,
-				JobRole:     s.JobRole,
-				PackageLPA:  s.PackageLPA,
+				Rank:          idx + 1,
+				CompanyID:     s.CompanyID,
+				CompanyName:   s.CompanyName,
+				Category:      s.Category,
+				CompanyDomain: c.CompanyDomain,
+				JobRole:       s.JobRole,
+				PackageLPA:    s.PackageLPA,
 			})
 		}
 
@@ -1619,13 +1627,15 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 			Limit(10).
 			Scan(&rawCount)
 
-		for idx, c := range rawCount {
+		for idx, cRow := range rawCount {
+			c := compMap[cRow.CompanyID]
 			topCount = append(topCount, models.TopRecruiterItem{
 				Rank:          idx + 1,
-				CompanyID:     c.CompanyID,
-				CompanyName:   c.CompanyName,
-				Category:      c.Category,
-				StudentsCount: c.StudentsCount,
+				CompanyID:     cRow.CompanyID,
+				CompanyName:   cRow.CompanyName,
+				Category:      cRow.Category,
+				CompanyDomain: c.CompanyDomain,
+				StudentsCount: cRow.StudentsCount,
 			})
 		}
 	}
@@ -1807,6 +1817,10 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 	batchCompanyDriveStatus := make(map[string]map[int64]string)
 	batchCompanyPackageLPA := make(map[string]map[int64]float64)
 	batchCompanyJobRoles := make(map[string]map[int64]string)
+	batchCompanyHasOngoingDrive := make(map[string]map[int64]bool)
+	batchCompanyOngoingDriveStatus := make(map[string]map[int64]string)
+	batchCompanyOngoingPackageLPA := make(map[string]map[int64]float64)
+	batchCompanyOngoingJobRoles := make(map[string]map[int64]string)
 
 	for _, bYear := range allBatches {
 		batchCompanyOffers[bYear] = make(map[int64]int64)
@@ -1814,6 +1828,10 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		batchCompanyDriveStatus[bYear] = make(map[int64]string)
 		batchCompanyPackageLPA[bYear] = make(map[int64]float64)
 		batchCompanyJobRoles[bYear] = make(map[int64]string)
+		batchCompanyHasOngoingDrive[bYear] = make(map[int64]bool)
+		batchCompanyOngoingDriveStatus[bYear] = make(map[int64]string)
+		batchCompanyOngoingPackageLPA[bYear] = make(map[int64]float64)
+		batchCompanyOngoingJobRoles[bYear] = make(map[int64]string)
 	}
 
 	if len(compIDs) > 0 {
@@ -1881,6 +1899,10 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						batchCompanyDriveStatus[bYear] = make(map[int64]string)
 						batchCompanyPackageLPA[bYear] = make(map[int64]float64)
 						batchCompanyJobRoles[bYear] = make(map[int64]string)
+						batchCompanyHasOngoingDrive[bYear] = make(map[int64]bool)
+						batchCompanyOngoingDriveStatus[bYear] = make(map[int64]string)
+						batchCompanyOngoingPackageLPA[bYear] = make(map[int64]float64)
+						batchCompanyOngoingJobRoles[bYear] = make(map[int64]string)
 					}
 					batchVisitedCompanies[bYear][dd.CompanyID] = true
 					compVisitedBatches[dd.CompanyID] = append(compVisitedBatches[dd.CompanyID], bYear)
@@ -1895,6 +1917,20 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					}
 					if dd.JobRole != "" {
 						batchCompanyJobRoles[bYear][dd.CompanyID] = dd.JobRole
+					}
+
+					// Ongoing Recruitment logic: If a drive has been created, it is considered ongoing
+					// UNLESS its overall_status is 'completed' or 'cancelled'.
+					stClean := strings.ToLower(strings.TrimSpace(dd.OverallStatus))
+					if stClean != "completed" && stClean != "completed placements" && stClean != "cancelled" {
+						batchCompanyHasOngoingDrive[bYear][dd.CompanyID] = true
+						batchCompanyOngoingDriveStatus[bYear][dd.CompanyID] = dd.OverallStatus
+						if dd.PackageLPA > batchCompanyOngoingPackageLPA[bYear][dd.CompanyID] {
+							batchCompanyOngoingPackageLPA[bYear][dd.CompanyID] = dd.PackageLPA
+						}
+						if dd.JobRole != "" {
+							batchCompanyOngoingJobRoles[bYear][dd.CompanyID] = dd.JobRole
+						}
 					}
 				}
 			}
@@ -1918,15 +1954,40 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 	var resultList []models.IndustryMetricCompanyDetail
 	var metricTitle string
 
+	getCleanDriveStatus := func(rawStatus string) string {
+		if rawStatus == "" {
+			return "Not Started"
+		}
+		switch strings.ToLower(rawStatus) {
+		case "draft":
+			return "Draft"
+		case "registration_open":
+			return "Registration Open"
+		case "scheduled":
+			return "Scheduled"
+		case "in_progress":
+			return "In Progress"
+		case "awaiting_next_round":
+			return "Awaiting Round"
+		case "awaiting_final_result":
+			return "Awaiting Result"
+		case "completed", "completed placements":
+			return "Completed"
+		case "on_hold":
+			return "On Hold"
+		case "cancelled":
+			return "Cancelled"
+		default:
+			return strings.Title(strings.ReplaceAll(rawStatus, "_", " "))
+		}
+	}
+
 	switch normalizedMetric {
 	case "visited", "visited_recruiters":
 		metricTitle = "Industries Visited"
 		for _, c := range matchingCompanies {
 			if batchVisitedCompanies[targetGradYear][c.ID] {
-				status := batchCompanyDriveStatus[targetGradYear][c.ID]
-				if status == "" {
-					status = "Visited"
-				}
+				status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 				placed := batchCompanyOffers[targetGradYear][c.ID]
 				pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
 				roles := batchCompanyJobRoles[targetGradYear][c.ID]
@@ -1942,7 +2003,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					PackageLPA:        pkg,
 					JobRoles:          roles,
 					FirstVisitedBatch: firstVisitBatch[c.ID],
-					ContextNote:       fmt.Sprintf("Recruitment process recorded for Batch %s", targetGradYear),
 				})
 			}
 		}
@@ -1951,10 +2011,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		metricTitle = "New Industries Visited"
 		for _, c := range matchingCompanies {
 			if firstVisitBatch[c.ID] == targetGradYear {
-				status := batchCompanyDriveStatus[targetGradYear][c.ID]
-				if status == "" {
-					status = "New Recruiter"
-				}
+				status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 				placed := batchCompanyOffers[targetGradYear][c.ID]
 				pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
 				roles := batchCompanyJobRoles[targetGradYear][c.ID]
@@ -1970,7 +2027,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					PackageLPA:        pkg,
 					JobRoles:          roles,
 					FirstVisitedBatch: targetGradYear,
-					ContextNote:       fmt.Sprintf("First-ever campus recruitment in Batch %s", targetGradYear),
 				})
 			}
 		}
@@ -1991,7 +2047,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					}
 				}
 				if visitedPrev && !batchVisitedCompanies[targetGradYear][c.ID] {
-					prevOff := batchCompanyOffers[lastVisited][c.ID]
 					pkg := batchCompanyPackageLPA[lastVisited][c.ID]
 					resultList = append(resultList, models.IndustryMetricCompanyDetail{
 						CompanyID:         c.ID,
@@ -2005,7 +2060,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						PackageLPA:        pkg,
 						LastVisitedBatch:  lastVisited,
 						FirstVisitedBatch: firstVisitBatch[c.ID],
-						ContextNote:       fmt.Sprintf("Hired %d students in Batch %s - No drive started for Batch %s", prevOff, lastVisited, targetGradYear),
 					})
 				}
 			}
@@ -2019,10 +2073,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 				curOff := batchCompanyOffers[targetGradYear][c.ID]
 				prevOff := batchCompanyOffers[prevYear][c.ID]
 				if curOff > 0 && curOff >= prevOff {
-					status := batchCompanyDriveStatus[targetGradYear][c.ID]
-					if status == "" {
-						status = "Maintained/Improved"
-					}
+					status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
 					roles := batchCompanyJobRoles[targetGradYear][c.ID]
 					resultList = append(resultList, models.IndustryMetricCompanyDetail{
@@ -2037,7 +2088,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						PackageLPA:        pkg,
 						JobRoles:          roles,
 						FirstVisitedBatch: firstVisitBatch[c.ID],
-						ContextNote:       fmt.Sprintf("%d offers recorded in %s (≥ %d in %s)", curOff, targetGradYear, prevOff, prevYear),
 					})
 				}
 			}
@@ -2051,10 +2101,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 				curOff := batchCompanyOffers[targetGradYear][c.ID]
 				prevOff := batchCompanyOffers[prevYear][c.ID]
 				if prevOff > 0 && curOff < prevOff {
-					status := batchCompanyDriveStatus[targetGradYear][c.ID]
-					if status == "" {
-						status = "Reduced Offers"
-					}
+					status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
 					roles := batchCompanyJobRoles[targetGradYear][c.ID]
 					resultList = append(resultList, models.IndustryMetricCompanyDetail{
@@ -2069,7 +2116,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						PackageLPA:        pkg,
 						JobRoles:          roles,
 						FirstVisitedBatch: firstVisitBatch[c.ID],
-						ContextNote:       fmt.Sprintf("%d offers recorded in %s (< %d in %s)", curOff, targetGradYear, prevOff, prevYear),
 					})
 				}
 			}
@@ -2092,7 +2138,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					}
 				}
 				if hasPrev && curOff >= maxPrev && curOff > 0 {
-					status := batchCompanyDriveStatus[targetGradYear][c.ID]
+					status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
 					roles := batchCompanyJobRoles[targetGradYear][c.ID]
 					resultList = append(resultList, models.IndustryMetricCompanyDetail{
@@ -2107,7 +2153,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						PackageLPA:        pkg,
 						JobRoles:          roles,
 						FirstVisitedBatch: firstVisitBatch[c.ID],
-						ContextNote:       fmt.Sprintf("%d offers (≥ 3-year peak of %d)", curOff, maxPrev),
 					})
 				}
 			}
@@ -2130,7 +2175,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					}
 				}
 				if hasPrev && curOff < minPrev {
-					status := batchCompanyDriveStatus[targetGradYear][c.ID]
+					status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 					pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
 					roles := batchCompanyJobRoles[targetGradYear][c.ID]
 					resultList = append(resultList, models.IndustryMetricCompanyDetail{
@@ -2145,7 +2190,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						PackageLPA:        pkg,
 						JobRoles:          roles,
 						FirstVisitedBatch: firstVisitBatch[c.ID],
-						ContextNote:       fmt.Sprintf("%d offers (< 3-year floor of %d)", curOff, minPrev),
 					})
 				}
 			}
@@ -2154,24 +2198,29 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 	case "ongoing", "ongoing_recruitments":
 		metricTitle = "Ongoing Recruitments"
 		for _, c := range matchingCompanies {
-			st := strings.ToLower(batchCompanyDriveStatus[targetGradYear][c.ID])
-			if st == "in_progress" || st == "registration_open" || st == "awaiting_result" || st == "scheduled" {
+			if batchCompanyHasOngoingDrive[targetGradYear][c.ID] {
 				placed := batchCompanyOffers[targetGradYear][c.ID]
-				pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
-				roles := batchCompanyJobRoles[targetGradYear][c.ID]
+				pkg := batchCompanyOngoingPackageLPA[targetGradYear][c.ID]
+				if pkg == 0 {
+					pkg = batchCompanyPackageLPA[targetGradYear][c.ID]
+				}
+				roles := batchCompanyOngoingJobRoles[targetGradYear][c.ID]
+				if roles == "" {
+					roles = batchCompanyJobRoles[targetGradYear][c.ID]
+				}
+				st := batchCompanyOngoingDriveStatus[targetGradYear][c.ID]
 				resultList = append(resultList, models.IndustryMetricCompanyDetail{
 					CompanyID:         c.ID,
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
 					CompanyDomain:     c.CompanyDomain,
 					CollaborationType: c.CollaborationType,
-					DriveStatus:       batchCompanyDriveStatus[targetGradYear][c.ID],
+					DriveStatus:       getCleanDriveStatus(st),
 					StudentsPlaced:    placed,
 					OffersCount:       placed,
 					PackageLPA:        pkg,
 					JobRoles:          roles,
 					FirstVisitedBatch: firstVisitBatch[c.ID],
-					ContextNote:       "Live recruitment drive active",
 				})
 			}
 		}
@@ -2196,7 +2245,6 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					PackageLPA:        pkg,
 					JobRoles:          roles,
 					FirstVisitedBatch: firstVisitBatch[c.ID],
-					ContextNote:       fmt.Sprintf("%d students confirmed placed", placed),
 				})
 			}
 		}
@@ -2207,23 +2255,19 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 			placed := batchCompanyOffers[targetGradYear][c.ID]
 			pkg := batchCompanyPackageLPA[targetGradYear][c.ID]
 			roles := batchCompanyJobRoles[targetGradYear][c.ID]
-			st := batchCompanyDriveStatus[targetGradYear][c.ID]
-			if st == "" {
-				st = "Registered"
-			}
+			status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 			resultList = append(resultList, models.IndustryMetricCompanyDetail{
 				CompanyID:         c.ID,
 				CompanyName:       c.CompanyName,
 				Category:          c.Category,
 				CompanyDomain:     c.CompanyDomain,
 				CollaborationType: c.CollaborationType,
-				DriveStatus:       st,
+				DriveStatus:       status,
 				StudentsPlaced:    placed,
 				OffersCount:       placed,
 				PackageLPA:        pkg,
 				JobRoles:          roles,
 				FirstVisitedBatch: firstVisitBatch[c.ID],
-				ContextNote:       "Maintained in company database",
 			})
 		}
 
@@ -2237,13 +2281,12 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					Category:          c.Category,
 					CompanyDomain:     c.CompanyDomain,
 					CollaborationType: c.CollaborationType,
-					DriveStatus:       batchCompanyDriveStatus[targetGradYear][c.ID],
+					DriveStatus:       getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID]),
 					StudentsPlaced:    batchCompanyOffers[targetGradYear][c.ID],
 					OffersCount:       batchCompanyOffers[targetGradYear][c.ID],
 					PackageLPA:        batchCompanyPackageLPA[targetGradYear][c.ID],
 					JobRoles:          batchCompanyJobRoles[targetGradYear][c.ID],
 					FirstVisitedBatch: firstVisitBatch[c.ID],
-					ContextNote:       fmt.Sprintf("Batch %s", targetGradYear),
 				})
 			}
 		}
@@ -2255,6 +2298,432 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		Batch:       targetBatch.Name,
 		TotalCount:  len(resultList),
 		Companies:   resultList,
+	}, nil
+}
+
+// GetCompanyRecruitmentDrives returns all recruitment phases/drives grouped by placement year for a selected company
+func (r *PlacementIntelligenceRepository) GetCompanyRecruitmentDrives(companyIDParam, companyNameParam, batchParam, roleParam, deptParam string) (*models.CompanyRecruitmentDrivesResponse, error) {
+	// 1. Identify company
+	var company models.PlacementCompany
+	if companyIDParam != "" && companyIDParam != "0" {
+		r.db.Where("id = ?", companyIDParam).First(&company)
+	}
+	if company.ID == 0 && companyNameParam != "" {
+		r.db.Where("company_name LIKE ?", "%"+companyNameParam+"%").First(&company)
+	}
+	if company.ID == 0 {
+		return nil, fmt.Errorf("company not found")
+	}
+
+	// 2. Fetch master batches
+	var allBatches []models.Batch
+	r.db.Order("name desc").Find(&allBatches)
+	batchIDMap := make(map[uint64]models.Batch)
+	for _, b := range allBatches {
+		batchIDMap[b.ID] = b
+	}
+
+	// 3. Fetch master departments
+	var allDepts []models.Department
+	r.db.Find(&allDepts)
+	deptIDMap := make(map[uint64]models.Department)
+	for _, d := range allDepts {
+		deptIDMap[d.ID] = d
+	}
+
+	// 4. Query drives for this company
+	type DriveRaw struct {
+		ID             uint64     `gorm:"column:id"`
+		CompanyID      int64      `gorm:"column:company_id"`
+		BatchIDs       string     `gorm:"column:batch_id"`
+		JobRole        string     `gorm:"column:job_role"`
+		PackageLPA     float64    `gorm:"column:package_lpa"`
+		OverallStatus  string     `gorm:"column:overall_status"`
+		DriveStartDate *time.Time `gorm:"column:drive_start_date"`
+		CreatedAt      time.Time  `gorm:"column:created_at"`
+	}
+	var rawDrives []DriveRaw
+	r.db.Table("placement_drive").
+		Where("company_id = ?", company.ID).
+		Order("created_at desc, id desc").
+		Scan(&rawDrives)
+
+	// Helper to extract departments for a drive
+	getDriveDepartments := func(driveID uint64) []string {
+		var deptIDsJSON string
+		r.db.Table("placement_drive_eligibility").
+			Where("drive_id = ?", driveID).
+			Pluck("department_ids", &deptIDsJSON)
+
+		deptNames := make([]string, 0)
+		if deptIDsJSON != "" && deptIDsJSON != "null" {
+			var ids []uint64
+			if err := json.Unmarshal([]byte(deptIDsJSON), &ids); err == nil && len(ids) > 0 {
+				for _, id := range ids {
+					if d, ok := deptIDMap[id]; ok {
+						deptNames = append(deptNames, getDeptCode(d.Name))
+					}
+				}
+			}
+		}
+		if len(deptNames) == 0 {
+			var studentDepts []string
+			r.db.Table("placement_drive_students pds").
+				Joins("JOIN master_users u ON pds.user_id = u.id").
+				Joins("JOIN departments d ON u.department_id = d.id").
+				Where("pds.drive_id = ?", driveID).
+				Distinct("d.name").
+				Pluck("d.name", &studentDepts)
+			for _, dName := range studentDepts {
+				deptNames = append(deptNames, getDeptCode(dName))
+			}
+		}
+		seen := make(map[string]bool)
+		uniqueDepts := make([]string, 0, len(deptNames))
+		for _, dn := range deptNames {
+			if !seen[dn] && dn != "" {
+				seen[dn] = true
+				uniqueDepts = append(uniqueDepts, dn)
+			}
+		}
+		return uniqueDepts
+	}
+
+	// Helper to build recruitment stages pipeline strictly from MySQL DB records
+	getDriveStagesFunnel := func(driveID uint64, overallStatus string) []models.CompanyDriveStageItem {
+		var stages []models.CompanyDriveStageItem
+		step := 1
+
+		// 1. Registered students: actual count from placement_drive_students
+		var registeredCount int64
+		r.db.Model(&models.PlacementDriveStudent{}).
+			Where("drive_id = ?", driveID).
+			Count(&registeredCount)
+
+		stages = append(stages, models.CompanyDriveStageItem{
+			Step:   step,
+			Label:  "Registered",
+			Value:  registeredCount,
+			Active: false,
+		})
+		step++
+
+		// 2. Eligible students: students included or evaluated eligible in placement_drive_students
+		var eligibleCount int64
+		r.db.Model(&models.PlacementDriveStudent{}).
+			Where("drive_id = ? AND drive_status IN ('included', 'special_entry')", driveID).
+			Count(&eligibleCount)
+		if eligibleCount == 0 && registeredCount > 0 {
+			eligibleCount = registeredCount
+		}
+
+		stages = append(stages, models.CompanyDriveStageItem{
+			Step:   step,
+			Label:  "Eligible",
+			Value:  eligibleCount,
+			Active: false,
+		})
+		step++
+
+		// 3. Real stages from placement_drive_stages for this drive
+		var dbStages []models.PlacementDriveStage
+		r.db.Where("drive_id = ?", driveID).Order("sequence_no asc, id asc").Find(&dbStages)
+
+		for _, s := range dbStages {
+			var partCount int64
+			r.db.Model(&models.PlacementStageResult{}).
+				Where("stage_id = ?", s.ID).
+				Count(&partCount)
+
+			// Stage is active if status is in_progress or awaiting_result
+			isActive := s.StageStatus == "in_progress" || s.StageStatus == "awaiting_result"
+
+			stages = append(stages, models.CompanyDriveStageItem{
+				Step:   step,
+				Label:  s.StageName,
+				Value:  partCount,
+				Active: isActive,
+			})
+			step++
+		}
+
+		// 4. Offers: actual count from placement_drive_offers
+		var offersCount int64
+		r.db.Table("placement_drive_offers pdo").
+			Joins("JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id").
+			Where("pds.drive_id = ?", driveID).
+			Count(&offersCount)
+
+		if offersCount == 0 {
+			var batchPlaced int64
+			r.db.Table("placement_company_batch_placements").
+				Where("drive_id = ? AND status = '1'", driveID).
+				Select("COALESCE(SUM(students_placed), 0)").
+				Scan(&batchPlaced)
+			if batchPlaced > 0 {
+				offersCount = batchPlaced
+			}
+		}
+
+		stages = append(stages, models.CompanyDriveStageItem{
+			Step:   step,
+			Label:  "Offers",
+			Value:  offersCount,
+			Active: false,
+		})
+
+		return stages
+	}
+
+	batchSet := make(map[string]bool)
+	roleSet := make(map[string]bool)
+	deptSet := make(map[string]bool)
+
+	type ProcessedDrive struct {
+		DriveID       uint64
+		BatchName     string
+		PlacementYear string
+		JobRole       string
+		PackageLPA    float64
+		OverallStatus string
+		Date          string
+		Departments   []string
+		OffersCount   int64
+		Stages        []models.CompanyDriveStageItem
+	}
+	var processedList []ProcessedDrive
+
+	for _, rd := range rawDrives {
+		var targetYears []string
+		if rd.BatchIDs != "" {
+			for bID, bObj := range batchIDMap {
+				p := fmt.Sprintf("[%d]", bID)
+				if strings.Contains(rd.BatchIDs, p) || strings.Contains(rd.BatchIDs, fmt.Sprintf("%d", bID)) {
+					parts := strings.Split(bObj.Name, "-")
+					gYear := bObj.Name
+					if len(parts) == 2 {
+						gYear = strings.TrimSpace(parts[1])
+					}
+					targetYears = append(targetYears, gYear)
+					batchSet[gYear] = true
+				}
+			}
+		}
+		if len(targetYears) == 0 && len(allBatches) > 0 {
+			parts := strings.Split(allBatches[0].Name, "-")
+			gYear := allBatches[0].Name
+			if len(parts) == 2 {
+				gYear = strings.TrimSpace(parts[1])
+			}
+			targetYears = append(targetYears, gYear)
+			batchSet[gYear] = true
+		}
+
+		if rd.JobRole != "" {
+			roleSet[rd.JobRole] = true
+		}
+
+		depts := getDriveDepartments(rd.ID)
+		for _, dn := range depts {
+			deptSet[dn] = true
+		}
+
+		dateStr := rd.CreatedAt.Format("02 Jan 2006")
+		if rd.DriveStartDate != nil {
+			dateStr = rd.DriveStartDate.Format("02 Jan 2006")
+		}
+
+		var offCount int64
+		r.db.Table("placement_drive_offers pdo").
+			Joins("JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id").
+			Where("pds.drive_id = ?", rd.ID).
+			Count(&offCount)
+		if offCount == 0 {
+			var batchPlaced int64
+			r.db.Table("placement_company_batch_placements").
+				Where("drive_id = ? AND status = '1'", rd.ID).
+				Select("COALESCE(SUM(students_placed), 0)").
+				Scan(&batchPlaced)
+			if batchPlaced > 0 {
+				offCount = batchPlaced
+			}
+		}
+
+		stages := getDriveStagesFunnel(rd.ID, rd.OverallStatus)
+
+		for _, pYear := range targetYears {
+			processedList = append(processedList, ProcessedDrive{
+				DriveID:       rd.ID,
+				BatchName:     pYear,
+				PlacementYear: pYear,
+				JobRole:       rd.JobRole,
+				PackageLPA:    rd.PackageLPA,
+				OverallStatus: rd.OverallStatus,
+				Date:          dateStr,
+				Departments:   depts,
+				OffersCount:   offCount,
+				Stages:        stages,
+			})
+		}
+	}
+
+	filterBatches := []string{"All"}
+	var sortedBatchYears []string
+	for bY := range batchSet {
+		if len(bY) == 4 {
+			sortedBatchYears = append(sortedBatchYears, bY)
+		}
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(sortedBatchYears)))
+	filterBatches = append(filterBatches, sortedBatchYears...)
+
+	filterRoles := []string{"All Roles"}
+	var sortedRoles []string
+	for r := range roleSet {
+		sortedRoles = append(sortedRoles, r)
+	}
+	sort.Strings(sortedRoles)
+	filterRoles = append(filterRoles, sortedRoles...)
+
+	// Build department options strictly from the departments database table
+	filterDepts := []string{"All Departments"}
+	deptCodeMap := make(map[string]bool)
+	var sortedDepts []string
+	for _, d := range allDepts {
+		if d.ID == 4 || strings.EqualFold(strings.TrimSpace(d.Name), "placement") || strings.Contains(strings.ToLower(d.Name), "placement") {
+			continue
+		}
+		code := getDeptCode(d.Name)
+		if code != "" && !deptCodeMap[code] {
+			deptCodeMap[code] = true
+			sortedDepts = append(sortedDepts, code)
+		}
+	}
+	sort.Strings(sortedDepts)
+	filterDepts = append(filterDepts, sortedDepts...)
+
+	cleanBatch := strings.TrimSpace(batchParam)
+	cleanRole := strings.TrimSpace(roleParam)
+	cleanDept := strings.TrimSpace(deptParam)
+
+	var filteredDrives []ProcessedDrive
+	for _, pd := range processedList {
+		if cleanBatch != "" && cleanBatch != "All" && cleanBatch != "all" {
+			if pd.PlacementYear != cleanBatch && pd.BatchName != cleanBatch {
+				continue
+			}
+		}
+		if cleanRole != "" && cleanRole != "All" && cleanRole != "All Roles" && cleanRole != "all" {
+			if !strings.EqualFold(pd.JobRole, cleanRole) {
+				continue
+			}
+		}
+		if cleanDept != "" && cleanDept != "All" && cleanDept != "All Departments" && cleanDept != "all" {
+			cleanDeptCode := getDeptCode(cleanDept)
+			hasDept := false
+			for _, d := range pd.Departments {
+				dCode := getDeptCode(d)
+				if strings.EqualFold(d, cleanDept) ||
+					strings.EqualFold(dCode, cleanDeptCode) ||
+					strings.Contains(strings.ToLower(d), strings.ToLower(cleanDept)) ||
+					strings.Contains(strings.ToLower(cleanDept), strings.ToLower(d)) {
+					hasDept = true
+					break
+				}
+			}
+			if !hasDept {
+				continue
+			}
+		}
+		filteredDrives = append(filteredDrives, pd)
+	}
+
+	yearGroupsMap := make(map[string][]ProcessedDrive)
+	for _, fd := range filteredDrives {
+		yearGroupsMap[fd.PlacementYear] = append(yearGroupsMap[fd.PlacementYear], fd)
+	}
+
+	var sortedYears []string
+	for y := range yearGroupsMap {
+		sortedYears = append(sortedYears, y)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(sortedYears)))
+
+	var yearGroups []models.CompanyPlacementYearGroup
+	var totalOffersAll int64 = 0
+
+	for _, y := range sortedYears {
+		drivesInYear := yearGroupsMap[y]
+		var totalYearOffers int64 = 0
+		var phaseList []models.CompanyRecruitmentDrivePhase
+
+		for idx, d := range drivesInYear {
+			totalYearOffers += d.OffersCount
+			totalOffersAll += d.OffersCount
+
+			statusBadge := "Ongoing"
+			statusClass := "bg-[#fffbeb] text-[#b45309] border-[#fde68a]"
+			lowSt := strings.ToLower(d.OverallStatus)
+			if lowSt == "completed" {
+				statusBadge = "Completed"
+				statusClass = "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]"
+			} else if lowSt == "cancelled" || lowSt == "canceled" {
+				statusBadge = "Cancelled"
+				statusClass = "bg-[#fff1f2] text-[#e11d48] border-[#fecdd3]"
+			} else if lowSt == "awaiting_final_result" || lowSt == "awaiting_result" || strings.Contains(lowSt, "awaiting") {
+				statusBadge = "Awaiting for final result"
+				statusClass = "bg-[#faf5ff] text-[#9333ea] border-[#e9d5ff]"
+			} else {
+				// All active/created drives that are not completed/cancelled/awaiting result are Ongoing
+				statusBadge = "Ongoing"
+				statusClass = "bg-[#fffbeb] text-[#b45309] border-[#fde68a]"
+			}
+
+			phaseNum := idx + 1
+			title := fmt.Sprintf("%s · Phase %d", d.JobRole, phaseNum)
+			if d.JobRole == "" {
+				title = fmt.Sprintf("Campus Drive · Phase %d", phaseNum)
+			}
+
+			phaseList = append(phaseList, models.CompanyRecruitmentDrivePhase{
+				DriveID:          d.DriveID,
+				Title:            title,
+				PhaseName:        fmt.Sprintf("Phase %d", phaseNum),
+				JobRole:          d.JobRole,
+				Date:             d.Date,
+				Departments:      d.Departments,
+				PackageLPA:       d.PackageLPA,
+				OverallStatus:    statusBadge,
+				StatusBadgeClass: statusClass,
+				OffersCount:      d.OffersCount,
+				Stages:           d.Stages,
+			})
+		}
+
+		yearGroups = append(yearGroups, models.CompanyPlacementYearGroup{
+			Year:        y,
+			PhasesCount: len(phaseList),
+			TotalOffers: totalYearOffers,
+			Drives:      phaseList,
+		})
+	}
+
+	return &models.CompanyRecruitmentDrivesResponse{
+		Company: models.CompanyBasicInfo{
+			ID:                company.ID,
+			CompanyName:       company.CompanyName,
+			Category:          company.Category,
+			CompanyDomain:     company.CompanyDomain,
+			CollaborationType: company.CollaborationType,
+		},
+		FilterOptions: models.CompanyDriveFilterOptions{
+			Batches:     filterBatches,
+			Roles:       filterRoles,
+			Departments: filterDepts,
+		},
+		Years:       yearGroups,
+		TotalDrives: len(filteredDrives),
+		TotalOffers: totalOffersAll,
 	}, nil
 }
 

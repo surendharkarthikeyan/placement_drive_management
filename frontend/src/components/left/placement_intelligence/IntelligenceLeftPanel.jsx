@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Loader2, Users, Filter, Check, X } from 'lucide-react'
+import { Search, Loader2, Users, Filter, Check, X, Layers } from 'lucide-react'
 import GlassSegmentedControl from '../../common/GlassSegmentedControl'
 import { getIntelligenceBatchSummaries, getIntelligenceOutcomeSummary, getDrives } from '../../../services/api'
 import { companyStatsData, studentsData } from './intelligenceData'
@@ -863,6 +863,40 @@ export default function IntelligenceLeftPanel({
               </div>
             )}
 
+            {/* Overview / Network Health Toggle Card */}
+            <button
+              type="button"
+              onClick={() => onSelectIndustry(null)}
+              className={`group relative mb-2 w-full p-[11px_13px] text-left rounded-[11px] transition-all duration-200 cursor-pointer flex items-center justify-between ${
+                !selectedIndustry
+                  ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'
+                  : 'bg-white/90 hover:bg-white backdrop-blur-xs border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-[0_4px_12px_rgba(15,23,42,0.05)] hover:-translate-y-[1px]'
+              }`}
+            >
+              {!selectedIndustry && (
+                <span className="absolute -left-[1px] top-[10px] bottom-[10px] w-[3.5px] rounded-r-full bg-[#2563eb] shadow-[0_0_8px_#3b82f6]" />
+              )}
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-7 h-7 rounded-[8px] flex items-center justify-center font-[850] text-[11px] ${
+                    !selectedIndustry
+                      ? 'bg-[#2563eb] text-white'
+                      : 'bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe]'
+                  }`}
+                >
+                  <Layers size={14} />
+                </div>
+                <div>
+                  <div className="text-[13px] font-[850] text-[#1e293b] group-hover:text-[#2563eb] transition-colors leading-tight">
+                    Recruiter Network Health
+                  </div>
+                  <div className="text-[11px] text-[#64748b] mt-0.5 font-medium">
+                    Cross-batch metrics & matrix
+                  </div>
+                </div>
+              </div>
+            </button>
+
             {!isLoadingDrives && filteredIndustryDrives.length === 0 && (
               <div className="text-center py-12 text-[#64748b] text-[12px] bg-white/50 border border-dashed border-[#dbe5f1] rounded-[10px] m-1 p-4">
                 No matching drives found.
@@ -886,14 +920,15 @@ export default function IntelligenceLeftPanel({
                     </div>
 
                     {groupDrives.map((drive) => {
-                      const isSelected = String(selectedIndustry) === String(drive.id)
+                      const compId = drive.company_id || drive.company?.id || drive.id
+                      const isSelected = String(selectedIndustry) === String(compId) || String(selectedIndustry) === String(drive.id)
                       const companyName = drive.company?.company_name || 'Placement Company'
                       const badge = getBadgeDetails(drive.overall_status)
 
                       return (
                         <div
                           key={drive.id}
-                          onClick={() => onSelectIndustry(String(selectedIndustry) === String(drive.id) ? null : drive.id)}
+                          onClick={() => onSelectIndustry(isSelected ? null : compId)}
                           className={`group relative mb-2 p-[12px_14px] rounded-[11px] transition-all duration-200 cursor-pointer ${
                             isSelected
                               ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'

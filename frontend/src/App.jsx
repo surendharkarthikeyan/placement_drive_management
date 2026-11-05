@@ -204,6 +204,7 @@ export default function App() {
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
             selectedIndustry={selectedIntelligenceIndustry}
+            onSelectIndustry={setSelectedIntelligenceIndustry}
             selectedIndustryCell={selectedIndustryMetricCell}
             onSelectDetail={setSelectedIndustryMetricCell}
             selectedIndustryDomain={selectedIndustryDomain}
@@ -219,6 +220,7 @@ export default function App() {
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
             selectedIndustry={selectedIntelligenceIndustry}
+            onSelectIndustry={setSelectedIntelligenceIndustry}
             selectedIndustryCell={selectedIndustryMetricCell}
             onSelectIndustryCell={setSelectedIndustryMetricCell}
             onClearIndustryCell={() => setSelectedIndustryMetricCell(null)}

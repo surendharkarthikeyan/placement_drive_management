@@ -387,4 +387,16 @@ export const getIntelligenceIndustryCompanies = async ({ metric = 'visited', bat
   return response.data?.data !== undefined ? response.data.data : response.data
 }
 
+export const getIntelligenceCompanyDrives = async ({ companyId = '', companyName = '', batch = '', role = '', department = '' } = {}) => {
+  const params = {}
+  if (companyId) params.company_id = companyId
+  if (companyName) params.company_name = companyName
+  if (batch && batch !== 'All') params.batch = batch
+  if (role && role !== 'All Roles' && role !== 'All') params.role = role
+  if (department && department !== 'All Departments' && department !== 'All') params.department = department
+
+  const response = await api.get('/intelligence/company-recruitment-drives', { params })
+  return response.data?.data !== undefined ? response.data.data : response.data
+}
+
 export default api

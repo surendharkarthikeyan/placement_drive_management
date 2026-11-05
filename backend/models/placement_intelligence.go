@@ -126,6 +126,7 @@ type AttentionRecruiter struct {
 	CompanyID          int64   `json:"company_id"`
 	CompanyName        string  `json:"company_name"`
 	Category           string  `json:"category"`
+	CompanyDomain      string  `json:"company_domain"`
 	CollaborationType  string  `json:"collaboration_type"`
 	LastYearBatch      string  `json:"last_year_batch"`
 	LastYearPlacements int64   `json:"last_year_placements"`
@@ -138,6 +139,7 @@ type TopRecruiterItem struct {
 	CompanyID     int64   `json:"company_id"`
 	CompanyName   string  `json:"company_name"`
 	Category      string  `json:"category"`
+	CompanyDomain string  `json:"company_domain"`
 	JobRole       string  `json:"job_role,omitempty"`
 	PackageLPA    float64 `json:"package_lpa"`
 	StudentsCount int64   `json:"students_count"`
@@ -189,6 +191,63 @@ type IndustryMetricCompaniesResponse struct {
 	Batch        string                        `json:"batch"`
 	TotalCount   int                           `json:"total_count"`
 	Companies    []IndustryMetricCompanyDetail `json:"companies"`
+}
+
+// CompanyDriveStageItem represents one stage in the recruitment pipeline
+type CompanyDriveStageItem struct {
+	Step        int    `json:"step"`        // 1, 2, 3...
+	Label       string `json:"label"`       // "Registered", "Eligible", "Assessment", "Technical", "Interview", "Offers"
+	Value       int64  `json:"value"`       // Student count
+	Active      bool   `json:"active"`      // Highlighted active stage
+	StageStatus string `json:"stage_status,omitempty"`
+}
+
+// CompanyRecruitmentDrivePhase represents a single drive/phase in a placement year
+type CompanyRecruitmentDrivePhase struct {
+	DriveID          uint64                  `json:"drive_id"`
+	Title            string                  `json:"title"`             // e.g. "Product Engineering · Phase 1"
+	PhaseName        string                  `json:"phase_name"`        // "Phase 1"
+	JobRole          string                  `json:"job_role"`          // "Product Engineering"
+	Date             string                  `json:"date"`              // "18 Aug 2026"
+	Departments      []string                `json:"departments"`       // ["CSE", "IT", "AI & ML", "ECE"]
+	PackageLPA       float64                 `json:"package_lpa"`       // 44
+	OverallStatus    string                  `json:"overall_status"`    // "Completed", "In Progress", "Draft", etc.
+	StatusBadgeClass string                  `json:"status_badge_class"`// Styling badge
+	OffersCount      int64                   `json:"offers_count"`
+	Stages           []CompanyDriveStageItem `json:"stages"`
+}
+
+// CompanyPlacementYearGroup groups drives under a placement year
+type CompanyPlacementYearGroup struct {
+	Year        string                         `json:"year"`         // "2027"
+	PhasesCount int                            `json:"phases_count"` // 2
+	TotalOffers int64                          `json:"total_offers"` // 13
+	Drives      []CompanyRecruitmentDrivePhase `json:"drives"`
+}
+
+// CompanyBasicInfo contains primary recruiter metadata
+type CompanyBasicInfo struct {
+	ID                int64  `json:"id"`
+	CompanyName       string `json:"company_name"`
+	Category          string `json:"category"`
+	CompanyDomain     string `json:"company_domain"`
+	CollaborationType string `json:"collaboration_type"`
+}
+
+// CompanyDriveFilterOptions provides distinct available filter values for the UI
+type CompanyDriveFilterOptions struct {
+	Batches     []string `json:"batches"`
+	Roles       []string `json:"roles"`
+	Departments []string `json:"departments"`
+}
+
+// CompanyRecruitmentDrivesResponse is the full response for a selected company's recruitment history
+type CompanyRecruitmentDrivesResponse struct {
+	Company       CompanyBasicInfo            `json:"company"`
+	FilterOptions CompanyDriveFilterOptions   `json:"filter_options"`
+	Years         []CompanyPlacementYearGroup `json:"years"`
+	TotalDrives   int                         `json:"total_drives"`
+	TotalOffers   int64                       `json:"total_offers"`
 }
 
 

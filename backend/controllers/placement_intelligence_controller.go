@@ -129,4 +129,20 @@ func (ctrl *PlacementIntelligenceController) GetIndustryCompanies(c *gin.Context
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
+// GetCompanyRecruitmentDrives returns all recruitment phases/drives grouped by placement year for a selected company
+func (ctrl *PlacementIntelligenceController) GetCompanyRecruitmentDrives(c *gin.Context) {
+	companyID := c.Query("company_id")
+	companyName := c.Query("company_name")
+	batch := c.Query("batch")
+	role := c.Query("role")
+	department := c.Query("department")
+
+	data, err := ctrl.repo.GetCompanyRecruitmentDrives(companyID, companyName, batch, role, department)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch company recruitment drives: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
 
