@@ -39,7 +39,6 @@ export default function IntelligenceMiddlePanel({
   const [industrySectorFilter, setIndustrySectorFilter] = useState('all') // 'all' | 'software' | 'core'
   const [industryDeptFilter, setIndustryDeptFilter] = useState('All')
   const [industryData, setIndustryData] = useState(null)
-  const [industryViewSpan, setIndustryViewSpan] = useState('5year') // '5year' | 'extended'
   const [isIndustryLoading, setIsIndustryLoading] = useState(false)
   const [isIndustryRefreshing, setIsIndustryRefreshing] = useState(false)
   const [isIndustryExporting, setIsIndustryExporting] = useState(false)
@@ -367,48 +366,16 @@ export default function IntelligenceMiddlePanel({
                 </p>
               </div>
 
-              {/* Horizontal Scroll Controls & View Span Toggle matching Image 1 & Image 2 */}
+              {/* Horizontal Scroll Controls & Batches Available */}
               <div className="flex items-center gap-2">
-                <div className="flex items-center p-0.5 bg-[#f1f5f9] border border-[#dbe5f1] rounded-[8px]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIndustryViewSpan('5year')
-                      if (tableScrollRef.current) {
-                        tableScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' })
-                      }
-                    }}
-                    className={`px-2.5 py-1 rounded-[6px] text-[11.5px] font-[750] transition cursor-pointer ${
-                      industryViewSpan === '5year'
-                        ? 'bg-white text-[#2563eb] shadow-2xs'
-                        : 'text-[#64748b] hover:text-[#1e293b]'
-                    }`}
-                  >
-                    5-Year View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIndustryViewSpan('extended')
-                      if (tableScrollRef.current) {
-                        tableScrollRef.current.scrollBy({ left: 350, behavior: 'smooth' })
-                      }
-                    }}
-                    className={`px-2.5 py-1 rounded-[6px] text-[11.5px] font-[750] transition cursor-pointer ${
-                      industryViewSpan === 'extended'
-                        ? 'bg-white text-[#2563eb] shadow-2xs'
-                        : 'text-[#64748b] hover:text-[#1e293b]'
-                    }`}
-                  >
-                    Extend to Previous Years
-                  </button>
-                </div>
-
+                <span className="text-[11.5px] font-[750] text-[#475569] bg-white px-2.5 py-1 rounded-[7px] border border-[#dbe5f1] shadow-2xs">
+                  {activeIndustryBatches.length} {activeIndustryBatches.length === 1 ? 'Batch' : 'Batches'} in DB
+                </span>
                 <div className="flex items-center gap-1 bg-white p-0.5 rounded-[8px] border border-[#dbe5f1] shadow-2xs">
                   <button
                     type="button"
                     onClick={() => scrollTable('left')}
-                    title="Scroll left to see batches"
+                    title="Scroll left to see previous batches"
                     aria-label="Scroll left"
                     className="p-1.5 rounded-[6px] hover:bg-[#f1f5f9] text-[#64748b] hover:text-[#2563eb] transition cursor-pointer active:scale-95"
                   >
@@ -417,7 +384,7 @@ export default function IntelligenceMiddlePanel({
                   <button
                     type="button"
                     onClick={() => scrollTable('right')}
-                    title="Scroll right to see previous batches"
+                    title="Scroll right to see next batches"
                     aria-label="Scroll right"
                     className="p-1.5 rounded-[6px] hover:bg-[#f1f5f9] text-[#64748b] hover:text-[#2563eb] transition cursor-pointer active:scale-95"
                   >
