@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Loader2,
   Search,
@@ -11,7 +11,9 @@ import {
   Award,
   AlertTriangle,
   TrendingUp,
-  Briefcase
+  Briefcase,
+  Check,
+  ChevronDown
 } from 'lucide-react'
 import {
   getIntelligenceOverallStats,
@@ -63,10 +65,35 @@ export default function IntelligenceRightPanel({
   // Industries view state
   const [industryBatches, setIndustryBatches] = useState([])
   const [selectedIndustryBatch, setSelectedIndustryBatch] = useState('2022-2026')
+  const [selectedIndustryStatus, setSelectedIndustryStatus] = useState('all') // 'all' | 'in_progress' | 'registration_open' | 'awaiting_result' | 'scheduled'
   const [industryPanelData, setIndustryPanelData] = useState(null)
   const [loadingIndustryPanel, setLoadingIndustryPanel] = useState(false)
   const [topRecruiterTab, setTopRecruiterTab] = useState('salary') // 'salary' | 'count'
   const [industrySectionTab, setIndustrySectionTab] = useState('attention') // 'attention' | 'topRecruiters' | 'activityHistory'
+  const [isBatchDropdownOpen, setIsBatchDropdownOpen] = useState(false)
+  const batchDropdownRef = useRef(null)
+
+  const RECRUITMENT_STATUS_OPTIONS = [
+    { key: 'in_progress', label: 'In Progress', color: 'bg-[#2563eb]' },
+    { key: 'registration_open', label: 'Registration Open', color: 'bg-[#0284c7]' },
+    { key: 'awaiting_result', label: 'Awaiting Result', color: 'bg-[#d97706]' },
+    { key: 'scheduled', label: 'Scheduled', color: 'bg-[#9333ea]' }
+  ]
+
+  // Close batch popover dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (batchDropdownRef.current && !batchDropdownRef.current.contains(e.target)) {
+        setIsBatchDropdownOpen(false)
+      }
+    }
+    if (isBatchDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isBatchDropdownOpen])
 
   // Fetch batches on mount for industry view
   useEffect(() => {
@@ -277,21 +304,112 @@ export default function IntelligenceRightPanel({
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-[#f8fafc] px-2.5 py-1 rounded-[8px] border border-[#dbe5f1] shadow-2xs">
-            <label className="text-[11px] font-[800] uppercase tracking-[0.4px] text-[#64748b]">
-              Batch
-            </label>
-            <select
-              value={selectedIndustryBatch}
-              onChange={(e) => setSelectedIndustryBatch(e.target.value)}
-              className="bg-transparent text-[12px] font-[750] text-[#1e293b] focus:outline-none cursor-pointer pr-1"
+          {/* Custom Popover Dropdown matching reference design (Image 5) */}
+          <div className="relative" ref={batchDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsBatchDropdownOpen(!isBatchDropdownOpen)}
+              className="h-[32px] px-2.5 bg-white hover:bg-[#f8fafc] border border-[#dbe5f1] hover:border-[#93c5fd] rounded-[8px] shadow-2xs flex items-center gap-2 text-[12px] font-[750] text-[#1e293b] transition cursor-pointer active:scale-98"
             >
-              {industryBatches.map((b) => (
-                <option key={b.id} value={b.name}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
+              <span className="text-[10.5px] font-[800] uppercase tracking-[0.3px] text-[#64748b]">Batch:</span>
+              <span>
+                {selectedIndustryBatch === 'all' || !selectedIndustryBatch
+                  ? 'All Batches'
+                  : (selectedIndustryBatch.startsWith('Batch') ? selectedIndustryBatch : `Batch ${selectedIndustryBatch}`)}
+              </span>
+              {selectedIndustryStatus !== 'all' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2563eb]" />
+              )}
+              <ChevronDown size={14} className={`text-[#64748b] transition-transform duration-200 ${isBatchDropdownOpen ? 'rotate-180 text-[#2563eb]' : ''}`} />
+            </button>
+
+            {/* Popover Menu matching reference design */}
+            {isBatchDropdownOpen && (
+              <div className="absolute top-[38px] right-0 w-[240px] bg-white rounded-[14px] shadow-[0_12px_36px_rgba(15,23,42,0.18)] border border-[#dbe5f1] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="text-[10px] font-[850] uppercase tracking-wider text-[#94a3b8] mb-1 px-1">
+                  Filters
+                </div>
+                <div className="text-[11px] font-[850] uppercase tracking-wider text-[#64748b] mb-1.5 px-1">
+                  Academic Batch
+                </div>
+
+                <div className="flex flex-col gap-0.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-0.5 mb-2">
+                  {/* All Batches Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedIndustryBatch('all')
+                      setIsBatchDropdownOpen(false)
+                    }}
+                    className={`w-full px-2.5 py-1.5 rounded-[8px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
+                      selectedIndustryBatch === 'all' || !selectedIndustryBatch
+                        ? 'bg-[#eff6ff] text-[#2563eb] font-[750]'
+                        : 'text-[#334155] font-medium hover:bg-[#f8fafc] hover:text-[#1e293b]'
+                    }`}
+                  >
+                    <span>All Batches</span>
+                    {(selectedIndustryBatch === 'all' || !selectedIndustryBatch) && (
+                      <Check size={14} className="text-[#2563eb]" />
+                    )}
+                  </button>
+
+                  {industryBatches.map((b) => {
+                    const isSelected = selectedIndustryBatch === b.name
+                    const label = b.name.startsWith('Batch') ? b.name : `Batch ${b.name}`
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedIndustryBatch(b.name)
+                          setIsBatchDropdownOpen(false)
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-[8px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#eff6ff] text-[#2563eb] font-[750]'
+                            : 'text-[#334155] font-medium hover:bg-[#f8fafc] hover:text-[#1e293b]'
+                        }`}
+                      >
+                        <span>{label}</span>
+                        {isSelected && <Check size={14} className="text-[#2563eb]" />}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Recruitment Status Section */}
+                <div className="text-[11px] font-[850] uppercase tracking-wider text-[#64748b] mb-1.5 pt-2 border-t border-[#f1f5f9] px-1">
+                  Recruitment Status
+                </div>
+
+                <div className="flex flex-col gap-0.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-0.5">
+                  {RECRUITMENT_STATUS_OPTIONS.map((st) => {
+                    const isSelected = selectedIndustryStatus === st.key
+                    return (
+                      <button
+                        key={st.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedIndustryStatus(isSelected ? 'all' : st.key)
+                          setIsBatchDropdownOpen(false)
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-[8px] flex items-center justify-between text-left text-[12px] transition cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#eff6ff] text-[#2563eb] font-[750]'
+                            : 'text-[#334155] font-medium hover:bg-[#f8fafc] hover:text-[#1e293b]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${st.color} shrink-0`} />
+                          <span>{st.label}</span>
+                        </div>
+                        {isSelected && <Check size={14} className="text-[#2563eb]" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -303,129 +421,129 @@ export default function IntelligenceRightPanel({
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto hide-scrollbar p-[16px_18px] space-y-4">
-            {/* Metric Cards in 2 Rows (3 columns per row) */}
+            {/* Metric Cards in 2 Rows (3 columns per row) matching Image 3 */}
             <div className="grid grid-cols-3 gap-2 shrink-0">
-              {/* Card 1: Total Recruiters */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
-                    Total
+              {/* Card 1: Active Recruiters */}
+              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[12px] shadow-2xs hover:border-[#93c5fd] hover:shadow-xs transition flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9.5px] font-[850] uppercase tracking-[0.3px] text-[#475569] truncate">
+                    ACTIVE RECRUITERS
                   </span>
-                  <div className="w-5 h-5 rounded-[6px] bg-[#eff6ff] text-[#2563eb] flex items-center justify-center shrink-0">
-                    <Building2 size={12} />
+                  <div className="w-6 h-6 rounded-[7px] bg-[#eff6ff] text-[#2563eb] flex items-center justify-center shrink-0">
+                    <Building2 size={13} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[20px] font-[850] text-[#1e293b] leading-tight my-0.5">
                   {cards.total_active_recruiters}
                 </div>
-                <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
-                  In company DB
+                <div className="text-[9.5px] text-[#64748b] font-medium truncate">
+                  In company database
                 </div>
               </div>
 
               {/* Card 2: Visited Recruiters */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
-                    Visited
+              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[12px] shadow-2xs hover:border-[#93c5fd] hover:shadow-xs transition flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9.5px] font-[850] uppercase tracking-[0.3px] text-[#475569] truncate">
+                    VISITED RECRUITERS
                   </span>
-                  <div className="w-5 h-5 rounded-[6px] bg-[#f0fdf4] text-[#16a34a] flex items-center justify-center shrink-0">
-                    <CheckCircle2 size={12} />
+                  <div className="w-6 h-6 rounded-[7px] bg-[#f0fdf4] text-[#16a34a] flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={13} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[20px] font-[850] text-[#1e293b] leading-tight my-0.5">
                   {cards.visited_recruiters}
                 </div>
-                <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
+                <div className="text-[9.5px] text-[#64748b] font-medium truncate">
                   Drives conducted
                 </div>
               </div>
 
               {/* Card 3: Ongoing recruitments */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
-                    Ongoing
+              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[12px] shadow-2xs hover:border-[#93c5fd] hover:shadow-xs transition flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9.5px] font-[850] uppercase tracking-[0.3px] text-[#475569] truncate">
+                    ONGOING RECRUITMENTS
                   </span>
-                  <div className="w-5 h-5 rounded-[6px] bg-[#fffbeb] text-[#d97706] flex items-center justify-center shrink-0">
-                    <Clock size={12} />
+                  <div className="w-6 h-6 rounded-[7px] bg-[#fffbeb] text-[#d97706] flex items-center justify-center shrink-0">
+                    <Clock size={13} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[20px] font-[850] text-[#1e293b] leading-tight my-0.5">
                   {cards.ongoing_recruitments}
                 </div>
-                <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
+                <div className="text-[9.5px] text-[#64748b] font-medium truncate">
                   Active in drive
                 </div>
               </div>
 
               {/* Card 4: Completed recruitments */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
-                    Completed
+              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[12px] shadow-2xs hover:border-[#93c5fd] hover:shadow-xs transition flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9.5px] font-[850] uppercase tracking-[0.3px] text-[#475569] truncate">
+                    COMPLETED RECRUITMENTS
                   </span>
-                  <div className="w-5 h-5 rounded-[6px] bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0">
-                    <Layers size={12} />
+                  <div className="w-6 h-6 rounded-[7px] bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0">
+                    <Layers size={13} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[20px] font-[850] text-[#1e293b] leading-tight my-0.5">
                   {cards.completed_recruitments}
                 </div>
-                <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
-                  Placements done
+                <div className="text-[9.5px] text-[#64748b] font-medium truncate">
+                  Placements recorded
                 </div>
               </div>
 
               {/* Card 5: New Recruiters */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
-                    New
+              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[12px] shadow-2xs hover:border-[#93c5fd] hover:shadow-xs transition flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9.5px] font-[850] uppercase tracking-[0.3px] text-[#475569] truncate">
+                    NEW RECRUITERS
                   </span>
-                  <div className="w-5 h-5 rounded-[6px] bg-[#faf5ff] text-[#9333ea] flex items-center justify-center shrink-0">
-                    <Sparkles size={12} />
+                  <div className="w-6 h-6 rounded-[7px] bg-[#faf5ff] text-[#9333ea] flex items-center justify-center shrink-0">
+                    <Sparkles size={13} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[20px] font-[850] text-[#1e293b] leading-tight my-0.5">
                   {cards.new_recruiters}
                 </div>
-                <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
+                <div className="text-[9.5px] text-[#64748b] font-medium truncate">
                   First-time hiring
                 </div>
               </div>
 
               {/* Card 6: Highest Offer */}
-              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[10px] shadow-2xs hover:border-[#93c5fd] transition flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-[800] uppercase tracking-[0.2px] text-[#64748b] truncate">
-                    Highest
+              <div className="p-2.5 bg-white border border-[#e2e8f0] rounded-[12px] shadow-2xs hover:border-[#93c5fd] hover:shadow-xs transition flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9.5px] font-[850] uppercase tracking-[0.3px] text-[#475569] truncate">
+                    HIGHEST OFFER
                   </span>
-                  <div className="w-5 h-5 rounded-[6px] bg-[#fff1f2] text-[#e11d48] flex items-center justify-center shrink-0">
-                    <Award size={12} />
+                  <div className="w-6 h-6 rounded-[7px] bg-[#fff1f2] text-[#e11d48] flex items-center justify-center shrink-0">
+                    <Award size={13} />
                   </div>
                 </div>
-                <div className="text-[18px] font-[850] text-[#1e293b] mt-1 leading-tight">
+                <div className="text-[20px] font-[850] text-[#1e293b] leading-tight my-0.5">
                   {cards.highest_offer_lpa > 0 ? `₹${cards.highest_offer_lpa}L` : '—'}
                 </div>
-                <div className="text-[9.5px] text-[#64748b] font-medium truncate mt-0.5">
+                <div className="text-[9.5px] text-[#64748b] font-medium truncate">
                   In this batch
                 </div>
               </div>
             </div>
 
-            {/* Navigation Tabs (Attention, Top Recruiters, Activity History) */}
-            <div className="p-1 rounded-[11px] bg-[#f1f5f9] border border-[#e2e8f0] grid grid-cols-3 gap-1 shrink-0">
+            {/* Navigation Tabs matching Image 4 (Placement Journey, Opportunity Priority, Activity History) */}
+            <div className="p-1 rounded-[12px] bg-[#f1f5f9] border border-[#e2e8f0] grid grid-cols-3 gap-1 shrink-0">
               <button
                 type="button"
                 onClick={() => setIndustrySectionTab('attention')}
-                className={`py-1.5 px-2 rounded-[8px] text-[11px] font-[750] transition cursor-pointer text-center leading-snug flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-1.5 rounded-[9px] text-[12px] font-[750] transition cursor-pointer text-center leading-snug flex items-center justify-center gap-1.5 ${
                   industrySectionTab === 'attention'
                     ? 'bg-white text-[#2563eb] shadow-xs'
-                    : 'text-[#64748b] hover:text-[#1e293b]'
+                    : 'text-[#475569] hover:text-[#1e293b]'
                 }`}
               >
-                <span>Attention</span>
+                <span>Placement Journey</span>
                 {attention.length > 0 && (
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                     industrySectionTab === 'attention' ? 'bg-[#eff6ff] text-[#2563eb]' : 'bg-[#e2e8f0] text-[#475569]'
@@ -437,21 +555,21 @@ export default function IntelligenceRightPanel({
               <button
                 type="button"
                 onClick={() => setIndustrySectionTab('topRecruiters')}
-                className={`py-1.5 px-2 rounded-[8px] text-[11px] font-[750] transition cursor-pointer text-center leading-snug ${
+                className={`py-2 px-1.5 rounded-[9px] text-[12px] font-[750] transition cursor-pointer text-center leading-snug ${
                   industrySectionTab === 'topRecruiters'
                     ? 'bg-white text-[#2563eb] shadow-xs'
-                    : 'text-[#64748b] hover:text-[#1e293b]'
+                    : 'text-[#475569] hover:text-[#1e293b]'
                 }`}
               >
-                Top Recruiters
+                Opportunity Priority
               </button>
               <button
                 type="button"
                 onClick={() => setIndustrySectionTab('activityHistory')}
-                className={`py-1.5 px-2 rounded-[8px] text-[11px] font-[750] transition cursor-pointer text-center leading-snug ${
+                className={`py-2 px-1.5 rounded-[9px] text-[12px] font-[750] transition cursor-pointer text-center leading-snug ${
                   industrySectionTab === 'activityHistory'
                     ? 'bg-white text-[#2563eb] shadow-xs'
-                    : 'text-[#64748b] hover:text-[#1e293b]'
+                    : 'text-[#475569] hover:text-[#1e293b]'
                 }`}
               >
                 Activity History
