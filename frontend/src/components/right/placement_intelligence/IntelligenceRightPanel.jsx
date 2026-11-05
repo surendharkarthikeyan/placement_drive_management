@@ -304,11 +304,11 @@ export default function IntelligenceRightPanel({
           <div className="flex-1 overflow-y-auto hide-scrollbar p-[18px_20px] space-y-6">
             {/* Metric Cards in 2x3 Grid */}
             <div className="grid grid-cols-2 gap-3">
-              {/* Card 1: Total Active Recruiters */}
+              {/* Card 1: Total Recruiters */}
               <div className="p-3.5 bg-white border border-[#e2e8f0] rounded-[12px] shadow-2xs hover:border-[#93c5fd] transition">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-[750] uppercase tracking-[0.3px] text-[#64748b]">
-                    Active Recruiters
+                    Total Recruiters
                   </span>
                   <div className="w-7 h-7 rounded-[8px] bg-[#eff6ff] text-[#2563eb] flex items-center justify-center">
                     <Building2 size={15} />

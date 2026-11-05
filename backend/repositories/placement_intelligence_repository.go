@@ -1374,14 +1374,14 @@ func (r *PlacementIntelligenceRepository) GetIndustryRightPanelData(batchParam, 
 	// --- 6 CARDS ---
 	var cards models.IndustryMetricCardStats
 
-	// 1. Total Active Recruiters - placement_company table
-	var activeCount int64
-	compActiveQuery := r.db.Table("placement_company pc").Where("pc.status = '1' AND pc.collaboration_type = 'ACTIVE'")
+	// 1. Total Recruiters - placement_company table
+	var totalRecruitersCount int64
+	compActiveQuery := r.db.Table("placement_company pc").Where("pc.status = '1'")
 	if len(sectorCategories) > 0 {
 		compActiveQuery = compActiveQuery.Where("pc.category IN ?", sectorCategories)
 	}
-	compActiveQuery.Count(&activeCount)
-	cards.TotalActiveRecruiters = activeCount
+	compActiveQuery.Count(&totalRecruitersCount)
+	cards.TotalActiveRecruiters = totalRecruitersCount
 
 	if len(compIDs) > 0 {
 		// 2. Visited Recruiters - placement_drive
