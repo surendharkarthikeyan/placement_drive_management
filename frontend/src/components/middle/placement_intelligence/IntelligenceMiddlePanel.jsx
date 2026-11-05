@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Loader2, Download, RotateCcw } from 'lucide-react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { Loader2, Download, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getIntelligenceOverallStats, exportIntelligenceExcel, getBatches, getDepartments, getIntelligenceIndustryMatrix } from '../../../services/api'
 
 /**
@@ -38,11 +38,18 @@ export default function IntelligenceMiddlePanel({
   // Industries View State (Recruiter Network Health from Real DB)
   const [industrySectorFilter, setIndustrySectorFilter] = useState('all') // 'all' | 'software' | 'core'
   const [industryDeptFilter, setIndustryDeptFilter] = useState('All')
-  const [industryViewSpan, setIndustryViewSpan] = useState('5-year') // '5-year' | 'extended'
   const [industryData, setIndustryData] = useState(null)
   const [isIndustryLoading, setIsIndustryLoading] = useState(false)
   const [isIndustryRefreshing, setIsIndustryRefreshing] = useState(false)
   const [isIndustryExporting, setIsIndustryExporting] = useState(false)
+  const tableScrollRef = useRef(null)
+
+  const scrollTable = (direction) => {
+    if (tableScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -260 : 260
+      tableScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
+  }
 
   // Sync externalBatch from left panel if changed
   useEffect(() => {
@@ -171,31 +178,24 @@ export default function IntelligenceMiddlePanel({
     }
   }, [currentView, loadIndustryData])
 
-  // Batches for 5-Year View vs Extended View from DB
+  // Batches strictly from MySQL DB response (no hardcoded fake years)
   const activeIndustryBatches = useMemo(() => {
-    if (industryData?.batches && industryData.batches.length > 0) {
-      if (industryViewSpan === '5-year') {
-        return industryData.batches.slice(0, 5)
-      }
-      return industryData.batches
-    }
-    return industryViewSpan === '5-year'
-      ? ['2026', '2025', '2024', '2023', '2022']
-      : ['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019']
-  }, [industryViewSpan, industryData])
+    return industryData?.batches || []
+  }, [industryData])
 
   const industryMatrix = useMemo(() => {
     return industryData?.matrix || []
   }, [industryData])
 
-  // Computed signals from real DB
+  // Computed signals from real DB (supports both snake_case and camelCase)
   const industrySignals = useMemo(() => {
-    return industryData?.signals || {
-      total_database: 0,
-      new_recruiters: 0,
-      missed_recruiters: 0,
-      growth_recruiters: 0,
-      max3_recruiters: 0
+    const sig = industryData?.signals || {}
+    return {
+      totalDatabase: sig.total_database ?? sig.totalDatabase ?? 0,
+      newRecruiters: sig.new_recruiters ?? sig.newRecruiters ?? 0,
+      missedRecruiters: sig.missed_recruiters ?? sig.missedRecruiters ?? 0,
+      growthRecruiters: sig.growth_recruiters ?? sig.growthRecruiters ?? 0,
+      max3Recruiters: sig.max3_recruiters ?? sig.max3Recruiters ?? 0
     }
   }, [industryData])
 
@@ -360,30 +360,29 @@ export default function IntelligenceMiddlePanel({
                 </p>
               </div>
 
-              {/* View Switcher: 5-Year View & Button to extend to previous years */}
+              {/* Horizontal Scroll Controls & Batches Available */}
               <div className="flex items-center gap-2">
-                <div className="inline-flex p-0.5 rounded-[8px] bg-[#f1f5f9] border border-[#e2e8f0]">
+                <span className="text-[11.5px] font-[750] text-[#475569] bg-white px-2.5 py-1 rounded-[7px] border border-[#dbe5f1] shadow-2xs">
+                  {activeIndustryBatches.length} {activeIndustryBatches.length === 1 ? 'Batch' : 'Batches'} in DB
+                </span>
+                <div className="flex items-center gap-1 bg-white p-0.5 rounded-[8px] border border-[#dbe5f1] shadow-2xs">
                   <button
                     type="button"
-                    onClick={() => setIndustryViewSpan('5-year')}
-                    className={`px-3 py-1 rounded-[6px] text-[11.5px] font-[750] transition cursor-pointer ${
-                      industryViewSpan === '5-year'
-                        ? 'bg-white text-[#2563eb] shadow-xs'
-                        : 'text-[#64748b] hover:text-[#1e293b]'
-                    }`}
+                    onClick={() => scrollTable('left')}
+                    title="Scroll left to see previous batches"
+                    aria-label="Scroll left"
+                    className="p-1.5 rounded-[6px] hover:bg-[#f1f5f9] text-[#64748b] hover:text-[#2563eb] transition cursor-pointer active:scale-95"
                   >
-                    5-Year View
+                    <ChevronLeft size={16} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIndustryViewSpan((prev) => (prev === 'extended' ? '5-year' : 'extended'))}
-                    className={`px-3 py-1 rounded-[6px] text-[11.5px] font-[750] transition cursor-pointer flex items-center gap-1.5 ${
-                      industryViewSpan === 'extended'
-                        ? 'bg-white text-[#2563eb] shadow-xs'
-                        : 'text-[#64748b] hover:text-[#1e293b]'
-                    }`}
+                    onClick={() => scrollTable('right')}
+                    title="Scroll right to see next batches"
+                    aria-label="Scroll right"
+                    className="p-1.5 rounded-[6px] hover:bg-[#f1f5f9] text-[#64748b] hover:text-[#2563eb] transition cursor-pointer active:scale-95"
                   >
-                    <span>{industryViewSpan === 'extended' ? 'Extended View (8-Year)' : 'Extend to Previous Years'}</span>
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
@@ -399,17 +398,17 @@ export default function IntelligenceMiddlePanel({
               </div>
             ) : (
               <div className="border border-[#dbe5f1] rounded-[14px] bg-white overflow-hidden shadow-2xs">
-                <div className="overflow-x-auto">
+                <div ref={tableScrollRef} className="overflow-x-auto scroll-smooth">
                   <table className="w-full text-left border-collapse text-[12.5px]">
                     <thead>
                       <tr className="bg-[#f8fafc] border-b border-[#edf2f7]">
-                        <th className="px-5 py-3 text-left text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] min-w-[340px]">
+                        <th className="sticky left-0 bg-[#f8fafc] z-20 px-5 py-3 text-left text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] min-w-[340px] border-r border-[#edf2f7] shadow-[4px_0_8px_-2px_rgba(0,0,0,0.04)]">
                           Industry Metric
                         </th>
                         {activeIndustryBatches.map((batch) => (
                           <th
                             key={batch}
-                            className="px-4 py-3 text-center text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] whitespace-nowrap min-w-[110px]"
+                            className="px-6 py-3 text-center text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] whitespace-nowrap min-w-[130px]"
                           >
                             Batch {batch}
                           </th>
@@ -419,7 +418,7 @@ export default function IntelligenceMiddlePanel({
                     <tbody className="divide-y divide-[#edf2f7]">
                       {industryMatrix.map((row) => (
                         <tr key={row.key} className="hover:bg-[#fbfdff] transition-colors group">
-                          <td className="px-5 py-3.5">
+                          <td className="sticky left-0 bg-white group-hover:bg-[#fbfdff] z-10 px-5 py-3.5 border-r border-[#edf2f7] shadow-[4px_0_8px_-2px_rgba(0,0,0,0.04)] transition-colors">
                             <div className="metric-name font-[800] text-[#1e293b] text-[13px] group-hover:text-[#2563eb] transition-colors">
                               {row.title}
                             </div>
@@ -443,7 +442,7 @@ export default function IntelligenceMiddlePanel({
                                     })
                                   }
                                 }}
-                                className={`px-4 py-3.5 text-center whitespace-nowrap text-[13px] font-[750] transition-colors ${
+                                className={`px-6 py-3.5 text-center whitespace-nowrap text-[13px] font-[750] transition-colors min-w-[130px] ${
                                   isDash
                                     ? 'text-[#94a3b8]'
                                     : 'text-[#1e293b] cursor-pointer hover:bg-[#eff6ff] hover:text-[#2563eb] hover:underline'

@@ -942,9 +942,10 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 		companyMap[c.ID] = c
 	}
 
-	// 4. Batches in database
+	// 4. Batches strictly from database
 	var dbBatches []models.Batch
 	r.db.Order("name ASC").Find(&dbBatches)
+	var allBatches []string
 	batchIDToYear := make(map[uint64]string)
 	yearToBatchID := make(map[string]uint64)
 	for _, b := range dbBatches {
@@ -954,12 +955,10 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 		if len(parts) == 2 {
 			gradYear = strings.TrimSpace(parts[1])
 		}
+		allBatches = append(allBatches, gradYear)
 		batchIDToYear[b.ID] = gradYear
 		yearToBatchID[gradYear] = b.ID
 	}
-
-	// Active batches list to return (5-year default + extended)
-	allBatches := []string{"2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019"}
 
 	// 5. Gather drives and offers per company and batch
 	// Map: batchYear -> companyID -> offerCount
@@ -1083,18 +1082,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 
 	for i, bYear := range allBatches {
 		// Total in DB for this batch
-		// For the primary current batch (2026), it's totalCompaniesInDB
-		if bYear == "2026" {
-			rowDatabase.Values[bYear] = totalCompaniesInDB
-		} else {
-			// If older batch has participating companies, show count or scaled count
-			pCount := int64(len(batchParticipatingCompanies[bYear]))
-			if pCount > 0 {
-				rowDatabase.Values[bYear] = pCount
-			} else {
-				rowDatabase.Values[bYear] = 0
-			}
-		}
+		rowDatabase.Values[bYear] = totalCompaniesInDB
 
 		// New recruiters
 		var newCount int64
@@ -1106,28 +1094,22 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 		}
 		// Also count companies registered as NEW in DB for current batch
 		if bYear == "2026" {
-			for _, comp := range companies {
-				if comp.CollaborationType == "NEW" {
-					newCount++
-					break
-				}
-			}
-			// Exact distinct count of NEW companies in DB
 			var dbNewCount int64
 			baseCompQuery.Where("pc.collaboration_type = ?", "NEW").Count(&dbNewCount)
-			rowNew.Values[bYear] = dbNewCount
-		} else {
-			rowNew.Values[bYear] = newCount
+			if dbNewCount > newCount {
+				newCount = dbNewCount
+			}
 		}
+		rowNew.Values[bYear] = newCount
 
 		// Visited in previous 3 years but not this year
-		// Requires looking back at i+1, i+2, i+3
-		if i+3 < len(allBatches) {
-			prevYears := []string{allBatches[i+1], allBatches[i+2], allBatches[i+3]}
+		// Check if there are earlier batches in allBatches
+		if i > 0 {
 			var missedCount int64
 			for _, cID := range companyIDs {
 				visitedPrev := false
-				for _, py := range prevYears {
+				for prevIdx := 0; prevIdx < i && prevIdx >= i-3; prevIdx++ {
+					py := allBatches[prevIdx]
 					if batchParticipatingCompanies[py][cID] {
 						visitedPrev = true
 						break
@@ -1142,9 +1124,9 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 			rowMissed.Values[bYear] = "—"
 		}
 
-		// Offers comparisons with last year (i+1)
-		if i+1 < len(allBatches) {
-			prevYear := allBatches[i+1]
+		// Offers comparisons with last year
+		if i > 0 {
+			prevYear := allBatches[i-1]
 			var eqLast int64
 			var lessLast int64
 			for _, cID := range companyIDs {
@@ -1159,13 +1141,18 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 			rowEqualLast.Values[bYear] = eqLast
 			rowLessLast.Values[bYear] = lessLast
 		} else {
-			rowEqualLast.Values[bYear] = "—"
+			var initialOffers int64
+			for _, cID := range companyIDs {
+				if batchCompanyOffers[bYear][cID] > 0 {
+					initialOffers++
+				}
+			}
+			rowEqualLast.Values[bYear] = initialOffers
 			rowLessLast.Values[bYear] = "—"
 		}
 
-		// Offers comparisons with previous 3 years (i+1, i+2, i+3)
-		if i+3 < len(allBatches) {
-			prevYears := []string{allBatches[i+1], allBatches[i+2], allBatches[i+3]}
+		// Offers comparisons with previous 3 years
+		if i >= 3 {
 			var eqMax3 int64
 			var lessMin3 int64
 			for _, cID := range companyIDs {
@@ -1173,8 +1160,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 				var maxPrev int64 = 0
 				var minPrev int64 = 999999
 				hasPrev := false
-				for _, py := range prevYears {
-					pOff := batchCompanyOffers[py][cID]
+				for prevIdx := i - 3; prevIdx < i; prevIdx++ {
+					pOff := batchCompanyOffers[allBatches[prevIdx]][cID]
 					if pOff > 0 {
 						hasPrev = true
 						if pOff > maxPrev {
@@ -1191,14 +1178,22 @@ func (r *PlacementIntelligenceRepository) GetIndustryMatrix(sectorParam, deptPar
 					} else if curOff < minPrev {
 						lessMin3++
 					}
-				} else if curOff > 0 {
-					eqMax3++
 				}
 			}
 			rowEqualMax3.Values[bYear] = eqMax3
 			rowLessMin3.Values[bYear] = lessMin3
 		} else {
-			rowEqualMax3.Values[bYear] = "—"
+			if i == 0 {
+				var activeWithOffers int64
+				for _, cID := range companyIDs {
+					if batchCompanyOffers[bYear][cID] > 0 {
+						activeWithOffers++
+					}
+				}
+				rowEqualMax3.Values[bYear] = activeWithOffers
+			} else {
+				rowEqualMax3.Values[bYear] = "—"
+			}
 			rowLessMin3.Values[bYear] = "—"
 		}
 	}
