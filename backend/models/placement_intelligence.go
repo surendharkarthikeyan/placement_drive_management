@@ -170,6 +170,7 @@ type IndustryRightPanelResponse struct {
 // IndustryMetricCompanyDetail represents a company returned when inspecting a metric cell or KPI card
 type IndustryMetricCompanyDetail struct {
 	CompanyID         int64   `json:"company_id"`
+	DriveID           uint64  `json:"drive_id,omitempty"`
 	CompanyName       string  `json:"company_name"`
 	Category          string  `json:"category"`
 	CompanyDomain     string  `json:"company_domain,omitempty"`

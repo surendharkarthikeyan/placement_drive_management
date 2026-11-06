@@ -49,6 +49,7 @@ export default function IntelligenceRightPanel({
   selectedOutcomeType = 'offers',
   onSelectOutcome = () => {},
   selectedIndustry = null,
+  onSelectIndustry = () => {},
   selectedIndustryCell = null,
   onSelectIndustryCell = () => {},
   onClearIndustryCell = () => {},
@@ -408,73 +409,98 @@ export default function IntelligenceRightPanel({
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto hide-scrollbar p-[16px_18px] space-y-2.5">
-              {filteredIndustryCompanies.map((c) => (
-                <div
-                  key={c.company_id}
-                  className="p-3.5 bg-white border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-xs rounded-[11px] transition flex flex-col gap-2.5 shadow-2xs"
-                >
-                  <div className="flex items-start justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-[9px] bg-[#eff6ff] text-[#2563eb] font-[850] text-[13px] flex items-center justify-center shrink-0 border border-[#dbe5f1]">
-                        {c.company_name?.slice(0, 2).toUpperCase() || 'CO'}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-[13.5px] font-[850] text-[#1e293b] leading-tight truncate m-0">
-                          {c.company_name}
-                        </h4>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span
-                            className={`px-1.5 py-0.5 rounded-[4px] text-[9.5px] font-[800] uppercase tracking-wider border ${
-                              (c.company_domain || '').toUpperCase() === 'CORE'
-                                ? 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]'
-                                : (c.company_domain || '').toUpperCase() === 'BOTH'
-                                ? 'bg-[#faf5ff] text-[#9333ea] border-[#e9d5ff]'
-                                : 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
-                            }`}
-                          >
-                            {c.company_domain || 'SOFTWARE'}
-                          </span>
-                          {c.first_visited_batch && (
-                            <span className="text-[10.5px] text-[#64748b] font-medium">
-                              (Since {c.first_visited_batch})
-                            </span>
+              {filteredIndustryCompanies.map((c) => {
+                const isSelected = String(selectedIndustry) === String(c.company_id)
+                return (
+                  <div
+                    key={c.company_id}
+                    onClick={() =>
+                      onSelectIndustry(c.company_id, {
+                        from: 'right_panel',
+                        driveId: c.drive_id,
+                        batch: selectedIndustryCell?.batch || selectedIndustryBatch,
+                        role: c.job_roles,
+                        status: c.drive_status,
+                        packageLPA: c.package_lpa,
+                        department: selectedDepartment !== 'All' ? selectedDepartment : '',
+                        company: c
+                      })
+                    }
+                    className={`p-3.5 bg-white border rounded-[11px] transition flex flex-col gap-2.5 shadow-2xs cursor-pointer active:scale-98 ${
+                      isSelected
+                        ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20'
+                        : 'border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-xs'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-[9px] bg-[#eff6ff] text-[#2563eb] font-[850] text-[13px] flex items-center justify-center shrink-0 border border-[#dbe5f1]">
+                          {c.company_name?.slice(0, 2).toUpperCase() || 'CO'}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-[13.5px] font-[850] text-[#1e293b] leading-tight truncate m-0">
+                            {c.company_name}
+                          </h4>
+                          {c.job_roles && (
+                            <div className="text-[11.5px] font-[700] text-[#334155] mt-0.5 truncate flex items-center gap-1.5">
+                              <Briefcase size={11} className="text-[#64748b] shrink-0" />
+                              <span className="truncate">{c.job_roles}</span>
+                            </div>
                           )}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span
+                              className={`px-1.5 py-0.5 rounded-[4px] text-[9.5px] font-[800] uppercase tracking-wider border ${
+                                (c.company_domain || '').toUpperCase() === 'CORE'
+                                  ? 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]'
+                                  : (c.company_domain || '').toUpperCase() === 'BOTH'
+                                  ? 'bg-[#faf5ff] text-[#9333ea] border-[#e9d5ff]'
+                                  : 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
+                              }`}
+                            >
+                              {c.company_domain || 'SOFTWARE'}
+                            </span>
+                            {c.first_visited_batch && (
+                              <span className="text-[10.5px] text-[#64748b] font-medium">
+                                (Since {c.first_visited_batch})
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <span
-                      className={`px-2 py-0.8 rounded-[6px] text-[10.5px] font-[800] whitespace-nowrap shrink-0 border capitalize ${
-                        c.drive_status?.toLowerCase().includes('complete')
-                          ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]'
-                          : c.drive_status === 'Not Started'
-                          ? 'bg-[#fff1f2] text-[#e11d48] border-[#fecdd3]'
-                          : 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
-                      }`}
-                    >
-                      {c.drive_status}
-                    </span>
-                  </div>
-
-                  {/* Metrics Row */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f1f5f9] text-[11.5px]">
-                    <div>
-                      <span className="text-[10px] font-[750] uppercase text-[#94a3b8] block">Offers / Placed</span>
-                      <span className="font-[850] text-[#1e293b]">
-                        {c.students_placed > 0
-                          ? `${c.students_placed} Placed`
-                          : (c.offers_count > 0 ? `${c.offers_count} Offers` : '—')}
+                      <span
+                        className={`px-2 py-0.8 rounded-[6px] text-[10.5px] font-[800] whitespace-nowrap shrink-0 border capitalize ${
+                          c.drive_status?.toLowerCase().includes('complete')
+                            ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]'
+                            : c.drive_status === 'Not Started'
+                            ? 'bg-[#fff1f2] text-[#e11d48] border-[#fecdd3]'
+                            : 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
+                        }`}
+                      >
+                        {c.drive_status}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-[750] uppercase text-[#94a3b8] block">Package (LPA)</span>
-                      <span className="font-[850] text-[#1e293b]">
-                        {c.package_lpa > 0 ? `₹${c.package_lpa} LPA` : '—'}
-                      </span>
+
+                    {/* Metrics Row */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#f1f5f9] text-[11.5px]">
+                      <div>
+                        <span className="text-[10px] font-[750] uppercase text-[#94a3b8] block">Offers / Placed</span>
+                        <span className="font-[850] text-[#1e293b]">
+                          {c.students_placed > 0
+                            ? `${c.students_placed} Placed`
+                            : (c.offers_count > 0 ? `${c.offers_count} Offers` : '—')}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-[750] uppercase text-[#94a3b8] block">Package (LPA)</span>
+                        <span className="font-[850] text-[#1e293b]">
+                          {c.package_lpa > 0 ? `₹${c.package_lpa} LPA` : '—'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </aside>
@@ -765,27 +791,51 @@ export default function IntelligenceRightPanel({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {attention.map((c) => (
-                      <div
-                        key={c.company_id}
-                        className="p-3 bg-white border border-[#e2e8f0] hover:border-[#cbd5e1] rounded-[10px] shadow-2xs flex items-center justify-between gap-3"
-                      >
-                        <div>
-                          <div className="font-[800] text-[13px] text-[#1e293b]">
-                            {c.company_name}
+                    {attention.map((c) => {
+                      const isSelected = String(selectedIndustry) === String(c.company_id)
+                      return (
+                        <div
+                          key={c.company_id}
+                          onClick={() =>
+                            onSelectIndustry(c.company_id, {
+                              from: 'right_panel',
+                              driveId: c.drive_id,
+                              batch: selectedIndustryBatch,
+                              status: c.drive_status,
+                              packageLPA: c.package_lpa,
+                              department: selectedDepartment !== 'All' ? selectedDepartment : '',
+                              company: c
+                            })
+                          }
+                          className={`p-3 bg-white border rounded-[10px] shadow-2xs flex items-center justify-between gap-3 cursor-pointer transition active:scale-98 ${
+                            isSelected
+                              ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/20'
+                              : 'border-[#e2e8f0] hover:border-[#2563eb]'
+                          }`}
+                        >
+                          <div>
+                            <div className="font-[800] text-[13px] text-[#1e293b]">
+                              {c.company_name}
+                            </div>
+                            {(c.job_role || c.job_roles) && (
+                              <div className="text-[11px] font-[650] text-[#334155] mt-0.5 truncate flex items-center gap-1">
+                                <Briefcase size={10} className="text-[#64748b] shrink-0" />
+                                <span className="truncate">{c.job_role || c.job_roles}</span>
+                              </div>
+                            )}
+                            <div className="text-[11px] text-[#64748b] mt-0.5 font-medium flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded-[4px] bg-[#f1f5f9] text-[#475569] text-[10px] font-bold">
+                                {c.company_domain || c.category}
+                              </span>
+                              <span>Last year: {c.last_year_placements} placed {c.last_year_package_lpa > 0 ? `(₹${c.last_year_package_lpa} LPA)` : ''}</span>
+                            </div>
                           </div>
-                          <div className="text-[11px] text-[#64748b] mt-0.5 font-medium flex items-center gap-1.5">
-                            <span className="px-1.5 py-0.5 rounded-[4px] bg-[#f1f5f9] text-[#475569] text-[10px] font-bold">
-                              {c.company_domain || c.category}
-                            </span>
-                            <span>Last year: {c.last_year_placements} placed {c.last_year_package_lpa > 0 ? `(₹${c.last_year_package_lpa} LPA)` : ''}</span>
-                          </div>
+                          <span className="text-[11px] font-[750] px-2 py-1 rounded-[6px] bg-[#fff1f2] text-[#e11d48] border border-[#fecdd3] shrink-0">
+                            Not Started
+                          </span>
                         </div>
-                        <span className="text-[11px] font-[750] px-2 py-1 rounded-[6px] bg-[#fff1f2] text-[#e11d48] border border-[#fecdd3] shrink-0">
-                          Not Started
-                        </span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -840,11 +890,26 @@ export default function IntelligenceRightPanel({
                   </div>
                 ) : (
                   <div className="bg-white border border-[#e2e8f0] rounded-[12px] divide-y divide-[#edf2f7] overflow-hidden shadow-2xs">
-                    {(topRecruiterTab === 'salary' ? topSalary : topCount).map((r, idx) => (
-                      <div
-                        key={`${r.company_id}-${idx}`}
-                        className="p-3 flex items-center justify-between gap-3 hover:bg-[#f8fafc] transition"
-                      >
+                    {(topRecruiterTab === 'salary' ? topSalary : topCount).map((r, idx) => {
+                      const isSelected = String(selectedIndustry) === String(r.company_id)
+                      return (
+                        <div
+                          key={`${r.company_id}-${idx}`}
+                          onClick={() =>
+                            onSelectIndustry(r.company_id, {
+                              from: 'right_panel',
+                              driveId: r.drive_id,
+                              batch: selectedIndustryBatch,
+                              role: r.job_role,
+                              packageLPA: r.package_lpa,
+                              department: selectedDepartment !== 'All' ? selectedDepartment : '',
+                              company: r
+                            })
+                          }
+                          className={`p-3 flex items-center justify-between gap-3 cursor-pointer transition active:scale-98 ${
+                            isSelected ? 'bg-blue-50/60 font-semibold' : 'hover:bg-[#f8fafc]'
+                          }`}
+                        >
                         <div className="flex items-center gap-2.5">
                           <div
                             className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-[850] shrink-0 ${
@@ -878,7 +943,8 @@ export default function IntelligenceRightPanel({
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )
+                  })}
                   </div>
                 )}
               </div>
@@ -907,7 +973,18 @@ export default function IntelligenceRightPanel({
                   <div className="bg-white border border-[#e2e8f0] rounded-[12px] p-4 shadow-2xs">
                     <div className="relative pl-5 border-l-2 border-[#e2e8f0] space-y-4">
                       {activities.map((a) => (
-                        <div key={a.id} className="relative group">
+                        <div
+                          key={a.id}
+                          onClick={() =>
+                            a.company_id &&
+                            onSelectIndustry(a.company_id, {
+                              batch: selectedIndustryBatch,
+                              role: a.job_role,
+                              department: selectedDepartment !== 'All' ? selectedDepartment : ''
+                            })
+                          }
+                          className={`relative group ${a.company_id ? 'cursor-pointer hover:bg-blue-50/50 p-1.5 -ml-1.5 rounded-lg transition' : ''}`}
+                        >
                           <div className="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-white border-2 border-[#2563eb]" />
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[12.5px] font-[800] text-[#1e293b]">

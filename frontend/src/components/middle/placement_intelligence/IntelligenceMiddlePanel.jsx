@@ -5,6 +5,8 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ArrowLeft,
   Briefcase,
   Calendar,
@@ -31,6 +33,155 @@ import {
 } from '../../../services/api'
 
 /**
+ * MultiSelectDropdown
+ * Reusable dropdown component matching the placement intelligence design system:
+ * - Rounded trigger button with icon, label, selection count, and up/down chevron
+ * - Popup card with 'Select All (N items)'
+ * - Individual items with left checkbox, label, and right checkmark on selection
+ * - Click outside to dismiss
+ */
+function MultiSelectDropdown({
+  label,
+  icon: Icon,
+  options = [],
+  selectedValues = [],
+  onChange,
+  itemFormatter = (val) => val,
+  pluralLabel = 'items'
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  const isAllSelected = options.length > 0 && selectedValues.length === options.length
+
+  const handleToggleAll = () => {
+    if (isAllSelected) {
+      onChange([])
+    } else {
+      onChange([...options])
+    }
+  }
+
+  const handleToggleItem = (val) => {
+    let next = [...selectedValues]
+    const idx = next.indexOf(val)
+    if (idx > -1) {
+      next.splice(idx, 1)
+    } else {
+      next.push(val)
+    }
+    onChange(next)
+  }
+
+  // Display text in trigger button
+  let displayText = `All ${pluralLabel.charAt(0).toUpperCase() + pluralLabel.slice(1)}`
+  if (selectedValues.length === 1) {
+    displayText = itemFormatter(selectedValues[0])
+  } else if (selectedValues.length > 1 && selectedValues.length < options.length) {
+    displayText = `${selectedValues.length} ${pluralLabel} Selected`
+  }
+
+  const isActive = selectedValues.length > 0 && selectedValues.length < options.length
+
+  return (
+    <div className="relative inline-block" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`h-[38px] px-3.5 rounded-xl border text-[12.5px] font-[700] transition flex items-center gap-2 cursor-pointer shadow-2xs select-none ${
+          isOpen || isActive
+            ? 'bg-white border-blue-500 text-blue-700 ring-2 ring-blue-500/10'
+            : 'bg-white border-[#dbe5f1] hover:border-slate-300 text-slate-700 hover:bg-[#f8fafc]'
+        }`}
+      >
+        {Icon && <Icon size={15} className={isOpen || isActive ? 'text-blue-600' : 'text-slate-500'} />}
+        <span className="truncate max-w-[200px] text-left">{displayText}</span>
+        {isOpen ? (
+          <ChevronUp size={15} className="text-slate-400 shrink-0 ml-1" />
+        ) : (
+          <ChevronDown size={15} className="text-slate-400 shrink-0 ml-1" />
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-[calc(100%+6px)] left-0 min-w-[280px] max-w-[380px] bg-white border border-[#cbd5e1] rounded-xl shadow-xl z-50 p-2 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100">
+          {/* Select All row */}
+          <div
+            onClick={handleToggleAll}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 text-[12.5px] font-bold text-slate-800 transition select-none"
+          >
+            <div
+              className={`w-[17px] h-[17px] rounded-[4px] flex items-center justify-center shrink-0 transition ${
+                isAllSelected
+                  ? 'bg-blue-600 border border-blue-600 text-white shadow-2xs'
+                  : 'border border-slate-300 bg-white hover:border-slate-400'
+              }`}
+            >
+              {isAllSelected && <Check size={12} strokeWidth={3.5} />}
+            </div>
+            <span>Select All ({options.length} {pluralLabel})</span>
+          </div>
+
+          <div className="my-1 border-t border-slate-100" />
+
+          {/* Options list */}
+          <div className="max-h-[260px] overflow-y-auto space-y-0.5 custom-scrollbar pr-0.5">
+            {options.map((opt) => {
+              const isChecked = selectedValues.includes(opt)
+              const formattedLabel = itemFormatter(opt)
+
+              return (
+                <div
+                  key={opt}
+                  onClick={() => handleToggleItem(opt)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-[12.5px] transition select-none ${
+                    isChecked
+                      ? 'bg-blue-50/70 text-blue-700 font-semibold'
+                      : 'hover:bg-slate-50 text-slate-700 font-medium'
+                  }`}
+                  title={formattedLabel}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                    <div
+                      className={`w-[17px] h-[17px] rounded-[4px] flex items-center justify-center shrink-0 transition ${
+                        isChecked
+                          ? 'bg-blue-600 border border-blue-600 text-white shadow-2xs'
+                          : 'border border-slate-300 bg-white hover:border-slate-400'
+                      }`}
+                    >
+                      {isChecked && <Check size={11} strokeWidth={3.5} />}
+                    </div>
+                    <span className="truncate leading-tight">{formattedLabel}</span>
+                  </div>
+
+                  {isChecked && (
+                    <Check size={15} className="text-blue-600 shrink-0 ml-1" strokeWidth={2.5} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
  * IntelligenceMiddlePanel
  * Center / Workspace Panel for Placement Intelligence:
  * - Header: Title, subtitle, Export, Refresh Data
@@ -52,6 +203,7 @@ export default function IntelligenceMiddlePanel({
   onSelectDetail = () => {},
   selectedIndustry = null,
   onSelectIndustry = () => {},
+  selectedIndustryPreset = null,
   selectedIndustryCell = null,
   selectedIndustryDomain = 'all',
   onSelectIndustryDomain = () => {}
@@ -79,9 +231,9 @@ export default function IntelligenceMiddlePanel({
   const [companyDrivesData, setCompanyDrivesData] = useState(null)
   const [isCompanyDrivesLoading, setIsCompanyDrivesLoading] = useState(false)
   const [isCompanyDrivesRefreshing, setIsCompanyDrivesRefreshing] = useState(false)
-  const [companyDrivesBatchFilter, setCompanyDrivesBatchFilter] = useState('All')
-  const [companyDrivesRoleFilter, setCompanyDrivesRoleFilter] = useState('All Roles')
-  const [companyDrivesDeptFilter, setCompanyDrivesDeptFilter] = useState('All Departments')
+  const [selectedBatches, setSelectedBatches] = useState([])
+  const [selectedRoles, setSelectedRoles] = useState([])
+  const [selectedDepts, setSelectedDepts] = useState([])
 
   const scrollTable = (direction) => {
     if (tableScrollRef.current) {
@@ -264,13 +416,13 @@ export default function IntelligenceMiddlePanel({
     loadIndustryData(true)
   }
 
-  // Fetch Company Recruitment Drives from DB
+  // Fetch Company Recruitment Drives from DB with multiselect support
   const loadCompanyDrives = useCallback(
     async (
       isRefresh = false,
-      batchVal = companyDrivesBatchFilter,
-      roleVal = companyDrivesRoleFilter,
-      deptVal = companyDrivesDeptFilter
+      batchArr = selectedBatches,
+      roleArr = selectedRoles,
+      deptArr = selectedDepts
     ) => {
       if (!selectedIndustry) {
         setCompanyDrivesData(null)
@@ -280,11 +432,15 @@ export default function IntelligenceMiddlePanel({
         if (isRefresh) setIsCompanyDrivesRefreshing(true)
         else setIsCompanyDrivesLoading(true)
 
+        const batchParam = batchArr && batchArr.length > 0 ? batchArr.join(',') : ''
+        const roleParam = roleArr && roleArr.length > 0 ? roleArr.join(',') : ''
+        const deptParam = deptArr && deptArr.length > 0 ? deptArr.join(',') : ''
+
         const res = await getIntelligenceCompanyDrives({
           companyId: selectedIndustry,
-          batch: batchVal,
-          role: roleVal,
-          department: deptVal
+          batch: batchParam,
+          role: roleParam,
+          department: deptParam
         })
         setCompanyDrivesData(res)
       } catch (err) {
@@ -294,24 +450,27 @@ export default function IntelligenceMiddlePanel({
         setIsCompanyDrivesRefreshing(false)
       }
     },
-    [selectedIndustry, companyDrivesBatchFilter, companyDrivesRoleFilter, companyDrivesDeptFilter]
+    [selectedIndustry, selectedBatches, selectedRoles, selectedDepts]
   )
 
-  // Reset filters and fetch when selectedIndustry changes
+  // Reset / preset filters and fetch when selectedIndustry or selectedIndustryPreset changes
   useEffect(() => {
     if (currentView === 'industries' && selectedIndustry) {
-      setCompanyDrivesBatchFilter('All')
-      setCompanyDrivesRoleFilter('All Roles')
-      setCompanyDrivesDeptFilter('All Departments')
+      const isSingleDrive = Boolean(selectedIndustryPreset?.from === 'right_panel')
+
+      // Always reset multiselect filters for left panel click ("All Batches", "All Roles", "All Departments")
+      setSelectedBatches([])
+      setSelectedRoles([])
+      setSelectedDepts([])
 
       const fetchInitial = async () => {
         try {
           setIsCompanyDrivesLoading(true)
           const res = await getIntelligenceCompanyDrives({
             companyId: selectedIndustry,
-            batch: 'All',
-            role: 'All Roles',
-            department: 'All Departments'
+            batch: '',
+            role: '',
+            department: ''
           })
           setCompanyDrivesData(res)
         } catch (err) {
@@ -322,30 +481,33 @@ export default function IntelligenceMiddlePanel({
       }
       fetchInitial()
     } else {
+      setSelectedBatches([])
+      setSelectedRoles([])
+      setSelectedDepts([])
       setCompanyDrivesData(null)
     }
-  }, [currentView, selectedIndustry])
+  }, [currentView, selectedIndustry, selectedIndustryPreset])
 
-  const handleCompanyBatchChange = (val) => {
-    setCompanyDrivesBatchFilter(val)
-    loadCompanyDrives(false, val, companyDrivesRoleFilter, companyDrivesDeptFilter)
+  const handleCompanyBatchChange = (newBatches) => {
+    setSelectedBatches(newBatches)
+    loadCompanyDrives(false, newBatches, selectedRoles, selectedDepts)
   }
 
-  const handleCompanyRoleChange = (val) => {
-    setCompanyDrivesRoleFilter(val)
-    loadCompanyDrives(false, companyDrivesBatchFilter, val, companyDrivesDeptFilter)
+  const handleCompanyRoleChange = (newRoles) => {
+    setSelectedRoles(newRoles)
+    loadCompanyDrives(false, selectedBatches, newRoles, selectedDepts)
   }
 
-  const handleCompanyDeptChange = (val) => {
-    setCompanyDrivesDeptFilter(val)
-    loadCompanyDrives(false, companyDrivesBatchFilter, companyDrivesRoleFilter, val)
+  const handleCompanyDeptChange = (newDepts) => {
+    setSelectedDepts(newDepts)
+    loadCompanyDrives(false, selectedBatches, selectedRoles, newDepts)
   }
 
   const handleResetCompanyFilters = () => {
-    setCompanyDrivesBatchFilter('All')
-    setCompanyDrivesRoleFilter('All Roles')
-    setCompanyDrivesDeptFilter('All Departments')
-    loadCompanyDrives(false, 'All', 'All Roles', 'All Departments')
+    setSelectedBatches([])
+    setSelectedRoles([])
+    setSelectedDepts([])
+    loadCompanyDrives(false, [], [], [])
   }
 
   const handleExportCompanyDrives = () => {
@@ -412,13 +574,110 @@ export default function IntelligenceMiddlePanel({
     if (selectedIndustry) {
       const comp = companyDrivesData?.company || {}
       const filterOptions = companyDrivesData?.filter_options || {
-        batches: ['All'],
+        batches: ['All Batches'],
         roles: ['All Roles'],
         departments: ['All Departments']
       }
-      const years = companyDrivesData?.years || []
-      const totalDrives = companyDrivesData?.total_drives ?? 0
-      const totalOffers = companyDrivesData?.total_offers ?? 0
+      const rawBatches = (filterOptions.batches || []).filter(
+        (b) => b !== 'All' && b !== 'All Batches'
+      )
+      const rawRoles = (filterOptions.roles || []).filter(
+        (r) => r !== 'All' && r !== 'All Roles'
+      )
+      const rawDepts = (filterOptions.departments || []).filter(
+        (d) => d !== 'All' && d !== 'All Departments'
+      )
+      const isSingleDriveMode = Boolean(selectedIndustryPreset?.from === 'right_panel')
+      const rawYears = companyDrivesData?.years || []
+
+      let displayYears = rawYears
+      let singleDriveFound = null
+
+      if (isSingleDriveMode && rawYears.length > 0) {
+        const targetDriveId = selectedIndustryPreset?.driveId
+        const targetBatch = selectedIndustryPreset?.batch
+          ? String(selectedIndustryPreset.batch).replace(/\D/g, '').slice(-4)
+          : ''
+        const targetStatus = (selectedIndustryPreset?.status || '').toLowerCase().trim()
+        const targetRole = (selectedIndustryPreset?.role || '').toLowerCase().trim()
+        const targetPkg = selectedIndustryPreset?.packageLPA
+
+        // 1. Try finding by exact drive_id
+        if (targetDriveId) {
+          for (const yg of rawYears) {
+            const found = (yg.drives || []).find((d) => String(d.drive_id) === String(targetDriveId))
+            if (found) {
+              singleDriveFound = found
+              displayYears = [
+                {
+                  ...yg,
+                  phases_count: 1,
+                  total_offers: found.offers_count || 0,
+                  drives: [found]
+                }
+              ]
+              break
+            }
+          }
+        }
+
+        // 2. If not found by drive_id, match by status and batch
+        if (!singleDriveFound && (targetStatus || targetBatch)) {
+          for (const yg of rawYears) {
+            if (targetBatch && !String(yg.year).includes(targetBatch)) {
+              continue
+            }
+            for (const d of yg.drives || []) {
+              const dSt = (d.overall_status || '').toLowerCase()
+              const isStatusMatch =
+                targetStatus &&
+                (dSt.includes(targetStatus) ||
+                  targetStatus.includes(dSt) ||
+                  (targetStatus.includes('awaiting') && dSt.includes('awaiting')) ||
+                  (targetStatus.includes('ongoing') && dSt.includes('ongoing')) ||
+                  (targetStatus.includes('completed') && dSt.includes('completed')))
+              const isPkgMatch = targetPkg && d.package_lpa === targetPkg
+              const isRoleMatch = targetRole && (d.job_role || '').toLowerCase().includes(targetRole)
+              if (isStatusMatch || (isPkgMatch && isRoleMatch)) {
+                singleDriveFound = d
+                displayYears = [
+                  {
+                    ...yg,
+                    phases_count: 1,
+                    total_offers: d.offers_count || 0,
+                    drives: [d]
+                  }
+                ]
+                break
+              }
+            }
+            if (singleDriveFound) break
+          }
+        }
+
+        // 3. Fallback: take the first drive in the first year
+        if (!singleDriveFound && rawYears[0]?.drives?.[0]) {
+          const firstD = rawYears[0].drives[0]
+          singleDriveFound = firstD
+          displayYears = [
+            {
+              ...rawYears[0],
+              phases_count: 1,
+              total_offers: firstD.offers_count || 0,
+              drives: [firstD]
+            }
+          ]
+        }
+      }
+
+      const totalDrives = isSingleDriveMode
+        ? singleDriveFound
+          ? 1
+          : 0
+        : companyDrivesData?.total_drives ?? 0
+      const totalOffers = isSingleDriveMode
+        ? singleDriveFound?.offers_count ?? 0
+        : companyDrivesData?.total_offers ?? 0
 
       // Compute company initials for avatar
       const compName = comp.company_name || 'Company'
@@ -430,7 +689,7 @@ export default function IntelligenceMiddlePanel({
 
       // Calculate max package across drives
       let maxPkg = 0
-      years.forEach((y) => {
+      displayYears.forEach((y) => {
         (y.drives || []).forEach((d) => {
           if (d.package_lpa && d.package_lpa > maxPkg) {
             maxPkg = d.package_lpa
@@ -486,17 +745,23 @@ export default function IntelligenceMiddlePanel({
                   <div className="flex items-center gap-4 mt-2 text-[12px] text-[#64748b] font-medium flex-wrap">
                     <span className="flex items-center gap-1.5">
                       <Calendar size={13} className="text-slate-400" />
-                      <span>{years.length} Academic Years</span>
+                      <span>
+                        {displayYears.length} Academic {displayYears.length === 1 ? 'Year' : 'Years'}
+                      </span>
                     </span>
                     <span className="text-slate-300">•</span>
                     <span className="flex items-center gap-1.5">
                       <Briefcase size={13} className="text-slate-400" />
-                      <span>{totalDrives} Recruitment Phases</span>
+                      <span>
+                        {totalDrives} Recruitment {isSingleDriveMode || totalDrives === 1 ? 'Phase' : 'Phases'}
+                      </span>
                     </span>
                     <span className="text-slate-300">•</span>
                     <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
                       <Award size={13} className="text-emerald-600" />
-                      <span>{totalOffers} Confirmed Offers</span>
+                      <span>
+                        {totalOffers} Confirmed {totalOffers === 1 ? 'Offer' : 'Offers'}
+                      </span>
                     </span>
                     {maxPkg > 0 && (
                       <>
@@ -535,79 +800,62 @@ export default function IntelligenceMiddlePanel({
             </div>
           </div>
 
-          {/* 2. Top Filter Controls Bar: Batch, Roles, Departments */}
-          <div className="px-[24px] py-[12px] bg-white border-b border-[#edf2f7] flex items-center gap-3.5 flex-wrap shrink-0">
-            {/* Batch Filter */}
-            <div className="flex items-center gap-2 bg-[#f8fafc] px-3 py-1 rounded-[10px] border border-[#e2e8f0]">
-              <label className="text-[11px] font-[850] uppercase tracking-[0.4px] text-[#64748b]">
-                Batch
-              </label>
-              <select
-                value={companyDrivesBatchFilter}
-                onChange={(e) => handleCompanyBatchChange(e.target.value)}
-                className="h-[28px] bg-transparent text-[12px] font-bold text-[#1e293b] focus:outline-none cursor-pointer pr-1"
-              >
-                {(filterOptions.batches || ['All']).map((b) => (
-                  <option key={b} value={b}>
-                    {b === 'All' ? 'All Batches' : `Batch ${b}`}
-                  </option>
-                ))}
-              </select>
+          {/* 2. Top Filter Controls Bar: ONLY SHOWN IF NOT IN SINGLE DRIVE MODE */}
+          {!isSingleDriveMode && (
+            <div className="px-[24px] py-[12px] bg-white border-b border-[#edf2f7] flex items-center gap-3 flex-wrap shrink-0">
+              {/* Batch Multiselect */}
+              <MultiSelectDropdown
+                label="Batch"
+                icon={GraduationCap}
+                options={rawBatches}
+                selectedValues={selectedBatches}
+                onChange={handleCompanyBatchChange}
+                itemFormatter={(val) =>
+                  typeof val === 'string' && val.startsWith('Batch') ? val : `Batch ${val}`
+                }
+                pluralLabel="batches"
+              />
+
+              {/* Role Multiselect */}
+              <MultiSelectDropdown
+                label="Role"
+                icon={Briefcase}
+                options={rawRoles}
+                selectedValues={selectedRoles}
+                onChange={handleCompanyRoleChange}
+                pluralLabel="roles"
+              />
+
+              {/* Department Multiselect */}
+              <MultiSelectDropdown
+                label="Department"
+                icon={Building2}
+                options={rawDepts}
+                selectedValues={selectedDepts}
+                onChange={handleCompanyDeptChange}
+                pluralLabel="departments"
+              />
+
+              <div className="flex-1" />
+
+              {/* Active summary count badge */}
+              <span className="text-[11.5px] font-[750] text-[#334155] bg-blue-50/70 text-blue-700 px-3 py-1.5 rounded-[10px] border border-blue-200/80 shadow-2xs">
+                {totalDrives} {totalDrives === 1 ? 'Phase' : 'Phases'} · {totalOffers} {totalOffers === 1 ? 'Offer' : 'Offers'}
+              </span>
+
+              {/* Reset Filters Button */}
+              {(selectedBatches.length > 0 || selectedRoles.length > 0 || selectedDepts.length > 0) && (
+                <button
+                  type="button"
+                  onClick={handleResetCompanyFilters}
+                  className="h-[34px] px-3 rounded-[10px] border border-[#dbe5f1] bg-white text-[#64748b] hover:text-[#1e293b] text-[11.5px] font-[750] hover:bg-[#f8fafc] transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                >
+                  <RotateCcw size={12} />
+                  <span>Reset Filters</span>
+                </button>
+              )}
             </div>
-
-            {/* Role Filter */}
-            <div className="flex items-center gap-2 bg-[#f8fafc] px-3 py-1 rounded-[10px] border border-[#e2e8f0]">
-              <label className="text-[11px] font-[850] uppercase tracking-[0.4px] text-[#64748b]">
-                Role
-              </label>
-              <select
-                value={companyDrivesRoleFilter}
-                onChange={(e) => handleCompanyRoleChange(e.target.value)}
-                className="h-[28px] bg-transparent text-[12px] font-bold text-[#1e293b] focus:outline-none cursor-pointer max-w-[200px] truncate pr-1"
-              >
-                {(filterOptions.roles || ['All Roles']).map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Department Filter (All Departments) */}
-            <div className="flex items-center gap-2 bg-[#f8fafc] px-3 py-1 rounded-[10px] border border-[#e2e8f0]">
-              <label className="text-[11px] font-[850] uppercase tracking-[0.4px] text-[#64748b]">
-                Department
-              </label>
-              <select
-                value={companyDrivesDeptFilter}
-                onChange={(e) => handleCompanyDeptChange(e.target.value)}
-                className="h-[28px] bg-transparent text-[12px] font-bold text-[#1e293b] focus:outline-none cursor-pointer max-w-[200px] truncate pr-1"
-              >
-                {(filterOptions.departments || ['All Departments']).map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex-1" />
-
-            {/* Active summary count badge */}
-            <span className="text-[11.5px] font-[750] text-[#334155] bg-blue-50/70 text-blue-700 px-3 py-1 rounded-[8px] border border-blue-200/80 shadow-2xs">
-              {totalDrives} {totalDrives === 1 ? 'Phase' : 'Phases'} · {totalOffers} {totalOffers === 1 ? 'Offer' : 'Offers'}
-            </span>
-
-            {/* Reset Filters Button */}
-            <button
-              type="button"
-              onClick={handleResetCompanyFilters}
-              className="h-[30px] px-2.5 rounded-[8px] border border-[#dbe5f1] bg-white text-[#64748b] hover:text-[#1e293b] text-[11px] font-[750] hover:bg-[#f8fafc] transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-            >
-              <RotateCcw size={11} />
-              <span>Reset</span>
-            </button>
-          </div>
+          )}
 
           {/* 3. Main Content: Grouped by Placement Year */}
           <div className="flex-1 px-[24px] py-[22px] space-y-7">
@@ -618,15 +866,15 @@ export default function IntelligenceMiddlePanel({
                   Loading recruitment drives for {compName}...
                 </span>
               </div>
-            ) : !years || years.length === 0 ? (
+            ) : !displayYears || displayYears.length === 0 ? (
               <div className="text-center py-20 bg-white border border-[#e2e8f0] rounded-[16px] p-8 shadow-xs max-w-lg mx-auto">
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3.5 border border-blue-100">
                   <Briefcase size={26} />
                 </div>
                 <h3 className="text-[16px] font-[850] text-[#0f172a]">No recruitment drives found</h3>
                 <p className="text-[13px] text-[#64748b] mt-1.5 leading-relaxed">
-                  {companyDrivesDeptFilter !== 'All Departments'
-                    ? `No recruitment drives were conducted for ${companyDrivesDeptFilter} by ${compName}.`
+                  {selectedDepts.length > 0
+                    ? `No recruitment drives were conducted for ${selectedDepts.join(', ')} by ${compName}.`
                     : 'No recruitment processes matched the selected batch, role, or department filter. Try resetting your filters.'}
                 </p>
                 <button
@@ -638,7 +886,7 @@ export default function IntelligenceMiddlePanel({
                 </button>
               </div>
             ) : (
-              years.map((yearGroup) => (
+              displayYears.map((yearGroup) => (
                 <div key={yearGroup.year} className="space-y-3.5">
                   {/* Year Header Banner */}
                   <div className="flex items-center justify-between px-1">

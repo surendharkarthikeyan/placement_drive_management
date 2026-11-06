@@ -1821,6 +1821,8 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 	batchCompanyOngoingDriveStatus := make(map[string]map[int64]string)
 	batchCompanyOngoingPackageLPA := make(map[string]map[int64]float64)
 	batchCompanyOngoingJobRoles := make(map[string]map[int64]string)
+	batchCompanyDriveID := make(map[string]map[int64]uint64)
+	batchCompanyOngoingDriveID := make(map[string]map[int64]uint64)
 
 	for _, bYear := range allBatches {
 		batchCompanyOffers[bYear] = make(map[int64]int64)
@@ -1832,7 +1834,13 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		batchCompanyOngoingDriveStatus[bYear] = make(map[int64]string)
 		batchCompanyOngoingPackageLPA[bYear] = make(map[int64]float64)
 		batchCompanyOngoingJobRoles[bYear] = make(map[int64]string)
+		batchCompanyDriveID[bYear] = make(map[int64]uint64)
+		batchCompanyOngoingDriveID[bYear] = make(map[int64]uint64)
 	}
+
+	companyOverallLatestRole := make(map[int64]string)
+	companyOverallLatestPkg := make(map[int64]float64)
+	companyOverallLatestDriveID := make(map[int64]uint64)
 
 	if len(compIDs) > 0 {
 		// 4a. placement_company_batch_placements
@@ -1871,6 +1879,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 
 		// 4b. placement_drive
 		type DriveDetailResult struct {
+			ID            uint64  `gorm:"column:id"`
 			CompanyID     int64   `gorm:"column:company_id"`
 			BatchIDs      string  `gorm:"column:batch_id"`
 			OverallStatus string  `gorm:"column:overall_status"`
@@ -1880,7 +1889,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		}
 		var driveDetails []DriveDetailResult
 		r.db.Table("placement_drive pd").
-			Select("pd.company_id, pd.batch_id, pd.overall_status, pd.job_role, pd.package_lpa, COUNT(pdo.id) as offers_count").
+			Select("pd.id as id, pd.company_id, pd.batch_id, pd.overall_status, pd.job_role, pd.package_lpa, COUNT(pdo.id) as offers_count").
 			Joins("LEFT JOIN placement_drive_students pds ON pd.id = pds.drive_id").
 			Joins("LEFT JOIN placement_drive_offers pdo ON pds.id = pdo.drive_student_id").
 			Where("pd.company_id IN ?", compIDs).
@@ -1903,7 +1912,14 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						batchCompanyOngoingDriveStatus[bYear] = make(map[int64]string)
 						batchCompanyOngoingPackageLPA[bYear] = make(map[int64]float64)
 						batchCompanyOngoingJobRoles[bYear] = make(map[int64]string)
+						batchCompanyDriveID[bYear] = make(map[int64]uint64)
+						batchCompanyOngoingDriveID[bYear] = make(map[int64]uint64)
 					}
+					if batchCompanyDriveID[bYear] == nil {
+						batchCompanyDriveID[bYear] = make(map[int64]uint64)
+						batchCompanyOngoingDriveID[bYear] = make(map[int64]uint64)
+					}
+					batchCompanyDriveID[bYear][dd.CompanyID] = dd.ID
 					batchVisitedCompanies[bYear][dd.CompanyID] = true
 					compVisitedBatches[dd.CompanyID] = append(compVisitedBatches[dd.CompanyID], bYear)
 					if dd.OffersCount > batchCompanyOffers[bYear][dd.CompanyID] {
@@ -1917,6 +1933,15 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					}
 					if dd.JobRole != "" {
 						batchCompanyJobRoles[bYear][dd.CompanyID] = dd.JobRole
+						if companyOverallLatestRole[dd.CompanyID] == "" {
+							companyOverallLatestRole[dd.CompanyID] = dd.JobRole
+						}
+					}
+					if dd.PackageLPA > 0 && companyOverallLatestPkg[dd.CompanyID] == 0 {
+						companyOverallLatestPkg[dd.CompanyID] = dd.PackageLPA
+					}
+					if dd.ID > 0 && companyOverallLatestDriveID[dd.CompanyID] == 0 {
+						companyOverallLatestDriveID[dd.CompanyID] = dd.ID
 					}
 
 					// Ongoing Recruitment logic: If a drive has been created, it is considered ongoing
@@ -1925,6 +1950,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					if stClean != "completed" && stClean != "completed placements" && stClean != "cancelled" {
 						batchCompanyHasOngoingDrive[bYear][dd.CompanyID] = true
 						batchCompanyOngoingDriveStatus[bYear][dd.CompanyID] = dd.OverallStatus
+						batchCompanyOngoingDriveID[bYear][dd.CompanyID] = dd.ID
 						if dd.PackageLPA > batchCompanyOngoingPackageLPA[bYear][dd.CompanyID] {
 							batchCompanyOngoingPackageLPA[bYear][dd.CompanyID] = dd.PackageLPA
 						}
@@ -1982,6 +2008,25 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 		}
 	}
 
+	getCompanyRole := func(bYear string, compID int64) string {
+		if r := batchCompanyJobRoles[bYear][compID]; r != "" {
+			return r
+		}
+		return companyOverallLatestRole[compID]
+	}
+	getCompanyPkg := func(bYear string, compID int64) float64 {
+		if p := batchCompanyPackageLPA[bYear][compID]; p > 0 {
+			return p
+		}
+		return companyOverallLatestPkg[compID]
+	}
+	getCompanyDriveID := func(bYear string, compID int64) uint64 {
+		if id := batchCompanyDriveID[bYear][compID]; id > 0 {
+			return id
+		}
+		return companyOverallLatestDriveID[compID]
+	}
+
 	switch normalizedMetric {
 	case "visited", "visited_recruiters":
 		metricTitle = "Industries Visited"
@@ -1993,6 +2038,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 				roles := batchCompanyJobRoles[targetGradYear][c.ID]
 				resultList = append(resultList, models.IndustryMetricCompanyDetail{
 					CompanyID:         c.ID,
+					DriveID:           batchCompanyDriveID[targetGradYear][c.ID],
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
 					CompanyDomain:     c.CompanyDomain,
@@ -2017,6 +2063,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 				roles := batchCompanyJobRoles[targetGradYear][c.ID]
 				resultList = append(resultList, models.IndustryMetricCompanyDetail{
 					CompanyID:         c.ID,
+					DriveID:           batchCompanyDriveID[targetGradYear][c.ID],
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
 					CompanyDomain:     c.CompanyDomain,
@@ -2047,9 +2094,12 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 					}
 				}
 				if visitedPrev && !batchVisitedCompanies[targetGradYear][c.ID] {
-					pkg := batchCompanyPackageLPA[lastVisited][c.ID]
+					pkg := getCompanyPkg(lastVisited, c.ID)
+					roles := getCompanyRole(lastVisited, c.ID)
+					dID := getCompanyDriveID(lastVisited, c.ID)
 					resultList = append(resultList, models.IndustryMetricCompanyDetail{
 						CompanyID:         c.ID,
+						DriveID:           dID,
 						CompanyName:       c.CompanyName,
 						Category:          c.Category,
 						CompanyDomain:     c.CompanyDomain,
@@ -2058,6 +2108,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 						StudentsPlaced:    0,
 						OffersCount:       0,
 						PackageLPA:        pkg,
+						JobRoles:          roles,
 						LastVisitedBatch:  lastVisited,
 						FirstVisitedBatch: firstVisitBatch[c.ID],
 					})
@@ -2211,6 +2262,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 				st := batchCompanyOngoingDriveStatus[targetGradYear][c.ID]
 				resultList = append(resultList, models.IndustryMetricCompanyDetail{
 					CompanyID:         c.ID,
+					DriveID:           batchCompanyOngoingDriveID[targetGradYear][c.ID],
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
 					CompanyDomain:     c.CompanyDomain,
@@ -2235,6 +2287,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 				roles := batchCompanyJobRoles[targetGradYear][c.ID]
 				resultList = append(resultList, models.IndustryMetricCompanyDetail{
 					CompanyID:         c.ID,
+					DriveID:           batchCompanyDriveID[targetGradYear][c.ID],
 					CompanyName:       c.CompanyName,
 					Category:          c.Category,
 					CompanyDomain:     c.CompanyDomain,
@@ -2258,6 +2311,7 @@ func (r *PlacementIntelligenceRepository) GetIndustryMetricCompanies(metricKey, 
 			status := getCleanDriveStatus(batchCompanyDriveStatus[targetGradYear][c.ID])
 			resultList = append(resultList, models.IndustryMetricCompanyDetail{
 				CompanyID:         c.ID,
+				DriveID:           batchCompanyDriveID[targetGradYear][c.ID],
 				CompanyName:       c.CompanyName,
 				Category:          c.Category,
 				CompanyDomain:     c.CompanyDomain,
@@ -2361,7 +2415,7 @@ func (r *PlacementIntelligenceRepository) GetCompanyRecruitmentDrives(companyIDP
 			if err := json.Unmarshal([]byte(deptIDsJSON), &ids); err == nil && len(ids) > 0 {
 				for _, id := range ids {
 					if d, ok := deptIDMap[id]; ok {
-						deptNames = append(deptNames, getDeptCode(d.Name))
+						deptNames = append(deptNames, strings.TrimSpace(d.Name))
 					}
 				}
 			}
@@ -2375,7 +2429,7 @@ func (r *PlacementIntelligenceRepository) GetCompanyRecruitmentDrives(companyIDP
 				Distinct("d.name").
 				Pluck("d.name", &studentDepts)
 			for _, dName := range studentDepts {
-				deptNames = append(deptNames, getDeptCode(dName))
+				deptNames = append(deptNames, strings.TrimSpace(dName))
 			}
 		}
 		seen := make(map[string]bool)
@@ -2567,36 +2621,39 @@ func (r *PlacementIntelligenceRepository) GetCompanyRecruitmentDrives(companyIDP
 		}
 	}
 
-	filterBatches := []string{"All"}
-	var sortedBatchYears []string
-	for bY := range batchSet {
-		if len(bY) == 4 {
-			sortedBatchYears = append(sortedBatchYears, bY)
+	filterBatches := []string{"All Batches"}
+	batchSeen := make(map[string]bool)
+	for _, b := range allBatches {
+		trimmed := strings.TrimSpace(b.Name)
+		if trimmed != "" && !batchSeen[trimmed] {
+			batchSeen[trimmed] = true
+			filterBatches = append(filterBatches, trimmed)
 		}
 	}
-	sort.Sort(sort.Reverse(sort.StringSlice(sortedBatchYears)))
-	filterBatches = append(filterBatches, sortedBatchYears...)
 
 	filterRoles := []string{"All Roles"}
 	var sortedRoles []string
 	for r := range roleSet {
-		sortedRoles = append(sortedRoles, r)
+		trimmed := strings.TrimSpace(r)
+		if trimmed != "" {
+			sortedRoles = append(sortedRoles, trimmed)
+		}
 	}
 	sort.Strings(sortedRoles)
 	filterRoles = append(filterRoles, sortedRoles...)
 
-	// Build department options strictly from the departments database table
+	// Build department options strictly from the departments database table (full names)
 	filterDepts := []string{"All Departments"}
-	deptCodeMap := make(map[string]bool)
+	deptNameMap := make(map[string]bool)
 	var sortedDepts []string
 	for _, d := range allDepts {
 		if d.ID == 4 || strings.EqualFold(strings.TrimSpace(d.Name), "placement") || strings.Contains(strings.ToLower(d.Name), "placement") {
 			continue
 		}
-		code := getDeptCode(d.Name)
-		if code != "" && !deptCodeMap[code] {
-			deptCodeMap[code] = true
-			sortedDepts = append(sortedDepts, code)
+		name := strings.TrimSpace(d.Name)
+		if name != "" && !deptNameMap[name] {
+			deptNameMap[name] = true
+			sortedDepts = append(sortedDepts, name)
 		}
 	}
 	sort.Strings(sortedDepts)
@@ -2606,35 +2663,90 @@ func (r *PlacementIntelligenceRepository) GetCompanyRecruitmentDrives(companyIDP
 	cleanRole := strings.TrimSpace(roleParam)
 	cleanDept := strings.TrimSpace(deptParam)
 
+	var selectedBatches []string
+	if cleanBatch != "" && !strings.EqualFold(cleanBatch, "all") && !strings.EqualFold(cleanBatch, "all batches") {
+		for _, b := range strings.Split(cleanBatch, ",") {
+			tb := strings.TrimSpace(b)
+			if tb != "" && !strings.EqualFold(tb, "all") && !strings.EqualFold(tb, "all batches") {
+				selectedBatches = append(selectedBatches, tb)
+			}
+		}
+	}
+
+	var selectedRoles []string
+	if cleanRole != "" && !strings.EqualFold(cleanRole, "all") && !strings.EqualFold(cleanRole, "all roles") {
+		for _, r := range strings.Split(cleanRole, ",") {
+			tr := strings.TrimSpace(r)
+			if tr != "" && !strings.EqualFold(tr, "all") && !strings.EqualFold(tr, "all roles") {
+				selectedRoles = append(selectedRoles, tr)
+			}
+		}
+	}
+
+	var selectedDepts []string
+	if cleanDept != "" && !strings.EqualFold(cleanDept, "all") && !strings.EqualFold(cleanDept, "all departments") {
+		for _, d := range strings.Split(cleanDept, ",") {
+			td := strings.TrimSpace(d)
+			if td != "" && !strings.EqualFold(td, "all") && !strings.EqualFold(td, "all departments") {
+				selectedDepts = append(selectedDepts, td)
+			}
+		}
+	}
+
 	var filteredDrives []ProcessedDrive
 	for _, pd := range processedList {
-		if cleanBatch != "" && cleanBatch != "All" && cleanBatch != "all" {
-			if pd.PlacementYear != cleanBatch && pd.BatchName != cleanBatch {
-				continue
-			}
-		}
-		if cleanRole != "" && cleanRole != "All" && cleanRole != "All Roles" && cleanRole != "all" {
-			if !strings.EqualFold(pd.JobRole, cleanRole) {
-				continue
-			}
-		}
-		if cleanDept != "" && cleanDept != "All" && cleanDept != "All Departments" && cleanDept != "all" {
-			cleanDeptCode := getDeptCode(cleanDept)
-			hasDept := false
-			for _, d := range pd.Departments {
-				dCode := getDeptCode(d)
-				if strings.EqualFold(d, cleanDept) ||
-					strings.EqualFold(dCode, cleanDeptCode) ||
-					strings.Contains(strings.ToLower(d), strings.ToLower(cleanDept)) ||
-					strings.Contains(strings.ToLower(cleanDept), strings.ToLower(d)) {
-					hasDept = true
+		// 1. Batch filter: match if drive matches ANY selected batch
+		if len(selectedBatches) > 0 {
+			batchMatched := false
+			for _, sb := range selectedBatches {
+				if strings.EqualFold(pd.PlacementYear, sb) ||
+					strings.EqualFold(pd.BatchName, sb) ||
+					strings.Contains(strings.ToLower(sb), strings.ToLower(pd.PlacementYear)) ||
+					strings.Contains(strings.ToLower(pd.BatchName), strings.ToLower(sb)) {
+					batchMatched = true
 					break
 				}
 			}
-			if !hasDept {
+			if !batchMatched {
 				continue
 			}
 		}
+
+		// 2. Role filter: match if drive matches ANY selected role
+		if len(selectedRoles) > 0 {
+			roleMatched := false
+			for _, sr := range selectedRoles {
+				if strings.EqualFold(pd.JobRole, sr) {
+					roleMatched = true
+					break
+				}
+			}
+			if !roleMatched {
+				continue
+			}
+		}
+
+		// 3. Department filter: match if ANY of drive's departments matches ANY selected department
+		if len(selectedDepts) > 0 {
+			deptMatched := false
+			for _, sd := range selectedDepts {
+				for _, d := range pd.Departments {
+					if strings.EqualFold(d, sd) ||
+						strings.Contains(strings.ToLower(d), strings.ToLower(sd)) ||
+						strings.Contains(strings.ToLower(sd), strings.ToLower(d)) {
+						deptMatched = true
+						break
+					}
+				}
+				if deptMatched {
+					break
+				}
+			}
+			if !deptMatched {
+				continue
+			}
+		}
+
 		filteredDrives = append(filteredDrives, pd)
 	}
 

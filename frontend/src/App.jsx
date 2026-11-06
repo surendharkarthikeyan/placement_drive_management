@@ -28,6 +28,7 @@ export default function App() {
   const [selectedIntelligenceOutcome, setSelectedIntelligenceOutcome] = useState(null)
   const [selectedIntelligenceOutcomeType, setSelectedIntelligenceOutcomeType] = useState('offers')
   const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState(null)
+  const [selectedIndustryFilterPreset, setSelectedIndustryFilterPreset] = useState(null)
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
   const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
   const [selectedIndustryMetricCell, setSelectedIndustryMetricCell] = useState(null)
@@ -36,6 +37,11 @@ export default function App() {
   const handleSelectIntelligenceOutcome = (outcome, type = 'offers') => {
     setSelectedIntelligenceOutcome(outcome)
     setSelectedIntelligenceOutcomeType(type)
+  }
+
+  const handleSelectIntelligenceIndustry = (companyId, filterPreset = null) => {
+    setSelectedIntelligenceIndustry(companyId)
+    setSelectedIndustryFilterPreset(companyId ? filterPreset : null)
   }
 
   // Student Placement Review state
@@ -180,13 +186,15 @@ export default function App() {
             onViewChange={(v) => {
               setIntelligenceView(v)
               setSelectedIndustryMetricCell(null)
+              setSelectedIntelligenceIndustry(null)
+              setSelectedIndustryFilterPreset(null)
             }}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
             selectedOutcome={selectedIntelligenceOutcome}
             onSelectOutcome={(outcome) => handleSelectIntelligenceOutcome(outcome, 'unique')}
             selectedIndustry={selectedIntelligenceIndustry}
-            onSelectIndustry={setSelectedIntelligenceIndustry}
+            onSelectIndustry={handleSelectIntelligenceIndustry}
             selectedCompany={selectedIntelligenceCompany}
             onSelectCompany={setSelectedIntelligenceCompany}
             selectedStudentFocus={selectedIntelligenceStudentFocus}
@@ -204,7 +212,8 @@ export default function App() {
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
             selectedIndustry={selectedIntelligenceIndustry}
-            onSelectIndustry={setSelectedIntelligenceIndustry}
+            onSelectIndustry={handleSelectIntelligenceIndustry}
+            selectedIndustryPreset={selectedIndustryFilterPreset}
             selectedIndustryCell={selectedIndustryMetricCell}
             onSelectDetail={setSelectedIndustryMetricCell}
             selectedIndustryDomain={selectedIndustryDomain}
@@ -220,7 +229,7 @@ export default function App() {
             selectedOutcomeType={selectedIntelligenceOutcomeType}
             onSelectOutcome={handleSelectIntelligenceOutcome}
             selectedIndustry={selectedIntelligenceIndustry}
-            onSelectIndustry={setSelectedIntelligenceIndustry}
+            onSelectIndustry={handleSelectIntelligenceIndustry}
             selectedIndustryCell={selectedIndustryMetricCell}
             onSelectIndustryCell={setSelectedIndustryMetricCell}
             onClearIndustryCell={() => setSelectedIndustryMetricCell(null)}
