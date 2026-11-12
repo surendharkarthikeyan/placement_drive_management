@@ -1176,42 +1176,82 @@ export default function IntelligenceRightPanel({
                   Drives in this Batch ({comp.drives.length})
                 </div>
                 <div className="space-y-2">
-                  {comp.drives.map((d) => (
-                    <div
-                      key={d.drive_id}
-                      className="p-3.5 bg-white border border-[#e2e8f0] rounded-[11px] shadow-2xs flex items-center justify-between gap-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="font-[800] text-[13.5px] text-[#0f172a] leading-tight truncate">
-                          {d.job_role}
-                        </div>
-                        <div className="text-[11.5px] text-[#64748b] mt-1 font-medium flex items-center gap-2">
-                          <span>{d.package_lpa > 0 ? `₹${d.package_lpa} LPA` : 'CTC pending'}</span>
-                          <span>•</span>
-                          <span className="capitalize">{d.overall_status?.replace(/_/g, ' ')}</span>
-                        </div>
-                        {(d.date_formatted || d.created_at) && (
-                          <div className="text-[11px] text-[#64748b] mt-1.5 flex items-center gap-1.5 font-medium">
-                            <Clock size={11} className="text-[#94a3b8] shrink-0" />
-                            <span>
-                              {d.date_formatted ||
-                                new Date(d.created_at).toLocaleDateString('en-GB', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric'
-                                })}
+                  {comp.drives.map((d) => {
+                    const st = (d.overall_status || '').toLowerCase()
+                    const badgeClass = st.includes('complete')
+                      ? 'bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]'
+                      : st.includes('cancel')
+                      ? 'bg-[#fff1f2] text-[#e11d48] border-[#fecdd3]'
+                      : st.includes('awaiting')
+                      ? 'bg-[#faf5ff] text-[#9333ea] border-[#e9d5ff]'
+                      : st.includes('progress') || st.includes('ongoing')
+                      ? 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]'
+                      : 'bg-[#eff6ff] text-[#2563eb] border-[#bfdbfe]'
+
+                    const statusText = st === 'completed'
+                      ? 'Completed'
+                      : st === 'cancelled'
+                      ? 'Cancelled'
+                      : st.includes('awaiting')
+                      ? 'Awaiting Result'
+                      : st === 'in_progress'
+                      ? 'In Progress'
+                      : d.overall_status ? d.overall_status.replace(/_/g, ' ') : 'Active'
+
+                    const formattedDate = d.date_formatted ||
+                      (d.created_at
+                        ? new Date(d.created_at).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })
+                        : '')
+
+                    return (
+                      <div
+                        key={d.drive_id}
+                        className="p-3 bg-white border border-[#e2e8f0] rounded-[11px] shadow-2xs flex flex-col gap-1.5 transition hover:border-[#93c5fd]"
+                      >
+                        {/* Row 1: Job Role + Status Badge on left, Offers count on right */}
+                        <div className="flex items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-[800] text-[13.5px] text-[#0f172a] leading-tight truncate">
+                              {d.job_role}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-[5px] text-[10px] font-[800] whitespace-nowrap shrink-0 border capitalize ${badgeClass}`}
+                            >
+                              {statusText}
                             </span>
                           </div>
-                        )}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-[14px] font-[850] text-[#2563eb]">
-                          {d.offers_count} {d.offers_count === 1 ? 'offer' : 'offers'}
+                          <div className="text-[13.5px] font-[850] text-[#2563eb] shrink-0 text-right">
+                            {d.offers_count} {d.offers_count === 1 ? 'offer' : 'offers'}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-[#94a3b8] font-medium">in this batch</div>
+
+                        {/* Row 2: Package LPA + Timestamp on left, Batch context on right */}
+                        <div className="flex items-center justify-between gap-2 text-[11.5px] text-[#64748b] font-medium">
+                          <div className="flex items-center gap-2 min-w-0 truncate">
+                            <span className="font-semibold text-[#1e293b]">
+                              {d.package_lpa > 0 ? `₹${d.package_lpa} LPA` : 'CTC pending'}
+                            </span>
+                            {formattedDate && (
+                              <>
+                                <span>•</span>
+                                <div className="flex items-center gap-1 text-[#64748b] truncate">
+                                  <Clock size={11} className="text-[#94a3b8] shrink-0" />
+                                  <span className="truncate">{formattedDate}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-[#94a3b8] font-medium shrink-0 text-right">
+                            in this batch
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
