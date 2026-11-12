@@ -1096,37 +1096,6 @@ export default function IntelligenceRightPanel({
               </div>
             </div>
 
-            {/* Current-Year Offers Card with 3-Year Progress */}
-            <div className="p-4 rounded-[13px] border border-[#bfdbfe] bg-gradient-to-br from-[#eff6ff] to-[#f8fafc] shadow-2xs flex flex-col gap-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-[11px] font-[800] uppercase tracking-[0.5px] text-[#64748b]">
-                    Current-Year Offers
-                  </div>
-                  <div className="text-[12px] text-[#475569] font-semibold mt-0.5">
-                    ₹{comp.package} LPA · <span className="font-bold text-[#0f172a]">{comp.status}</span>
-                  </div>
-                </div>
-                <div className="text-[28px] font-[900] text-[#1e40af] leading-none">
-                  {offers}
-                </div>
-              </div>
-
-              {/* Progress bar to 3-Year Maximum */}
-              <div>
-                <div className="flex items-center justify-between text-[11px] font-bold text-[#64748b] mb-1">
-                  <span>3-Year Historical Comparison</span>
-                  <span>{offers} of {max3 > 0 ? max3 : offers} peak offers ({progressPercent}%)</span>
-                </div>
-                <div className="h-[8px] bg-[#dbe5f1] rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#2563eb] to-[#3b82f6] transition-all duration-500 ease-out"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Dynamic Status / Context Alert */}
             {comp.status === 'Ongoing' && (
               <div className="p-3 bg-[#fffbeb] border border-[#fde68a] rounded-[10px] text-[12px] font-medium text-[#92400e] flex items-start gap-2 shadow-2xs">
@@ -1197,12 +1166,6 @@ export default function IntelligenceRightPanel({
                   <span className="text-[#64748b] font-medium">Package</span>
                   <span className="font-[800] text-[#0f172a]">₹{comp.package} LPA</span>
                 </div>
-                <div className="flex items-center justify-between py-2 text-[12.5px]">
-                  <span className="text-[#64748b] font-medium">Eligible Departments</span>
-                  <span className="font-bold text-[#2563eb] text-[12px]">
-                    {(comp.departments || []).join(', ')}
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -1216,17 +1179,30 @@ export default function IntelligenceRightPanel({
                   {comp.drives.map((d) => (
                     <div
                       key={d.drive_id}
-                      className="p-3 bg-white border border-[#e2e8f0] rounded-[11px] shadow-2xs flex items-center justify-between gap-3"
+                      className="p-3.5 bg-white border border-[#e2e8f0] rounded-[11px] shadow-2xs flex items-center justify-between gap-3"
                     >
-                      <div>
-                        <div className="font-[800] text-[13px] text-[#0f172a]">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-[800] text-[13.5px] text-[#0f172a] leading-tight truncate">
                           {d.job_role}
                         </div>
-                        <div className="text-[11.5px] text-[#64748b] mt-0.5 font-medium flex items-center gap-2">
+                        <div className="text-[11.5px] text-[#64748b] mt-1 font-medium flex items-center gap-2">
                           <span>{d.package_lpa > 0 ? `₹${d.package_lpa} LPA` : 'CTC pending'}</span>
                           <span>•</span>
                           <span className="capitalize">{d.overall_status?.replace(/_/g, ' ')}</span>
                         </div>
+                        {(d.date_formatted || d.created_at) && (
+                          <div className="text-[11px] text-[#64748b] mt-1.5 flex items-center gap-1.5 font-medium">
+                            <Clock size={11} className="text-[#94a3b8] shrink-0" />
+                            <span>
+                              {d.date_formatted ||
+                                new Date(d.created_at).toLocaleDateString('en-GB', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-[14px] font-[850] text-[#2563eb]">

@@ -2951,18 +2951,21 @@ func (r *PlacementIntelligenceRepository) GetCompanyStatistics(batchParam, secto
 
 	// 5. Gather drives for this batch and all previous batches
 	type DriveInfo struct {
-		ID            uint64  `gorm:"column:id"`
-		CompanyID     int64   `gorm:"column:company_id"`
-		BatchIDs      string  `gorm:"column:batch_id"`
-		JobRole       string  `gorm:"column:job_role"`
-		PackageLPA    float64 `gorm:"column:package_lpa"`
-		OverallStatus string  `gorm:"column:overall_status"`
-		DriveDeptIDs  string  `gorm:"column:department_ids"`
+		ID            uint64     `gorm:"column:id"`
+		CompanyID     int64      `gorm:"column:company_id"`
+		BatchIDs      string     `gorm:"column:batch_id"`
+		JobRole       string     `gorm:"column:job_role"`
+		PackageLPA    float64    `gorm:"column:package_lpa"`
+		OverallStatus string     `gorm:"column:overall_status"`
+		DriveDeptIDs  string     `gorm:"column:department_ids"`
+		CreatedAt     time.Time  `gorm:"column:created_at"`
+		UpdatedAt     time.Time  `gorm:"column:updated_at"`
+		StartDate     *time.Time `gorm:"column:drive_start_date"`
 	}
 
 	var allDrives []DriveInfo
 	r.db.Table("placement_drive pd").
-		Select("pd.id, pd.company_id, pd.batch_id, pd.job_role, pd.package_lpa, pd.overall_status, COALESCE(pde.department_ids, '') as department_ids").
+		Select("pd.id, pd.company_id, pd.batch_id, pd.job_role, pd.package_lpa, pd.overall_status, pd.created_at, pd.updated_at, pd.drive_start_date, COALESCE(pde.department_ids, '') as department_ids").
 		Joins("LEFT JOIN placement_drive_eligibility pde ON pd.id = pde.drive_id").
 		Scan(&allDrives)
 
@@ -3330,12 +3333,19 @@ func (r *PlacementIntelligenceRepository) GetCompanyStatistics(batchParam, secto
 		// Build drive details for this batch
 		var driveList []models.CompanyDriveDetail
 		for _, d := range drives {
+			dateStr := d.CreatedAt.Format("02 Jan 2006, 03:04 PM")
+			if d.StartDate != nil && !d.StartDate.IsZero() {
+				dateStr = d.StartDate.Format("02 Jan 2006")
+			}
 			driveList = append(driveList, models.CompanyDriveDetail{
 				DriveID:       d.ID,
 				JobRole:       d.JobRole,
 				PackageLPA:    d.PackageLPA,
 				OverallStatus: d.OverallStatus,
 				OffersCount:   driveBatchOfferMap[d.ID],
+				CreatedAt:     d.CreatedAt.Format(time.RFC3339),
+				UpdatedAt:     d.UpdatedAt.Format(time.RFC3339),
+				DateFormatted: dateStr,
 			})
 		}
 

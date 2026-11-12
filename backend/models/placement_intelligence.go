@@ -258,6 +258,9 @@ type CompanyDriveDetail struct {
 	PackageLPA    float64 `json:"package_lpa"`
 	OverallStatus string  `json:"overall_status"`
 	OffersCount   int64   `json:"offers_count"`
+	CreatedAt     string  `json:"created_at,omitempty"`
+	UpdatedAt     string  `json:"updated_at,omitempty"`
+	DateFormatted string  `json:"date_formatted,omitempty"`
 }
 
 // CompanyPlacedStudent represents a student placed in a company for the selected batch
