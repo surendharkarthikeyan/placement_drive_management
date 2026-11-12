@@ -421,7 +421,14 @@ func (r *DriveRepository) SaveDriveFields(drive *models.PlacementDrive, fields .
 
 // UpdateStatus updates the overall_status of a drive
 func (r *DriveRepository) UpdateStatus(id string, status string) error {
-	err := r.db.Model(&models.PlacementDrive{}).Where("id = ?", id).Update("overall_status", status).Error
+	updates := map[string]interface{}{
+		"overall_status": status,
+		"updated_at":     time.Now(),
+	}
+	if status == "completed" {
+		updates["drive_end_date"] = time.Now()
+	}
+	err := r.db.Model(&models.PlacementDrive{}).Where("id = ?", id).Updates(updates).Error
 	if err == nil && status == "completed" {
 		driveIDUint, _ := strconv.ParseUint(id, 10, 64)
 		if driveIDUint > 0 {
@@ -2237,6 +2244,7 @@ func (r *DriveRepository) SaveFinalSelections(
 		}
 		if markCompleted {
 			driveUpdates["overall_status"] = "completed"
+			driveUpdates["drive_end_date"] = now
 		}
 
 		if err := tx.Model(&models.PlacementDrive{}).Where("id = ?", driveID).Updates(driveUpdates).Error; err != nil {
