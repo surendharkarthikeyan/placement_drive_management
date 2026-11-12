@@ -101,6 +101,7 @@ func SetupRoutes(r *gin.Engine) {
 			intelligence.GET("/industry-right-panel", intelligenceCtrl.GetIndustryRightPanel)
 			intelligence.GET("/industry-companies", intelligenceCtrl.GetIndustryCompanies)
 			intelligence.GET("/company-recruitment-drives", intelligenceCtrl.GetCompanyRecruitmentDrives)
+			intelligence.GET("/company-statistics", intelligenceCtrl.GetCompanyStatistics)
 		}
 
 		// Health Check

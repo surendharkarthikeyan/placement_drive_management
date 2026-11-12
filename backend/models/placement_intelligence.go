@@ -251,4 +251,67 @@ type CompanyRecruitmentDrivesResponse struct {
 	TotalOffers   int64                       `json:"total_offers"`
 }
 
+// CompanyDriveDetail represents a drive conducted by a company in a batch
+type CompanyDriveDetail struct {
+	DriveID       uint64  `json:"drive_id"`
+	JobRole       string  `json:"job_role"`
+	PackageLPA    float64 `json:"package_lpa"`
+	OverallStatus string  `json:"overall_status"`
+	OffersCount   int64   `json:"offers_count"`
+}
+
+// CompanyPlacedStudent represents a student placed in a company for the selected batch
+type CompanyPlacedStudent struct {
+	UserID     uint64  `json:"user_id"`
+	Name       string  `json:"name"`
+	RollNo     string  `json:"roll_no"`
+	Department string  `json:"department"`
+	PackageLPA float64 `json:"package_lpa"`
+	JobRole    string  `json:"job_role"`
+}
+
+// CompanyStatisticsItem represents a row in the Recruiter Performance Ranking table
+type CompanyStatisticsItem struct {
+	CompanyID      int64                  `json:"company_id"`
+	Company        string                 `json:"company"`
+	Sector         string                 `json:"sector"`
+	Departments    []string               `json:"departments"`
+	Status         string                 `json:"status"` // "Completed", "Cancelled", "Ongoing", "Awaiting Final Result"
+	Stage          string                 `json:"stage"`  // "Offers Released", "Registration Open", "Technical Round", "Final Result Awaited", "Drive Cancelled", "Draft", etc.
+	Offers         int64                  `json:"offers"`
+	LastYear       int64                  `json:"last_year"`
+	YoY            int64                  `json:"yoy"`
+	Max3           int64                  `json:"max3"`
+	Package        float64                `json:"package"`
+	Drives         []CompanyDriveDetail   `json:"drives,omitempty"`
+	PlacedStudents []CompanyPlacedStudent `json:"placed_students,omitempty"`
+}
+
+// CompanyStatisticsStatusCounts aggregates counts for the 4 status cards/pills
+type CompanyStatisticsStatusCounts struct {
+	Completed           int64 `json:"completed"`
+	Cancelled           int64 `json:"cancelled"`
+	Ongoing             int64 `json:"ongoing"`
+	AwaitingFinalResult int64 `json:"awaiting_final_result"`
+	Total               int64 `json:"total"`
+}
+
+// DepartmentFilterItem represents a department option with ID, Name, and ShortCode
+type DepartmentFilterItem struct {
+	ID        uint64 `json:"id"`
+	Name      string `json:"name"`
+	ShortCode string `json:"short_code"`
+}
+
+// CompanyStatisticsResponse represents the full payload for the Company Statistics central view
+type CompanyStatisticsResponse struct {
+	SelectedBatch string                        `json:"selected_batch"`
+	Batches       []string                      `json:"batches"`
+	Departments   []DepartmentFilterItem        `json:"departments"`
+	Sectors       []string                      `json:"sectors"`
+	StatusCounts  CompanyStatisticsStatusCounts `json:"status_counts"`
+	TotalCount    int                           `json:"total_count"`
+	Companies     []CompanyStatisticsItem       `json:"companies"`
+}
+
 

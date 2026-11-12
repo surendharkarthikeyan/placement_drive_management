@@ -145,4 +145,21 @@ func (ctrl *PlacementIntelligenceController) GetCompanyRecruitmentDrives(c *gin.
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
+// GetCompanyStatistics returns real company placement rankings, status counts, and filter options
+func (ctrl *PlacementIntelligenceController) GetCompanyStatistics(c *gin.Context) {
+	batch := c.Query("batch")
+	sector := c.Query("sector")
+	department := c.Query("department")
+	status := c.Query("status")
+	sort := c.Query("sort")
+	search := c.Query("search")
+
+	data, err := ctrl.repo.GetCompanyStatistics(batch, sector, department, status, sort, search)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch company statistics: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
 

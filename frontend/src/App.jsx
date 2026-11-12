@@ -33,6 +33,8 @@ export default function App() {
   const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
   const [selectedIndustryMetricCell, setSelectedIndustryMetricCell] = useState(null)
   const [selectedIndustryDomain, setSelectedIndustryDomain] = useState('all')
+  const [selectedCompanyStatDetail, setSelectedCompanyStatDetail] = useState(null)
+  const [companyStatisticsData, setCompanyStatisticsData] = useState(null)
 
   const handleSelectIntelligenceOutcome = (outcome, type = 'offers') => {
     setSelectedIntelligenceOutcome(outcome)
@@ -188,6 +190,7 @@ export default function App() {
               setSelectedIndustryMetricCell(null)
               setSelectedIntelligenceIndustry(null)
               setSelectedIndustryFilterPreset(null)
+              setSelectedCompanyStatDetail(null)
             }}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
@@ -218,6 +221,11 @@ export default function App() {
             onSelectDetail={setSelectedIndustryMetricCell}
             selectedIndustryDomain={selectedIndustryDomain}
             onSelectIndustryDomain={setSelectedIndustryDomain}
+            selectedCompany={selectedIntelligenceCompany}
+            onSelectCompany={setSelectedIntelligenceCompany}
+            selectedCompanyStatDetail={selectedCompanyStatDetail}
+            onSelectCompanyStatDetail={setSelectedCompanyStatDetail}
+            onCompanyStatisticsDataLoaded={setCompanyStatisticsData}
           />
 
           {/* Right Panel */}
@@ -234,6 +242,9 @@ export default function App() {
             onSelectIndustryCell={setSelectedIndustryMetricCell}
             onClearIndustryCell={() => setSelectedIndustryMetricCell(null)}
             selectedIndustryDomain={selectedIndustryDomain}
+            selectedCompanyStatDetail={selectedCompanyStatDetail}
+            onClearCompanyStatDetail={() => setSelectedCompanyStatDetail(null)}
+            companyStatisticsData={companyStatisticsData}
           />
         </main>
       )}

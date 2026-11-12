@@ -31,6 +31,7 @@ import {
   getIntelligenceIndustryMatrix,
   getIntelligenceCompanyDrives
 } from '../../../services/api'
+import CompanyStatisticsWorkspace from './CompanyStatisticsWorkspace'
 
 /**
  * MultiSelectDropdown
@@ -206,7 +207,12 @@ export default function IntelligenceMiddlePanel({
   selectedIndustryPreset = null,
   selectedIndustryCell = null,
   selectedIndustryDomain = 'all',
-  onSelectIndustryDomain = () => {}
+  onSelectIndustryDomain = () => {},
+  selectedCompany = 'All',
+  onSelectCompany = () => {},
+  selectedCompanyStatDetail = null,
+  onSelectCompanyStatDetail = () => {},
+  onCompanyStatisticsDataLoaded = () => {}
 }) {
   // Filters State
   const [selectedBatchFilter, setSelectedBatchFilter] = useState('All')
@@ -567,6 +573,19 @@ export default function IntelligenceMiddlePanel({
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  // Company-wise Placement Statistics View
+  if (currentView === 'companies') {
+    return (
+      <CompanyStatisticsWorkspace
+        selectedCompany={selectedCompany}
+        onSelectCompany={onSelectCompany}
+        selectedCompanyStatDetail={selectedCompanyStatDetail}
+        onSelectCompanyStatDetail={onSelectCompanyStatDetail}
+        onCompanyStatisticsDataLoaded={onCompanyStatisticsDataLoaded}
+      />
+    )
   }
 
   if (currentView === 'industries') {

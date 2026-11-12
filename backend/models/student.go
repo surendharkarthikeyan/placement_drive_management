@@ -55,8 +55,9 @@ func (Batch) TableName() string {
 }
 
 type Department struct {
-	ID   uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
-	Name string `gorm:"size:255;not null" json:"name"`
+	ID        uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name      string `gorm:"size:255;not null" json:"name"`
+	ShortCode string `gorm:"column:short_code;size:50" json:"short_code"`
 }
 
 func (Department) TableName() string {

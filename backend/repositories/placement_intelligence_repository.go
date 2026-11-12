@@ -2839,5 +2839,611 @@ func (r *PlacementIntelligenceRepository) GetCompanyRecruitmentDrives(companyIDP
 	}, nil
 }
 
+// GetCompanyStatistics returns the real recruiter ranking data, status summaries, and filter options
+func (r *PlacementIntelligenceRepository) GetCompanyStatistics(batchParam, sectorParam, deptParam, statusParam, sortParam, searchParam string) (*models.CompanyStatisticsResponse, error) {
+	// 1. Fetch all batches in DB ordered ASC so the current/primary graduating batch comes first
+	var dbBatches []models.Batch
+	if err := r.db.Order("name ASC").Find(&dbBatches).Error; err != nil {
+		return nil, err
+	}
+
+	batchNames := make([]string, 0, len(dbBatches))
+	batchIDMap := make(map[uint64]models.Batch)
+	batchIDToYear := make(map[uint64]string)
+	yearToBatchID := make(map[string]uint64)
+	for _, b := range dbBatches {
+		batchNames = append(batchNames, b.Name)
+		batchIDMap[b.ID] = b
+		parts := strings.Split(b.Name, "-")
+		gradYear := b.Name
+		if len(parts) == 2 {
+			gradYear = strings.TrimSpace(parts[1])
+		}
+		batchIDToYear[b.ID] = gradYear
+		yearToBatchID[gradYear] = b.ID
+	}
+
+	// Determine targeted batch. Default: choose the first batch
+	var targetBatch models.Batch
+	cleanBatch := strings.TrimSpace(batchParam)
+	if cleanBatch != "" && cleanBatch != "default" && cleanBatch != "all" && cleanBatch != "All" {
+		for _, b := range dbBatches {
+			if b.Name == cleanBatch || fmt.Sprintf("%d", b.ID) == cleanBatch || strings.Contains(b.Name, cleanBatch) {
+				targetBatch = b
+				break
+			}
+		}
+	}
+	if targetBatch.ID == 0 && len(dbBatches) > 0 {
+		targetBatch = dbBatches[0]
+	}
+
+	// 2. Identify previous batches for YoY and 3-Year Max
+	var chronBatches []models.Batch
+	r.db.Order("name ASC").Find(&chronBatches)
+	targetIdx := -1
+	for idx, b := range chronBatches {
+		if b.ID == targetBatch.ID {
+			targetIdx = idx
+			break
+		}
+	}
+
+	var prevBatch *models.Batch
+	var prev3Batches []*models.Batch
+	if targetIdx > 0 {
+		prevBatch = &chronBatches[targetIdx-1]
+		start := targetIdx - 3
+		if start < 0 {
+			start = 0
+		}
+		for i := targetIdx - 1; i >= start; i-- {
+			prev3Batches = append(prev3Batches, &chronBatches[i])
+		}
+	}
+
+	// 3. Fetch master departments (strictly excluding Placement / PL)
+	var allDepts []models.Department
+	r.db.Where("LOWER(name) != 'placement' AND LOWER(COALESCE(short_code, '')) != 'pl' AND id != 4").Order("id ASC").Find(&allDepts)
+
+	// Ensure each department has its correct ShortCode from DB
+	deptIDMap := make(map[uint64]models.Department)
+	deptFilterList := make([]models.DepartmentFilterItem, 0, len(allDepts))
+	for i := range allDepts {
+		if allDepts[i].ShortCode == "" {
+			n := strings.ToLower(allDepts[i].Name)
+			if strings.Contains(n, "computer") || strings.Contains(n, "cse") {
+				allDepts[i].ShortCode = "CSE"
+			} else if strings.Contains(n, "information") || strings.Contains(n, "it") {
+				allDepts[i].ShortCode = "IT"
+			} else if strings.Contains(n, "electronics") || strings.Contains(n, "ece") {
+				allDepts[i].ShortCode = "ECE"
+			} else if strings.Contains(n, "artificial") || strings.Contains(n, "ai") {
+				allDepts[i].ShortCode = "AI & DS"
+			}
+		}
+		deptIDMap[allDepts[i].ID] = allDepts[i]
+		deptFilterList = append(deptFilterList, models.DepartmentFilterItem{
+			ID:        allDepts[i].ID,
+			Name:      allDepts[i].Name,
+			ShortCode: allDepts[i].ShortCode,
+		})
+	}
+
+	// 4. Fetch placement companies
+	var dbCompanies []models.PlacementCompany
+	compQuery := r.db.Table("placement_company").Where("status = '1'")
+
+	cleanSector := strings.ToUpper(strings.TrimSpace(sectorParam))
+	if cleanSector == "SOFTWARE" {
+		compQuery = compQuery.Where("company_domain IN ('SOFTWARE', 'BOTH')")
+	} else if cleanSector == "CORE" {
+		compQuery = compQuery.Where("company_domain IN ('CORE', 'BOTH')")
+	}
+
+	if searchParam != "" {
+		compQuery = compQuery.Where("company_name LIKE ?", "%"+searchParam+"%")
+	}
+
+	if err := compQuery.Order("company_name ASC").Find(&dbCompanies).Error; err != nil {
+		return nil, err
+	}
+
+	// 5. Gather drives for this batch and all previous batches
+	type DriveInfo struct {
+		ID            uint64  `gorm:"column:id"`
+		CompanyID     int64   `gorm:"column:company_id"`
+		BatchIDs      string  `gorm:"column:batch_id"`
+		JobRole       string  `gorm:"column:job_role"`
+		PackageLPA    float64 `gorm:"column:package_lpa"`
+		OverallStatus string  `gorm:"column:overall_status"`
+		DriveDeptIDs  string  `gorm:"column:department_ids"`
+	}
+
+	var allDrives []DriveInfo
+	r.db.Table("placement_drive pd").
+		Select("pd.id, pd.company_id, pd.batch_id, pd.job_role, pd.package_lpa, pd.overall_status, COALESCE(pde.department_ids, '') as department_ids").
+		Joins("LEFT JOIN placement_drive_eligibility pde ON pd.id = pde.drive_id").
+		Scan(&allDrives)
+
+	// Query real student offers broken down by company_id, drive_id, and student batch_id
+	type DriveBatchOffer struct {
+		CompanyID int64  `gorm:"column:company_id"`
+		DriveID   uint64 `gorm:"column:drive_id"`
+		BatchID   uint64 `gorm:"column:batch_id"`
+		Count     int64  `gorm:"column:count"`
+	}
+	var driveBatchOfferRows []DriveBatchOffer
+	r.db.Table("placement_drive_offers pdo").
+		Select("pd.company_id, pds.drive_id, u.batch_id, COUNT(pdo.id) as count").
+		Joins("JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id").
+		Joins("JOIN placement_drive pd ON pds.drive_id = pd.id").
+		Joins("JOIN master_users u ON pds.user_id = u.id").
+		Group("pd.company_id, pds.drive_id, u.batch_id").
+		Scan(&driveBatchOfferRows)
+
+	// Map: companyID -> batchID -> offers count
+	compBatchOffersByBatchID := make(map[int64]map[uint64]int64)
+	driveBatchOfferMap := make(map[uint64]int64)
+	driveDonesWithOffers := make(map[uint64]bool)
+	for _, dbo := range driveBatchOfferRows {
+		if compBatchOffersByBatchID[dbo.CompanyID] == nil {
+			compBatchOffersByBatchID[dbo.CompanyID] = make(map[uint64]int64)
+		}
+		compBatchOffersByBatchID[dbo.CompanyID][dbo.BatchID] += dbo.Count
+		driveDonesWithOffers[dbo.DriveID] = true
+		if dbo.BatchID == targetBatch.ID {
+			driveBatchOfferMap[dbo.DriveID] += dbo.Count
+		}
+	}
+
+	// Query placed students for this specific batch
+	type StudentOfferDetail struct {
+		CompanyID  int64   `gorm:"column:company_id"`
+		DriveID    uint64  `gorm:"column:drive_id"`
+		BatchID    uint64  `gorm:"column:batch_id"`
+		UserID     uint64  `gorm:"column:user_id"`
+		Name       string  `gorm:"column:name"`
+		RollNo     string  `gorm:"column:roll_no"`
+		Department string  `gorm:"column:dept"`
+		PackageLPA float64 `gorm:"column:package_lpa"`
+		JobRole    string  `gorm:"column:job_role"`
+	}
+	var allStudentOffers []StudentOfferDetail
+	r.db.Table("placement_drive_offers pdo").
+		Select("pd.company_id, pds.drive_id, u.batch_id, u.id as user_id, u.name, u.roll_no, COALESCE(d.short_code, d.name, '') as dept, COALESCE(NULLIF(pdo.package_lpa, 0), pd.package_lpa) as package_lpa, pd.job_role").
+		Joins("JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id").
+		Joins("JOIN placement_drive pd ON pds.drive_id = pd.id").
+		Joins("JOIN master_users u ON pds.user_id = u.id").
+		Joins("LEFT JOIN departments d ON u.department_id = d.id").
+		Where("u.batch_id = ?", targetBatch.ID).
+		Order("u.name ASC").
+		Scan(&allStudentOffers)
+
+	compPlacedStudents := make(map[int64][]models.CompanyPlacedStudent)
+	for _, so := range allStudentOffers {
+		compPlacedStudents[so.CompanyID] = append(compPlacedStudents[so.CompanyID], models.CompanyPlacedStudent{
+			UserID:     so.UserID,
+			Name:       so.Name,
+			RollNo:     so.RollNo,
+			Department: so.Department,
+			PackageLPA: so.PackageLPA,
+			JobRole:    so.JobRole,
+		})
+	}
+
+	// Fetch placement_company_batch_placements for any historical drives/batches not in placement_drive_offers
+	type BatchPlacementInfo struct {
+		CompanyID      int64  `gorm:"column:company_id"`
+		DriveID        uint64 `gorm:"column:drive_id"`
+		Batch          string `gorm:"column:batch"`
+		StudentsPlaced int64  `gorm:"column:students_placed"`
+	}
+	var batchPlacements []BatchPlacementInfo
+	r.db.Table("placement_company_batch_placements").
+		Where("status = '1'").
+		Scan(&batchPlacements)
+
+	for _, bp := range batchPlacements {
+		// Avoid double counting if the drive already has offers recorded in driveBatchOfferRows
+		if bp.DriveID > 0 && driveDonesWithOffers[bp.DriveID] {
+			continue
+		}
+		var bID uint64
+		for id, b := range batchIDMap {
+			if b.Name == bp.Batch || batchIDToYear[id] == bp.Batch {
+				bID = id
+				break
+			}
+		}
+		if bID > 0 {
+			if compBatchOffersByBatchID[bp.CompanyID] == nil {
+				compBatchOffersByBatchID[bp.CompanyID] = make(map[uint64]int64)
+			}
+			compBatchOffersByBatchID[bp.CompanyID][bID] += bp.StudentsPlaced
+		}
+	}
+
+	// Check drives for target batch
+	compTargetDrives := make(map[int64][]DriveInfo)
+	for _, dr := range allDrives {
+		hasBatch := false
+		var bIDs []uint64
+		if err := json.Unmarshal([]byte(dr.BatchIDs), &bIDs); err == nil {
+			for _, bid := range bIDs {
+				if bid == targetBatch.ID {
+					hasBatch = true
+					break
+				}
+			}
+		} else {
+			if dr.BatchIDs == fmt.Sprintf("%d", targetBatch.ID) ||
+				strings.Contains(dr.BatchIDs, fmt.Sprintf("[%d]", targetBatch.ID)) ||
+				strings.Contains(dr.BatchIDs, fmt.Sprintf("[%d,", targetBatch.ID)) ||
+				strings.Contains(dr.BatchIDs, fmt.Sprintf(",%d]", targetBatch.ID)) ||
+				strings.Contains(dr.BatchIDs, fmt.Sprintf(", %d]", targetBatch.ID)) ||
+				strings.Contains(dr.BatchIDs, fmt.Sprintf(", %d,", targetBatch.ID)) {
+				hasBatch = true
+			}
+		}
+		if hasBatch {
+			compTargetDrives[dr.CompanyID] = append(compTargetDrives[dr.CompanyID], dr)
+		}
+	}
+
+	// Build items for each company
+	var allItems []models.CompanyStatisticsItem
+	statusCounts := models.CompanyStatisticsStatusCounts{}
+
+	compEligibleDeptIDs := make(map[int64]map[uint64]bool)
+	compEligibleShortCodes := make(map[int64]map[string]bool)
+
+	for _, comp := range dbCompanies {
+		drives := compTargetDrives[comp.ID]
+
+		hasBatchPlacement := compBatchOffersByBatchID[comp.ID] != nil && compBatchOffersByBatchID[comp.ID][targetBatch.ID] > 0
+
+		// Strictly include only companies that have an actual drive or recorded placements in the selected batch
+		if len(drives) == 0 && !hasBatchPlacement {
+			continue
+		}
+
+		compEligibleDeptIDs[comp.ID] = make(map[uint64]bool)
+		compEligibleShortCodes[comp.ID] = make(map[string]bool)
+
+		// Determine Sector
+		sector := "Software"
+		if comp.CompanyDomain == "CORE" {
+			sector = "Core"
+		} else if comp.CompanyDomain == "BOTH" {
+			sector = "Software / Core"
+		}
+
+		// Determine Status & Stage
+		status := "Ongoing" // default for drives not in other 3 categories
+		stage := "Upcoming / Draft"
+
+		hasCompleted := false
+		hasAwaiting := false
+		allCancelled := len(drives) > 0
+		hasAnyDrive := len(drives) > 0
+
+		var maxPkg float64
+		totalOffers := int64(0)
+		if compBatchOffersByBatchID[comp.ID] != nil {
+			totalOffers = compBatchOffersByBatchID[comp.ID][targetBatch.ID]
+		}
+
+		for _, d := range drives {
+			if d.PackageLPA > maxPkg {
+				maxPkg = d.PackageLPA
+			}
+
+			s := strings.ToLower(strings.TrimSpace(d.OverallStatus))
+			if s == "completed" {
+				hasCompleted = true
+				allCancelled = false
+			} else if s == "awaiting_final_result" || strings.Contains(s, "awaiting") {
+				hasAwaiting = true
+				allCancelled = false
+			} else if s == "cancelled" {
+				// is cancelled
+			} else {
+				allCancelled = false
+			}
+
+			// Extract departments from DriveDeptIDs
+			rawDeptIDs := strings.TrimSpace(d.DriveDeptIDs)
+			if rawDeptIDs == "[]" {
+				// Explicitly Open to All departments
+				for _, ad := range allDepts {
+					compEligibleDeptIDs[comp.ID][ad.ID] = true
+					compEligibleShortCodes[comp.ID][ad.ShortCode] = true
+				}
+			} else if rawDeptIDs != "" && rawDeptIDs != "null" {
+				var ids []uint64
+				if err := json.Unmarshal([]byte(rawDeptIDs), &ids); err == nil {
+					if len(ids) == 0 {
+						// Empty array also means Open to All
+						for _, ad := range allDepts {
+							compEligibleDeptIDs[comp.ID][ad.ID] = true
+							compEligibleShortCodes[comp.ID][ad.ShortCode] = true
+						}
+					} else {
+						for _, id := range ids {
+							if id != 4 {
+								compEligibleDeptIDs[comp.ID][id] = true
+								if dpt, ok := deptIDMap[id]; ok {
+									compEligibleShortCodes[comp.ID][dpt.ShortCode] = true
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// If no eligibility configured on drive, check student participants
+			if len(compEligibleDeptIDs[comp.ID]) == 0 {
+				var studentDeptIDs []uint64
+				r.db.Table("placement_drive_students pds").
+					Joins("JOIN master_users u ON pds.user_id = u.id").
+					Where("pds.drive_id = ? AND u.department_id IS NOT NULL", d.ID).
+					Distinct("u.department_id").
+					Pluck("u.department_id", &studentDeptIDs)
+				for _, sID := range studentDeptIDs {
+					if sID != 4 {
+						compEligibleDeptIDs[comp.ID][sID] = true
+						if dpt, ok := deptIDMap[sID]; ok {
+							compEligibleShortCodes[comp.ID][dpt.ShortCode] = true
+						}
+					}
+				}
+			}
+		}
+
+		// If no drives in this batch, check across all drives of this company
+		if len(compEligibleDeptIDs[comp.ID]) == 0 {
+			for _, dr := range allDrives {
+				if dr.CompanyID == comp.ID {
+					rawDeptIDs := strings.TrimSpace(dr.DriveDeptIDs)
+					if rawDeptIDs == "[]" {
+						for _, ad := range allDepts {
+							compEligibleDeptIDs[comp.ID][ad.ID] = true
+							compEligibleShortCodes[comp.ID][ad.ShortCode] = true
+						}
+					} else if rawDeptIDs != "" && rawDeptIDs != "null" {
+						var ids []uint64
+						if err := json.Unmarshal([]byte(rawDeptIDs), &ids); err == nil {
+							if len(ids) == 0 {
+								for _, ad := range allDepts {
+									compEligibleDeptIDs[comp.ID][ad.ID] = true
+									compEligibleShortCodes[comp.ID][ad.ShortCode] = true
+								}
+							} else {
+								for _, id := range ids {
+									if id != 4 {
+										compEligibleDeptIDs[comp.ID][id] = true
+										if dpt, ok := deptIDMap[id]; ok {
+											compEligibleShortCodes[comp.ID][dpt.ShortCode] = true
+										}
+									}
+								}
+							}
+						}
+					}
+					if len(compEligibleDeptIDs[comp.ID]) == 0 {
+						var studentDeptIDs []uint64
+						r.db.Table("placement_drive_students pds").
+							Joins("JOIN master_users u ON pds.user_id = u.id").
+							Where("pds.drive_id = ? AND u.department_id IS NOT NULL", dr.ID).
+							Distinct("u.department_id").
+							Pluck("u.department_id", &studentDeptIDs)
+						for _, sID := range studentDeptIDs {
+							if sID != 4 {
+								compEligibleDeptIDs[comp.ID][sID] = true
+								if dpt, ok := deptIDMap[sID]; ok {
+									compEligibleShortCodes[comp.ID][dpt.ShortCode] = true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// If still empty (e.g. general recruiters like TCS, Survey Sparrow), assign standard academic engineering departments
+		if len(compEligibleDeptIDs[comp.ID]) == 0 {
+			for _, d := range allDepts {
+				compEligibleDeptIDs[comp.ID][d.ID] = true
+				compEligibleShortCodes[comp.ID][d.ShortCode] = true
+			}
+		}
+
+		// Build sorted list of short codes for this company
+		var shortCodeList []string
+		for sc := range compEligibleShortCodes[comp.ID] {
+			if sc != "" && sc != "PL" {
+				shortCodeList = append(shortCodeList, sc)
+			}
+		}
+		sort.Strings(shortCodeList)
+
+		if hasCompleted || totalOffers > 0 {
+			status = "Completed"
+			stage = "Offers Released"
+		} else if allCancelled && hasAnyDrive {
+			status = "Cancelled"
+			stage = "Drive Cancelled"
+		} else if hasAwaiting {
+			status = "Awaiting Final Result"
+			stage = "Final Result Awaited"
+		} else {
+			status = "Ongoing"
+			if hasAnyDrive {
+				latestStatus := drives[0].OverallStatus
+				if latestStatus == "in_progress" {
+					stage = "Technical Round In Progress"
+				} else if latestStatus == "registration_open" {
+					stage = "Registration Open"
+				} else if latestStatus == "scheduled" {
+					stage = "Drive Scheduled"
+				} else {
+					stage = "Technical Round Underway"
+				}
+			} else {
+				stage = "Active Recruitment Underway"
+			}
+		}
+
+		// Last Year Offers (from immediate preceding batch)
+		var lastYearOffers int64
+		if prevBatch != nil && compBatchOffersByBatchID[comp.ID] != nil {
+			lastYearOffers = compBatchOffersByBatchID[comp.ID][prevBatch.ID]
+		}
+
+		// YoY
+		yoy := totalOffers - lastYearOffers
+
+		// 3-Year Max
+		var max3 int64
+		for _, pb := range prev3Batches {
+			if compBatchOffersByBatchID[comp.ID] != nil {
+				if off := compBatchOffersByBatchID[comp.ID][pb.ID]; off > max3 {
+					max3 = off
+				}
+			}
+		}
+
+		// Aggregate Status Counts
+		switch status {
+		case "Completed":
+			statusCounts.Completed++
+		case "Cancelled":
+			statusCounts.Cancelled++
+		case "Awaiting Final Result":
+			statusCounts.AwaitingFinalResult++
+		default:
+			statusCounts.Ongoing++
+		}
+		statusCounts.Total++
+
+		// Build drive details for this batch
+		var driveList []models.CompanyDriveDetail
+		for _, d := range drives {
+			driveList = append(driveList, models.CompanyDriveDetail{
+				DriveID:       d.ID,
+				JobRole:       d.JobRole,
+				PackageLPA:    d.PackageLPA,
+				OverallStatus: d.OverallStatus,
+				OffersCount:   driveBatchOfferMap[d.ID],
+			})
+		}
+
+		allItems = append(allItems, models.CompanyStatisticsItem{
+			CompanyID:      comp.ID,
+			Company:        comp.CompanyName,
+			Sector:         sector,
+			Departments:    shortCodeList,
+			Status:         status,
+			Stage:          stage,
+			Offers:         totalOffers,
+			LastYear:       lastYearOffers,
+			YoY:            yoy,
+			Max3:           max3,
+			Package:        maxPkg,
+			Drives:         driveList,
+			PlacedStudents: compPlacedStudents[comp.ID],
+		})
+	}
+
+	// 6. Filter by department if specified
+	cleanDept := strings.ToLower(strings.TrimSpace(deptParam))
+	if cleanDept != "" && cleanDept != "all" && cleanDept != "all departments" {
+		var targetDeptID uint64
+		var targetShortCode string
+		for _, d := range allDepts {
+			if strings.EqualFold(d.Name, cleanDept) ||
+				strings.EqualFold(d.ShortCode, cleanDept) ||
+				fmt.Sprintf("%d", d.ID) == cleanDept {
+				targetDeptID = d.ID
+				targetShortCode = strings.ToUpper(strings.TrimSpace(d.ShortCode))
+				break
+			}
+		}
+
+		var filteredByDept []models.CompanyStatisticsItem
+		for _, item := range allItems {
+			matches := false
+			if targetDeptID > 0 && compEligibleDeptIDs[item.CompanyID][targetDeptID] {
+				matches = true
+			} else if targetShortCode != "" && compEligibleShortCodes[item.CompanyID][targetShortCode] {
+				matches = true
+			} else {
+				for _, sc := range item.Departments {
+					if strings.EqualFold(sc, cleanDept) || (targetShortCode != "" && strings.EqualFold(sc, targetShortCode)) {
+						matches = true
+						break
+					}
+				}
+			}
+
+			if matches {
+				filteredByDept = append(filteredByDept, item)
+			}
+		}
+		allItems = filteredByDept
+	}
+
+	// 7. Filter by Status (from left panel or status filter)
+	cleanStatus := strings.TrimSpace(statusParam)
+	if cleanStatus != "" && cleanStatus != "all" && cleanStatus != "All" {
+		var filteredByStatus []models.CompanyStatisticsItem
+		for _, item := range allItems {
+			if strings.EqualFold(item.Status, cleanStatus) {
+				filteredByStatus = append(filteredByStatus, item)
+			}
+		}
+		allItems = filteredByStatus
+	}
+
+	// 8. Sorting
+	cleanSort := strings.ToLower(strings.TrimSpace(sortParam))
+	switch cleanSort {
+	case "package", "package_desc", "package · high → low":
+		sort.SliceStable(allItems, func(i, j int) bool {
+			return allItems[i].Package > allItems[j].Package
+		})
+	case "growth", "growth_desc", "growth · high → low":
+		sort.SliceStable(allItems, func(i, j int) bool {
+			return allItems[i].YoY > allItems[j].YoY
+		})
+	case "decline", "decline_desc", "decline · highest":
+		sort.SliceStable(allItems, func(i, j int) bool {
+			return allItems[i].YoY < allItems[j].YoY
+		})
+	case "name", "name_asc", "company · a → z":
+		sort.SliceStable(allItems, func(i, j int) bool {
+			return strings.ToLower(allItems[i].Company) < strings.ToLower(allItems[j].Company)
+		})
+	default: // offers · high → low (default)
+		sort.SliceStable(allItems, func(i, j int) bool {
+			if allItems[i].Offers != allItems[j].Offers {
+				return allItems[i].Offers > allItems[j].Offers
+			}
+			return allItems[i].Package > allItems[j].Package
+		})
+	}
+
+	return &models.CompanyStatisticsResponse{
+		SelectedBatch: targetBatch.Name,
+		Batches:       batchNames,
+		Departments:   deptFilterList,
+		Sectors:       []string{"All Sectors", "Software", "Core"},
+		StatusCounts:  statusCounts,
+		TotalCount:    len(allItems),
+		Companies:     allItems,
+	}, nil
+}
+
 
 

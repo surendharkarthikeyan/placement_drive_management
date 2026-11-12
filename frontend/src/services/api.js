@@ -399,4 +399,28 @@ export const getIntelligenceCompanyDrives = async ({ companyId = '', companyName
   return response.data?.data !== undefined ? response.data.data : response.data
 }
 
+export const getIntelligenceCompanyStatistics = async ({ batch = '', sector = '', department = '', status = '', sort = '', search = '' } = {}) => {
+  const params = {}
+  if (batch && batch !== 'all' && batch !== 'All') {
+    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+  }
+  if (sector && sector !== 'all' && sector !== 'All Sectors' && sector !== 'All') {
+    params.sector = sector
+  }
+  if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
+    params.department = department
+  }
+  if (status && status !== 'all' && status !== 'All') {
+    params.status = status
+  }
+  if (sort) {
+    params.sort = sort
+  }
+  if (search) {
+    params.search = search
+  }
+  const response = await api.get('/intelligence/company-statistics', { params })
+  return response.data?.data !== undefined ? response.data.data : response.data
+}
+
 export default api

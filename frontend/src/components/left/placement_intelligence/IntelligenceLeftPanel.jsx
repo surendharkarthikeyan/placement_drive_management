@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Loader2, Users, Filter, Check, X, Layers } from 'lucide-react'
 import GlassSegmentedControl from '../../common/GlassSegmentedControl'
-import { getIntelligenceBatchSummaries, getIntelligenceOutcomeSummary, getDrives } from '../../../services/api'
+import {
+  getIntelligenceBatchSummaries,
+  getIntelligenceOutcomeSummary,
+  getDrives,
+  getIntelligenceCompanyStatistics
+} from '../../../services/api'
 import { companyStatsData, studentsData } from './intelligenceData'
 
 /**
@@ -360,22 +365,39 @@ export default function IntelligenceLeftPanel({
     return o.title.toLowerCase().includes(q) || o.sub.toLowerCase().includes(q)
   })
 
-  // 3. Company stats view data
+  // 3. Company stats view data - exactly 4 required statuses
   const companyGroups = [
     { title: 'Completed', status: 'Completed', subtitle: 'Offers released' },
+    { title: 'Cancelled', status: 'Cancelled', subtitle: 'Drive cancelled' },
     { title: 'Ongoing', status: 'Ongoing', subtitle: 'Recruitment underway' },
-    { title: 'Awaiting Result', status: 'Awaiting Result', subtitle: 'Result still pending' },
-    { title: 'Confirmed', status: 'Confirmed', subtitle: 'Future visit confirmed' },
-    { title: 'Yet to Confirm', status: 'Not Confirmed', subtitle: 'Recruiter follow-up' },
-    { title: 'Missed This Year', status: 'Not Visiting', subtitle: 'Previously active' }
+    { title: 'Awaiting Final Result', status: 'Awaiting Final Result', subtitle: 'Final result pending' }
   ]
 
-  const filteredCompanyGroups = companyGroups.filter((cg) => {
-    if (companyTab === 'active') {
-      if (!['Ongoing', 'Awaiting Result', 'Confirmed'].includes(cg.status)) return false
-    } else if (companyTab === 'completed') {
-      if (cg.status !== 'Completed') return false
+  // Real DB Company Statistics status counts
+  const [dbCompanyStatusCounts, setDbCompanyStatusCounts] = useState(null)
+  useEffect(() => {
+    if (currentView === 'companies') {
+      getIntelligenceCompanyStatistics()
+        .then((res) => {
+          if (res?.status_counts) {
+            setDbCompanyStatusCounts(res.status_counts)
+          }
+        })
+        .catch(console.error)
     }
+  }, [currentView])
+
+  const getCompanyCountByStatus = (status) => {
+    if (dbCompanyStatusCounts) {
+      if (status === 'Completed') return dbCompanyStatusCounts.completed || 0
+      if (status === 'Cancelled') return dbCompanyStatusCounts.cancelled || 0
+      if (status === 'Ongoing') return dbCompanyStatusCounts.ongoing || 0
+      if (status === 'Awaiting Final Result') return dbCompanyStatusCounts.awaiting_final_result || 0
+    }
+    return 0
+  }
+
+  const filteredCompanyGroups = companyGroups.filter((cg) => {
     if (!q) return true
     return cg.title.toLowerCase().includes(q) || cg.subtitle.toLowerCase().includes(q)
   })
@@ -400,19 +422,36 @@ export default function IntelligenceLeftPanel({
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'Completed':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dcfce7] text-[#15803d]">Completed</span>
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
+            Completed
+          </span>
+        )
+      case 'Cancelled':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#fff1f2] text-[#e11d48] border border-[#fecdd3]">
+            Cancelled
+          </span>
+        )
       case 'Ongoing':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dbeafe] text-[#1d4ed8]">Ongoing</span>
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#fffbeb] text-[#b45309] border border-[#fde68a]">
+            Ongoing
+          </span>
+        )
+      case 'Awaiting Final Result':
       case 'Awaiting Result':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fef3c7] text-[#b45309]">Awaiting Result</span>
-      case 'Confirmed':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ede9fe] text-[#6d28d9]">Confirmed</span>
-      case 'Not Confirmed':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#475569]">Yet to Confirm</span>
-      case 'Not Visiting':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fee2e2] text-[#b91c1c]">Missed</span>
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#faf5ff] text-[#9333ea] border border-[#e9d5ff]">
+            Awaiting Final Result
+          </span>
+        )
       default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#475569]">{status}</span>
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+            {status}
+          </span>
+        )
     }
   }
 
@@ -698,20 +737,6 @@ export default function IntelligenceLeftPanel({
                 />
               )}
 
-              {currentView === 'companies' && (
-                <GlassSegmentedControl
-                  options={[
-                    { id: 'all', label: 'All' },
-                    { id: 'active', label: 'Active' },
-                    { id: 'completed', label: 'Completed' }
-                  ]}
-                  value={companyTab}
-                  onChange={setCompanyTab}
-                  buttonPy="py-[7px]"
-                  fontSize="text-[13px]"
-                />
-              )}
-
               {currentView === 'students' && (
                 <GlassSegmentedControl
                   options={[
@@ -977,47 +1002,35 @@ export default function IntelligenceLeftPanel({
         {/* VIEW 3: COMPANY STATISTICS (Offer Performance) */}
         {currentView === 'companies' && (
           <div className="flex flex-col gap-2.5 animate-in fade-in duration-150">
-            <div className="text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] mb-0.5 px-1">
-              Process Position
+            <div className="flex items-center justify-between mb-0.5 px-1 min-h-[22px]">
+              <span className="text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b]">
+                Process Position
+              </span>
+              {selectedCompany && selectedCompany !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectCompany('All')
+                    setSearchQuery('')
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[#eff6ff] hover:bg-[#dbeafe] text-[#2563eb] border border-[#bfdbfe] text-[11px] font-[750] cursor-pointer transition shadow-2xs active:scale-98"
+                  title="Clear selected status filter"
+                >
+                  <X size={11} strokeWidth={2.5} />
+                  <span>Clear Filter</span>
+                </button>
+              )}
             </div>
 
-            {/* All Companies Card */}
-            <button
-              type="button"
-              onClick={() => onSelectCompany('All')}
-              className={`group relative w-full p-[14px_16px] text-left rounded-[12px] transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                selectedCompany === 'All'
-                  ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'
-                  : 'bg-white/95 hover:bg-white border border-[#e2e8f0] hover:border-[#93c5fd] hover:shadow-[0_4px_12px_rgba(15,23,42,0.05)] hover:-translate-y-[1px]'
-              }`}
-            >
-              {selectedCompany === 'All' && (
-                <span className="absolute -left-[1px] top-[12px] bottom-[12px] w-[3.5px] rounded-r-full bg-[#2563eb] shadow-[0_0_8px_#3b82f6]" />
-              )}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[14px] font-[850] text-[#1e293b] group-hover:text-[#2563eb] transition-colors leading-tight">
-                    All Companies
-                  </div>
-                  <div className="text-[11.5px] text-[#64748b] mt-1 font-medium">
-                    Complete recruiter list
-                  </div>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe]/80 shadow-2xs">
-                  {companyStatsData.length}
-                </span>
-              </div>
-            </button>
-
-            {/* Individual Process Status Cards */}
+            {/* Individual Process Status Cards (4 Statuses: Completed, Cancelled, Ongoing, Awaiting Final Result) */}
             {filteredCompanyGroups.map((cg) => {
-              const count = companyStatsData.filter(x => x.status === cg.status).length
+              const count = getCompanyCountByStatus(cg.status)
               const isActive = selectedCompany === cg.status
               return (
                 <button
                   key={cg.title}
                   type="button"
-                  onClick={() => onSelectCompany(cg.status)}
+                  onClick={() => onSelectCompany(selectedCompany === cg.status ? 'All' : cg.status)}
                   className={`group relative w-full p-[14px_16px] text-left rounded-[12px] transition-all duration-200 cursor-pointer flex flex-col justify-between ${
                     isActive
                       ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'
@@ -1041,11 +1054,26 @@ export default function IntelligenceLeftPanel({
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] text-[#64748b] mt-3 pt-2.5 border-t border-[#e2e8f0]/80 font-medium">
-                    <span>{count} companies</span>
+                    <span>{count} {count === 1 ? 'company' : 'companies'}</span>
                   </div>
                 </button>
               )
             })}
+
+            {/* Dedicated Clear Filter Button below cards when a filter is active */}
+            {selectedCompany && selectedCompany !== 'All' && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectCompany('All')
+                  setSearchQuery('')
+                }}
+                className="w-full mt-1 py-2 px-3 rounded-[10px] bg-[#f8fafc] hover:bg-[#eff6ff] border border-[#e2e8f0] hover:border-[#bfdbfe] text-[#475569] hover:text-[#2563eb] text-[12px] font-[750] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-98"
+              >
+                <X size={12} strokeWidth={2.5} className="text-[#64748b] group-hover:text-[#2563eb]" />
+                <span>Clear Status Filter ({selectedCompany})</span>
+              </button>
+            )}
           </div>
         )}
 

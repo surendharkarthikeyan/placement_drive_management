@@ -53,7 +53,10 @@ export default function IntelligenceRightPanel({
   selectedIndustryCell = null,
   onSelectIndustryCell = () => {},
   onClearIndustryCell = () => {},
-  selectedIndustryDomain = 'all'
+  selectedIndustryDomain = 'all',
+  selectedCompanyStatDetail = null,
+  onClearCompanyStatDetail = () => {},
+  companyStatisticsData = null
 }) {
   const [activeMode, setActiveMode] = useState('overview') // Default view is Overview
   const [loading, setLoading] = useState(false)
@@ -1011,6 +1014,366 @@ export default function IntelligenceRightPanel({
             )}
           </div>
         )}
+      </aside>
+    )
+  }
+
+  // =========================================================================
+  // VIEW 3: COMPANY STATISTICS RIGHT PANEL
+  // =========================================================================
+  if (currentView === 'companies') {
+    const comp = selectedCompanyStatDetail
+    const totalInView = companyStatisticsData?.companies?.length || 0
+    const statusCounts = companyStatisticsData?.status_counts || {
+      completed: 0,
+      cancelled: 0,
+      ongoing: 0,
+      awaiting_final_result: 0,
+      total: 0
+    }
+
+    const getCompanyInitials = (str) => {
+      if (!str) return 'CO'
+      const parts = str.trim().split(/\s+/)
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
+      return (parts[0][0] + parts[1][0]).toUpperCase()
+    }
+
+    // MODE A: Selected Company Detailed View
+    if (comp) {
+      const delta = comp.yoy
+      const hasDrives = comp.drives && comp.drives.length > 0
+      const placedStudents = comp.placed_students || []
+      const max3 = comp.max3 || 0
+      const offers = comp.offers || 0
+      const progressPercent =
+        max3 > 0
+          ? Math.min(100, Math.round((offers / max3) * 100))
+          : offers > 0
+          ? 100
+          : 0
+
+      return (
+        <aside className="w-[475px] min-w-[475px] bg-[#fbfdff] border-l border-[#dbe5f1] h-full flex flex-col select-none overflow-hidden">
+          {/* Header with Back button */}
+          <div className="p-[14px_18px] border-b border-[#e2e8f0] bg-white flex items-center justify-between shrink-0 shadow-2xs">
+            <button
+              type="button"
+              onClick={onClearCompanyStatDetail}
+              className="inline-flex items-center gap-1.5 text-[12px] font-[750] text-[#2563eb] hover:text-[#1d4ed8] hover:underline cursor-pointer transition active:scale-98"
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Overview</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClearCompanyStatDetail}
+              className="w-7 h-7 rounded-[7px] text-[#64748b] hover:text-[#0f172a] hover:bg-[#f1f5f9] flex items-center justify-center transition cursor-pointer"
+              title="Close company detail"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto hide-scrollbar p-[18px] space-y-4">
+            {/* Company Title Banner */}
+            <div className="p-4 bg-white border border-[#e2e8f0] rounded-[13px] shadow-2xs flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-[11px] bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border border-[#bfdbfe] text-[#2563eb] font-[850] text-[16px] flex items-center justify-center shrink-0 shadow-2xs">
+                {getCompanyInitials(comp.company)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-[17px] font-[850] text-[#0f172a] leading-tight m-0 truncate">
+                    {comp.company}
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-[5px] text-[10.5px] font-[800] uppercase tracking-[0.3px] bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+                    {comp.sector}
+                  </span>
+                </div>
+                <div className="text-[12px] text-[#64748b] mt-1 font-semibold flex items-center gap-2">
+                  <span>{comp.stage}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Current-Year Offers Card with 3-Year Progress */}
+            <div className="p-4 rounded-[13px] border border-[#bfdbfe] bg-gradient-to-br from-[#eff6ff] to-[#f8fafc] shadow-2xs flex flex-col gap-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-[11px] font-[800] uppercase tracking-[0.5px] text-[#64748b]">
+                    Current-Year Offers
+                  </div>
+                  <div className="text-[12px] text-[#475569] font-semibold mt-0.5">
+                    ₹{comp.package} LPA · <span className="font-bold text-[#0f172a]">{comp.status}</span>
+                  </div>
+                </div>
+                <div className="text-[28px] font-[900] text-[#1e40af] leading-none">
+                  {offers}
+                </div>
+              </div>
+
+              {/* Progress bar to 3-Year Maximum */}
+              <div>
+                <div className="flex items-center justify-between text-[11px] font-bold text-[#64748b] mb-1">
+                  <span>3-Year Historical Comparison</span>
+                  <span>{offers} of {max3 > 0 ? max3 : offers} peak offers ({progressPercent}%)</span>
+                </div>
+                <div className="h-[8px] bg-[#dbe5f1] rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#2563eb] to-[#3b82f6] transition-all duration-500 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dynamic Status / Context Alert */}
+            {comp.status === 'Ongoing' && (
+              <div className="p-3 bg-[#fffbeb] border border-[#fde68a] rounded-[10px] text-[12px] font-medium text-[#92400e] flex items-start gap-2 shadow-2xs">
+                <Clock size={15} className="text-[#d97706] shrink-0 mt-0.5" />
+                <span>Recruitment is still underway for this batch. Current offer count should not be interpreted as the final outcome.</span>
+              </div>
+            )}
+            {comp.status === 'Awaiting Final Result' && (
+              <div className="p-3 bg-[#faf5ff] border border-[#e9d5ff] rounded-[10px] text-[12px] font-medium text-[#7e22ce] flex items-start gap-2 shadow-2xs">
+                <AlertTriangle size={15} className="text-[#9333ea] shrink-0 mt-0.5" />
+                <span>Final company results are awaited from the recruiter. Students who reached the final stage remain visible.</span>
+              </div>
+            )}
+            {comp.status === 'Cancelled' && (
+              <div className="p-3 bg-[#fff1f2] border border-[#fecdd3] rounded-[10px] text-[12px] font-medium text-[#be123c] flex items-start gap-2 shadow-2xs">
+                <X size={15} className="text-[#e11d48] shrink-0 mt-0.5" />
+                <span>Recruitment drive was cancelled for this batch.</span>
+              </div>
+            )}
+            {comp.status === 'Completed' && delta < 0 && (
+              <div className="p-3 bg-[#fff1f2] border border-[#fecdd3] rounded-[10px] text-[12px] font-medium text-[#be123c] flex items-start gap-2 shadow-2xs">
+                <AlertTriangle size={15} className="text-[#e11d48] shrink-0 mt-0.5" />
+                <span>Current offers are {Math.abs(delta)} lower than last year ({comp.last_year} offers last year).</span>
+              </div>
+            )}
+            {comp.status === 'Completed' && delta > 0 && (
+              <div className="p-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-[10px] text-[12px] font-medium text-[#166534] flex items-start gap-2 shadow-2xs">
+                <CheckCircle2 size={15} className="text-[#16a34a] shrink-0 mt-0.5" />
+                <span>Offers increased by +{delta} compared to last year ({comp.last_year} offers last year).</span>
+              </div>
+            )}
+
+            {/* Recruiter Performance Table Card */}
+            <div>
+              <div className="text-[12px] font-[850] uppercase tracking-[0.5px] text-[#64748b] mb-2 px-1">
+                Recruiter Performance
+              </div>
+              <div className="bg-white border border-[#e2e8f0] rounded-[12px] p-3.5 shadow-2xs divide-y divide-[#f1f5f9]">
+                <div className="flex items-center justify-between py-2 text-[12.5px]">
+                  <span className="text-[#64748b] font-medium">This Year Offers</span>
+                  <span className="font-[850] text-[#0f172a]">{comp.offers}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 text-[12.5px]">
+                  <span className="text-[#64748b] font-medium">Last Year Offers</span>
+                  <span className="font-semibold text-[#334155]">{comp.last_year}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 text-[12.5px]">
+                  <span className="text-[#64748b] font-medium">3-Year Maximum</span>
+                  <span className="font-semibold text-[#334155]">{comp.max3}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 text-[12.5px]">
+                  <span className="text-[#64748b] font-medium">YoY Difference</span>
+                  {comp.last_year === 0 ? (
+                    <span className="text-[#94a3b8] font-semibold">No comparison</span>
+                  ) : delta > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
+                      +{delta}
+                    </span>
+                  ) : delta < 0 ? (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#fff1f2] text-[#e11d48] border border-[#fecdd3]">
+                      {delta}
+                    </span>
+                  ) : (
+                    <span className="text-[#64748b] font-bold">0</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between py-2 text-[12.5px]">
+                  <span className="text-[#64748b] font-medium">Package</span>
+                  <span className="font-[800] text-[#0f172a]">₹{comp.package} LPA</span>
+                </div>
+                <div className="flex items-center justify-between py-2 text-[12.5px]">
+                  <span className="text-[#64748b] font-medium">Eligible Departments</span>
+                  <span className="font-bold text-[#2563eb] text-[12px]">
+                    {(comp.departments || []).join(', ')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recruitment Drives in this Batch */}
+            {hasDrives && (
+              <div>
+                <div className="text-[12px] font-[850] uppercase tracking-[0.5px] text-[#64748b] mb-2 px-1">
+                  Drives in this Batch ({comp.drives.length})
+                </div>
+                <div className="space-y-2">
+                  {comp.drives.map((d) => (
+                    <div
+                      key={d.drive_id}
+                      className="p-3 bg-white border border-[#e2e8f0] rounded-[11px] shadow-2xs flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="font-[800] text-[13px] text-[#0f172a]">
+                          {d.job_role}
+                        </div>
+                        <div className="text-[11.5px] text-[#64748b] mt-0.5 font-medium flex items-center gap-2">
+                          <span>{d.package_lpa > 0 ? `₹${d.package_lpa} LPA` : 'CTC pending'}</span>
+                          <span>•</span>
+                          <span className="capitalize">{d.overall_status?.replace(/_/g, ' ')}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[14px] font-[850] text-[#2563eb]">
+                          {d.offers_count} {d.offers_count === 1 ? 'offer' : 'offers'}
+                        </div>
+                        <div className="text-[10px] text-[#94a3b8] font-medium">in this batch</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Placed Students List */}
+            <div>
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-[12px] font-[850] uppercase tracking-[0.5px] text-[#64748b]">
+                  Placed Students ({placedStudents.length})
+                </span>
+                {placedStudents.length > 0 && (
+                  <span className="text-[11px] font-bold text-[#16a34a] bg-[#f0fdf4] px-2 py-0.5 rounded-full border border-[#bbf7d0]">
+                    ✓ Confirmed Offers
+                  </span>
+                )}
+              </div>
+
+              {placedStudents.length === 0 ? (
+                <div className="p-4 bg-white border border-[#e2e8f0] rounded-[12px] text-center text-[#94a3b8] text-[12px] font-medium shadow-2xs">
+                  No confirmed offers recorded for this company in this batch yet.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {placedStudents.map((st, idx) => (
+                    <div
+                      key={`${st.user_id}-${st.job_role}-${idx}`}
+                      className="p-3 bg-white border border-[#e2e8f0] rounded-[11px] shadow-2xs flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-[8px] bg-[#eff6ff] text-[#2563eb] font-[850] text-[11.5px] flex items-center justify-center shrink-0 border border-[#bfdbfe]">
+                          {getCompanyInitials(st.name)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-[800] text-[#0f172a] truncate leading-tight">
+                            {st.name}
+                          </div>
+                          <div className="text-[11px] text-[#64748b] mt-0.5 font-medium truncate flex items-center gap-1.5">
+                            <span>{st.roll_no}</span>
+                            <span>•</span>
+                            <span className="px-1.5 py-0.2 rounded-[4px] bg-[#f1f5f9] text-[#334155] font-bold text-[10px]">
+                              {st.department}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[12.5px] font-[850] text-[#16a34a]">
+                          {st.package_lpa > 0 ? `₹${st.package_lpa} LPA` : 'Confirmed'}
+                        </div>
+                        <div className="text-[10px] text-[#64748b] font-medium truncate max-w-[110px]">
+                          {st.job_role}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      )
+    }
+
+    // MODE B: Company Statistics Overview Mode (When no specific company row is clicked)
+    return (
+      <aside className="w-[475px] min-w-[475px] bg-[#fbfdff] border-l border-[#dbe5f1] h-full flex flex-col select-none overflow-hidden">
+        {/* Header */}
+        <div className="p-[18px_20px] border-b border-[#e2e8f0] bg-white shrink-0 shadow-2xs">
+          <h2 className="text-[17px] font-[850] text-[#0f172a] tracking-tight leading-tight m-0">
+            Company Statistics
+          </h2>
+          <p className="text-[12px] text-[#64748b] mt-1 font-medium leading-relaxed m-0">
+            Select a recruiter from the table to inspect current stage, offer trends, drives and student outcomes.
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto hide-scrollbar p-[20px] space-y-4">
+          {/* Card 1: Recruiters in Current View */}
+          <div className="p-4.5 rounded-[13px] border border-[#bfdbfe] bg-gradient-to-br from-[#eff6ff] to-[#f8fafc] shadow-2xs flex items-center justify-between">
+            <div>
+              <div className="text-[14px] font-[850] text-[#172554] tracking-tight">
+                Recruiters in Current View
+              </div>
+              <div className="text-[11.5px] text-[#64748b] mt-0.5 font-medium">
+                Based on active batch and filters
+              </div>
+            </div>
+            <div className="text-[32px] font-[900] text-[#2563eb] leading-none">
+              {totalInView}
+            </div>
+          </div>
+
+          {/* Card 2: Process Position Breakdown */}
+          <div className="bg-white border border-[#e2e8f0] rounded-[13px] p-4 shadow-2xs">
+            <div className="text-[12px] font-[850] uppercase tracking-[0.5px] text-[#64748b] mb-3">
+              Process Position
+            </div>
+            <div className="space-y-2.5 divide-y divide-[#f1f5f9]">
+              <div className="flex items-center justify-between pt-1 text-[13px]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#16a34a]" />
+                  <span className="font-semibold text-[#334155]">Completed</span>
+                </div>
+                <span className="font-[850] text-[#0f172a]">{statusCounts.completed}</span>
+              </div>
+              <div className="flex items-center justify-between pt-2.5 text-[13px]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />
+                  <span className="font-semibold text-[#334155]">Ongoing</span>
+                </div>
+                <span className="font-[850] text-[#0f172a]">{statusCounts.ongoing}</span>
+              </div>
+              <div className="flex items-center justify-between pt-2.5 text-[13px]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#a855f7]" />
+                  <span className="font-semibold text-[#334155]">Awaiting Final Result</span>
+                </div>
+                <span className="font-[850] text-[#0f172a]">{statusCounts.awaiting_final_result}</span>
+              </div>
+              <div className="flex items-center justify-between pt-2.5 text-[13px]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]" />
+                  <span className="font-semibold text-[#334155]">Cancelled</span>
+                </div>
+                <span className="font-[850] text-[#0f172a]">{statusCounts.cancelled}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Helper Card */}
+          <div className="p-3.5 bg-[#eff6ff]/70 border border-[#bfdbfe]/80 rounded-[11px] text-[12px] text-[#1e40af] leading-relaxed flex items-start gap-2 shadow-2xs">
+            <Sparkles size={16} className="text-[#2563eb] shrink-0 mt-0.5" />
+            <span>
+              Click on any row in the <strong>Recruiter Performance Ranking</strong> table to inspect its individual recruitment drives, salary packages, and confirmed placed students.
+            </span>
+          </div>
+        </div>
       </aside>
     )
   }
