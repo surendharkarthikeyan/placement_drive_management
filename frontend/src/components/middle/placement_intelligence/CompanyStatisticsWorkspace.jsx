@@ -17,6 +17,15 @@ const SECTOR_OPTIONS = [
   { id: 'core', label: 'Core' }
 ]
 
+const FALLBACK_BATCHES = ['2022-2026', '2023-2027', '2024-2028', '2025-2029']
+
+const FALLBACK_DEPARTMENTS = [
+  { id: 1, name: 'Computer Science and Engineering', short_code: 'CSE' },
+  { id: 2, name: 'Information Technology', short_code: 'IT' },
+  { id: 3, name: 'Electronics and Communication Engineering', short_code: 'ECE' },
+  { id: 5, name: 'Artificial Intelligence and Data Science', short_code: 'AI & DS' }
+]
+
 export default function CompanyStatisticsWorkspace({
   selectedCompany = 'All',
   onSelectCompany = () => {},
@@ -28,8 +37,8 @@ export default function CompanyStatisticsWorkspace({
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [data, setData] = useState(null)
 
-  // Filter States
-  const [selectedBatch, setSelectedBatch] = useState('')
+  // Filter States - default to Batch 2022-2026
+  const [selectedBatch, setSelectedBatch] = useState('2022-2026')
   const [selectedSector, setSelectedSector] = useState('all')
   const [selectedDept, setSelectedDept] = useState('all')
   const [selectedSort, setSelectedSort] = useState('offers_desc')
@@ -66,7 +75,6 @@ export default function CompanyStatisticsWorkspace({
     }
 
     try {
-      // If left panel has a status selected (Completed, Cancelled, Ongoing, Awaiting Final Result)
       const statusParam =
         selectedCompany && selectedCompany !== 'All' ? selectedCompany : ''
 
@@ -78,14 +86,11 @@ export default function CompanyStatisticsWorkspace({
         sort: selectedSort
       })
 
-      setData(res)
-      if (typeof onCompanyStatisticsDataLoaded === 'function') {
-        onCompanyStatisticsDataLoaded(res)
-      }
-
-      // Set default batch if none selected yet
-      if (!selectedBatch && res?.selected_batch) {
-        setSelectedBatch(res.selected_batch)
+      if (res) {
+        setData(res)
+        if (typeof onCompanyStatisticsDataLoaded === 'function') {
+          onCompanyStatisticsDataLoaded(res)
+        }
       }
     } catch (err) {
       console.error('Failed to load company statistics:', err)
@@ -93,14 +98,18 @@ export default function CompanyStatisticsWorkspace({
       setLoading(false)
       setIsRefreshing(false)
     }
-  }, [selectedBatch, selectedSector, selectedDept, selectedSort, selectedCompany])
+  }, [selectedBatch, selectedSector, selectedDept, selectedSort, selectedCompany, onCompanyStatisticsDataLoaded])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  const batches = data?.batches || []
-  const departments = data?.departments || []
+  const batches =
+    data?.batches && data.batches.length > 0 ? data.batches : FALLBACK_BATCHES
+  const departments =
+    data?.departments && data.departments.length > 0
+      ? data.departments
+      : FALLBACK_DEPARTMENTS
   const companies = data?.companies || []
   const statusCounts = data?.status_counts || {
     completed: 0,
@@ -112,8 +121,7 @@ export default function CompanyStatisticsWorkspace({
 
   // Handle Reset Filters
   const handleResetFilters = () => {
-    const firstBatch = batches.length > 0 ? batches[0] : ''
-    setSelectedBatch(firstBatch)
+    setSelectedBatch('2022-2026')
     setSelectedSector('all')
     setSelectedDept('all')
     setSelectedSort('offers_desc')
@@ -204,10 +212,13 @@ export default function CompanyStatisticsWorkspace({
   const currentDeptLabel = useMemo(() => {
     if (!selectedDept || selectedDept === 'all') return 'All Departments'
     const found = departments.find(
-      (d) => d.short_code === selectedDept || d.name === selectedDept
+      (d) =>
+        String(d.id) === String(selectedDept) ||
+        (d.short_code && d.short_code.toLowerCase() === selectedDept.toLowerCase()) ||
+        (d.name && d.name.toLowerCase() === selectedDept.toLowerCase())
     )
     if (found) {
-      return found.short_code ? `${found.short_code} · ${found.name}` : found.name
+      return found.short_code || found.name
     }
     return selectedDept
   }, [selectedDept, departments])
@@ -254,14 +265,19 @@ export default function CompanyStatisticsWorkspace({
         <div className="relative inline-block" ref={batchRef}>
           <button
             type="button"
-            onClick={() => setIsBatchOpen((prev) => !prev)}
+            onClick={() => {
+              setIsBatchOpen((prev) => !prev)
+              setIsSectorOpen(false)
+              setIsDeptOpen(false)
+              setIsSortOpen(false)
+            }}
             className="h-[36px] px-3 rounded-[9px] border border-[#dbe5f1] bg-white hover:border-[#93c5fd] transition flex items-center gap-2 text-[12.5px] cursor-pointer shadow-2xs"
           >
             <span className="text-[11px] font-[850] uppercase tracking-[0.4px] text-[#64748b]">
               Batch
             </span>
             <span className="font-[750] text-[#1e293b]">
-              {selectedBatch ? `Batch ${selectedBatch}` : 'Select Batch'}
+              {selectedBatch ? (selectedBatch.startsWith('Batch') ? selectedBatch : `Batch ${selectedBatch}`) : 'Batch 2022-2026'}
             </span>
             <ChevronDown size={14} className="text-[#64748b] ml-0.5" />
           </button>
@@ -269,13 +285,16 @@ export default function CompanyStatisticsWorkspace({
           {isBatchOpen && (
             <div className="absolute top-[42px] left-0 min-w-[170px] bg-white rounded-[10px] shadow-[0_8px_24px_rgba(15,23,42,0.12)] border border-[#dbe5f1] py-1.5 z-50 animate-in fade-in duration-100">
               {batches.map((b) => {
-                const isSelected = selectedBatch === b
+                const bName = typeof b === 'object' ? b.name : b
+                const cleanB = String(bName).replace(/^batch\s*/i, '').trim()
+                const isSelected =
+                  String(selectedBatch).replace(/^batch\s*/i, '').trim() === cleanB
                 return (
                   <button
-                    key={b}
+                    key={cleanB}
                     type="button"
                     onClick={() => {
-                      setSelectedBatch(b)
+                      setSelectedBatch(cleanB)
                       setIsBatchOpen(false)
                     }}
                     className={`w-full px-3.5 py-2 text-left text-[12.5px] flex items-center justify-between transition cursor-pointer ${
@@ -284,7 +303,7 @@ export default function CompanyStatisticsWorkspace({
                         : 'text-[#334155] hover:bg-[#f8fafc]'
                     }`}
                   >
-                    <span>Batch {b}</span>
+                    <span>Batch {cleanB}</span>
                     {isSelected && <Check size={14} className="text-[#2563eb]" />}
                   </button>
                 )
@@ -297,7 +316,12 @@ export default function CompanyStatisticsWorkspace({
         <div className="relative inline-block" ref={sectorRef}>
           <button
             type="button"
-            onClick={() => setIsSectorOpen((prev) => !prev)}
+            onClick={() => {
+              setIsSectorOpen((prev) => !prev)
+              setIsBatchOpen(false)
+              setIsDeptOpen(false)
+              setIsSortOpen(false)
+            }}
             className="h-[36px] px-3 rounded-[9px] border border-[#dbe5f1] bg-white hover:border-[#93c5fd] transition flex items-center gap-2 text-[12.5px] cursor-pointer shadow-2xs"
           >
             <span className="text-[11px] font-[850] uppercase tracking-[0.4px] text-[#64748b]">
@@ -340,7 +364,12 @@ export default function CompanyStatisticsWorkspace({
         <div className="relative inline-block" ref={deptRef}>
           <button
             type="button"
-            onClick={() => setIsDeptOpen((prev) => !prev)}
+            onClick={() => {
+              setIsDeptOpen((prev) => !prev)
+              setIsBatchOpen(false)
+              setIsSectorOpen(false)
+              setIsSortOpen(false)
+            }}
             className="h-[36px] px-3 rounded-[9px] border border-[#dbe5f1] bg-white hover:border-[#93c5fd] transition flex items-center gap-2 text-[12.5px] cursor-pointer shadow-2xs"
           >
             <span className="text-[11px] font-[850] uppercase tracking-[0.4px] text-[#64748b]">
@@ -361,13 +390,15 @@ export default function CompanyStatisticsWorkspace({
                   setIsDeptOpen(false)
                 }}
                 className={`w-full px-3.5 py-2 text-left text-[12.5px] flex items-center justify-between transition cursor-pointer ${
-                  selectedDept === 'all'
+                  !selectedDept || selectedDept === 'all'
                     ? 'bg-[#eff6ff] text-[#2563eb] font-[750]'
                     : 'text-[#334155] hover:bg-[#f8fafc]'
                 }`}
               >
                 <span>All Departments</span>
-                {selectedDept === 'all' && <Check size={14} className="text-[#2563eb]" />}
+                {(!selectedDept || selectedDept === 'all') && (
+                  <Check size={14} className="text-[#2563eb]" />
+                )}
               </button>
               {departments
                 .filter((dept) => {
@@ -381,14 +412,18 @@ export default function CompanyStatisticsWorkspace({
                 .map((dept) => {
                   const deptShort = typeof dept === 'object' ? dept.short_code || '' : ''
                   const deptName = typeof dept === 'object' ? dept.name : dept
+                  const val = deptShort || deptName
                   const isSelected =
-                    selectedDept === deptShort || selectedDept === deptName
+                    selectedDept &&
+                    selectedDept !== 'all' &&
+                    (selectedDept.toLowerCase() === (deptShort || '').toLowerCase() ||
+                      selectedDept.toLowerCase() === (deptName || '').toLowerCase())
                   return (
                     <button
                       key={typeof dept === 'object' ? dept.id : dept}
                       type="button"
                       onClick={() => {
-                        setSelectedDept(deptShort || deptName)
+                        setSelectedDept(val)
                         setIsDeptOpen(false)
                       }}
                       className={`w-full px-3.5 py-2 text-left text-[12.5px] flex items-center justify-between transition cursor-pointer ${
@@ -405,7 +440,7 @@ export default function CompanyStatisticsWorkspace({
                         )}
                         <span className="truncate">{deptName}</span>
                       </div>
-                      {isSelected && <Check size={14} className="text-[#2563eb] shrink-0" />}
+                      {isSelected && <Check size={14} className="text-[#2563eb]" />}
                     </button>
                   )
                 })}
@@ -417,7 +452,12 @@ export default function CompanyStatisticsWorkspace({
         <div className="relative inline-block" ref={sortRef}>
           <button
             type="button"
-            onClick={() => setIsSortOpen((prev) => !prev)}
+            onClick={() => {
+              setIsSortOpen((prev) => !prev)
+              setIsBatchOpen(false)
+              setIsSectorOpen(false)
+              setIsDeptOpen(false)
+            }}
             className="h-[36px] px-3 rounded-[9px] border border-[#dbe5f1] bg-white hover:border-[#93c5fd] transition flex items-center gap-2 text-[12.5px] cursor-pointer shadow-2xs"
           >
             <span className="text-[11px] font-[850] uppercase tracking-[0.4px] text-[#64748b]">

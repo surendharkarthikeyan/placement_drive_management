@@ -2866,9 +2866,12 @@ func (r *PlacementIntelligenceRepository) GetCompanyStatistics(batchParam, secto
 	// Determine targeted batch. Default: choose the first batch
 	var targetBatch models.Batch
 	cleanBatch := strings.TrimSpace(batchParam)
+	cleanBatch = strings.TrimPrefix(cleanBatch, "Batch ")
+	cleanBatch = strings.TrimPrefix(cleanBatch, "batch ")
+	cleanBatch = strings.TrimSpace(cleanBatch)
 	if cleanBatch != "" && cleanBatch != "default" && cleanBatch != "all" && cleanBatch != "All" {
 		for _, b := range dbBatches {
-			if b.Name == cleanBatch || fmt.Sprintf("%d", b.ID) == cleanBatch || strings.Contains(b.Name, cleanBatch) {
+			if b.Name == cleanBatch || fmt.Sprintf("%d", b.ID) == cleanBatch || strings.Contains(b.Name, cleanBatch) || strings.Contains(cleanBatch, b.Name) {
 				targetBatch = b
 				break
 			}
@@ -3368,12 +3371,19 @@ func (r *PlacementIntelligenceRepository) GetCompanyStatistics(batchParam, secto
 
 	// 6. Filter by department if specified
 	cleanDept := strings.ToLower(strings.TrimSpace(deptParam))
+	cleanDept = strings.TrimPrefix(cleanDept, "department ")
+	cleanDept = strings.TrimSpace(cleanDept)
 	if cleanDept != "" && cleanDept != "all" && cleanDept != "all departments" {
 		var targetDeptID uint64
 		var targetShortCode string
+		cleanDeptNoSpace := strings.ReplaceAll(strings.ReplaceAll(cleanDept, " ", ""), "&", "")
+		isAIDept := cleanDept == "ai" || cleanDept == "aids" || strings.Contains(cleanDept, "artificial") || strings.Contains(cleanDept, "data science")
 		for _, d := range allDepts {
-			if strings.EqualFold(d.Name, cleanDept) ||
+			dShortClean := strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(d.ShortCode), " ", ""), "&", "")
+			if (isAIDept && strings.Contains(strings.ToLower(d.Name), "artificial")) ||
+				strings.EqualFold(d.Name, cleanDept) ||
 				strings.EqualFold(d.ShortCode, cleanDept) ||
+				(d.ShortCode != "" && dShortClean == cleanDeptNoSpace) ||
 				fmt.Sprintf("%d", d.ID) == cleanDept {
 				targetDeptID = d.ID
 				targetShortCode = strings.ToUpper(strings.TrimSpace(d.ShortCode))

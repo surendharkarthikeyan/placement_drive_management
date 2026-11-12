@@ -296,7 +296,7 @@ export const getIntelligenceOutcomeStudents = async ({ outcome = 'notPlaced', ba
   if (outcome) params.outcome = outcome
   if (type) params.type = type
   if (batch && batch !== 'all' && batch !== 'All') {
-    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+    params.batch = String(batch).replace(/^batch\s*/i, '').replace(/[\u2013\u2014]/g, '-').trim()
   }
   if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
     params.department = department
@@ -317,7 +317,7 @@ export const getIntelligenceOverallStats = async (arg1 = {}, arg2 = '') => {
   }
   const params = {}
   if (batch && batch !== 'all' && batch !== 'All') {
-    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+    params.batch = String(batch).replace(/^batch\s*/i, '').replace(/[\u2013\u2014]/g, '-').trim()
   }
   if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
     params.department = department
@@ -329,7 +329,7 @@ export const getIntelligenceOverallStats = async (arg1 = {}, arg2 = '') => {
 export const exportIntelligenceExcel = async (batch = '', department = '') => {
   const params = {}
   if (batch && batch !== 'all' && batch !== 'All') {
-    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+    params.batch = String(batch).replace(/^batch\s*/i, '').replace(/[\u2013\u2014]/g, '-').trim()
   }
   if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
     params.department = department
@@ -364,7 +364,7 @@ export const getIntelligenceIndustryMatrix = async ({ sector = 'all', department
 export const getIntelligenceIndustryRightPanel = async ({ batch = '', sector = 'all', department = 'All' } = {}) => {
   const params = {}
   if (batch && batch !== 'all' && batch !== 'All') {
-    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+    params.batch = String(batch).replace(/^batch\s*/i, '').replace(/[\u2013\u2014]/g, '-').trim()
   }
   if (sector && sector !== 'all') params.sector = sector
   if (department && department !== 'All' && department !== 'All Departments') {
@@ -377,7 +377,7 @@ export const getIntelligenceIndustryRightPanel = async ({ batch = '', sector = '
 export const getIntelligenceIndustryCompanies = async ({ metric = 'visited', batch = '', sector = 'all', department = 'All' } = {}) => {
   const params = { metric }
   if (batch && batch !== 'all' && batch !== 'All') {
-    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+    params.batch = String(batch).replace(/^batch\s*/i, '').replace(/[\u2013\u2014]/g, '-').trim()
   }
   if (sector && sector !== 'all') params.sector = sector
   if (department && department !== 'All' && department !== 'All Departments') {
@@ -402,7 +402,7 @@ export const getIntelligenceCompanyDrives = async ({ companyId = '', companyName
 export const getIntelligenceCompanyStatistics = async ({ batch = '', sector = '', department = '', status = '', sort = '', search = '' } = {}) => {
   const params = {}
   if (batch && batch !== 'all' && batch !== 'All') {
-    params.batch = String(batch).replace(/[\u2013\u2014]/g, '-')
+    params.batch = String(batch).replace(/^batch\s*/i, '').replace(/[\u2013\u2014]/g, '-').trim()
   }
   if (sector && sector !== 'all' && sector !== 'All Sectors' && sector !== 'All') {
     params.sector = sector
