@@ -423,4 +423,25 @@ export const getIntelligenceCompanyStatistics = async ({ batch = '', sector = ''
   return response.data?.data !== undefined ? response.data.data : response.data
 }
 
+export const getIntelligenceStudents = async ({ batch, department, sort, search, focus } = {}) => {
+  const params = {}
+  if (batch && batch !== 'all' && batch !== 'All') {
+    params.batch = batch
+  }
+  if (department && department !== 'all' && department !== 'All' && department !== 'All Departments') {
+    params.department = department
+  }
+  if (sort) {
+    params.sort = sort
+  }
+  if (search) {
+    params.search = search
+  }
+  if (focus && focus !== 'all' && focus !== 'all_students') {
+    params.focus = focus
+  }
+  const response = await api.get('/intelligence/student-intelligence', { params })
+  return response.data?.data !== undefined ? response.data.data : response.data
+}
+
 export default api

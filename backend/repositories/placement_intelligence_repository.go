@@ -3465,5 +3465,454 @@ func (r *PlacementIntelligenceRepository) GetCompanyStatistics(batchParam, secto
 	}, nil
 }
 
+// GetStudentIntelligence fetches students, calculates round progression & outcome statistics, and applies filtering & sorting
+func (r *PlacementIntelligenceRepository) GetStudentIntelligence(batchParam, deptParam, sortParam, searchParam, focusParam string) (*models.StudentIntelligenceResponse, error) {
+	// 1. Fetch batches
+	var dbBatches []models.Batch
+	if err := r.db.Order("name ASC").Find(&dbBatches).Error; err != nil {
+		return nil, err
+	}
+
+	batchNames := make([]string, 0, len(dbBatches))
+	for _, b := range dbBatches {
+		batchNames = append(batchNames, b.Name)
+	}
+
+	// Default: select the first batch
+	var targetBatch models.Batch
+	cleanBatch := strings.TrimSpace(batchParam)
+	cleanBatch = strings.TrimPrefix(cleanBatch, "Batch ")
+	cleanBatch = strings.TrimPrefix(cleanBatch, "batch ")
+	cleanBatch = strings.TrimSpace(cleanBatch)
+	isAllBatches := strings.EqualFold(cleanBatch, "all") || cleanBatch == "All Batches"
+	if !isAllBatches && cleanBatch != "" && cleanBatch != "default" {
+		for _, b := range dbBatches {
+			if b.Name == cleanBatch || fmt.Sprintf("%d", b.ID) == cleanBatch || strings.Contains(b.Name, cleanBatch) || strings.Contains(cleanBatch, b.Name) {
+				targetBatch = b
+				break
+			}
+		}
+	}
+	if !isAllBatches && targetBatch.ID == 0 && len(dbBatches) > 0 {
+		targetBatch = dbBatches[0]
+	}
+
+	// 2. Fetch master departments (strictly excluding Placement / PL / id=4)
+	var allDepts []models.Department
+	r.db.Where("LOWER(name) != 'placement' AND LOWER(COALESCE(short_code, '')) != 'pl' AND id != 4").Order("id ASC").Find(&allDepts)
+	deptFilterList := make([]models.DepartmentFilterItem, 0, len(allDepts))
+	for _, d := range allDepts {
+		code := strings.TrimSpace(d.ShortCode)
+		if code == "" {
+			code = getDeptCode(d.Name)
+		}
+		deptFilterList = append(deptFilterList, models.DepartmentFilterItem{
+			ID:        d.ID,
+			Name:      d.Name,
+			ShortCode: code,
+		})
+	}
+
+	// 3. Query base students
+	type RawStudentData struct {
+		ID                 uint64   `gorm:"column:id"`
+		Name               string   `gorm:"column:name"`
+		RollNo             string   `gorm:"column:roll_no"`
+		DepartmentID       uint64   `gorm:"column:department_id"`
+		DepartmentName     string   `gorm:"column:department_name"`
+		DepartmentCode     string   `gorm:"column:department_code"`
+		BatchID            uint64   `gorm:"column:batch_id"`
+		BatchName          string   `gorm:"column:batch_name"`
+		CGPA               *float64 `gorm:"column:cgpa"`
+		HigherStudies      string   `gorm:"column:higher_studies"`
+		Startup            string   `gorm:"column:startup"`
+		Business           string   `gorm:"column:business"`
+		CurrentArrearCount int      `gorm:"column:current_arrear_count"`
+		HistoryArrearCount int      `gorm:"column:history_arrear_count"`
+		IP                 string   `gorm:"column:ip"`
+		NIP                string   `gorm:"column:nip"`
+	}
+
+	query := r.db.Table("master_users u").
+		Select(`u.id, u.name, COALESCE(u.roll_no, '') as roll_no, 
+			u.department_id, COALESCE(d.name, '') as department_name, COALESCE(d.short_code, '') as department_code,
+			u.batch_id, COALESCE(b.name, '') as batch_name,
+			s.cgpa, COALESCE(s.higher_studies, '0') as higher_studies,
+			COALESCE(s.startup, '0') as startup, COALESCE(s.business, '0') as business,
+			COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count,
+			COALESCE(s.ip, '1') as ip, COALESCE(s.nip, '0') as nip`).
+		Joins("JOIN batches b ON u.batch_id = b.id").
+		Joins("LEFT JOIN departments d ON u.department_id = d.id").
+		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
+		Where("u.role_id = 1 AND (d.id IS NULL OR (d.id != 4 AND LOWER(d.name) != 'placement'))")
+
+	if !isAllBatches && targetBatch.ID > 0 {
+		query = query.Where("u.batch_id = ?", targetBatch.ID)
+	}
+
+	cleanDept := strings.TrimSpace(deptParam)
+	if cleanDept != "" && cleanDept != "all" && cleanDept != "All" && cleanDept != "All Departments" {
+		lowerDept := strings.ToLower(cleanDept)
+		searchPattern := "%" + cleanDept + "%"
+		if lowerDept == "cse" || strings.Contains(lowerDept, "computer") {
+			searchPattern = "%Computer Science%"
+		} else if lowerDept == "it" || strings.Contains(lowerDept, "information") {
+			searchPattern = "%Information Technology%"
+		} else if lowerDept == "ece" || strings.Contains(lowerDept, "electronics") {
+			searchPattern = "%Electronics%"
+		} else if lowerDept == "ai & ds" || lowerDept == "aids" || strings.Contains(lowerDept, "artificial") {
+			searchPattern = "%artificial intelligence%"
+		}
+		query = query.Where("u.department_id = ? OR d.name = ? OR d.short_code = ? OR d.name LIKE ?", cleanDept, cleanDept, cleanDept, searchPattern)
+	}
+
+	cleanSearch := strings.TrimSpace(searchParam)
+	if cleanSearch != "" {
+		pat := "%" + cleanSearch + "%"
+		query = query.Where("(u.name LIKE ? OR u.roll_no LIKE ?)", pat, pat)
+	}
+
+	var rawStudents []RawStudentData
+	if err := query.Find(&rawStudents).Error; err != nil {
+		return nil, err
+	}
+
+	// 4. Precompute metrics via maps for high efficiency
+	type UserCountRow struct {
+		UserID uint64 `gorm:"column:user_id"`
+		Cnt    int64  `gorm:"column:cnt"`
+	}
+
+	invitesMap := make(map[uint64]int64)
+	var invitesRows []UserCountRow
+	r.db.Table("placement_drive_students pds").
+		Select("pds.user_id, COUNT(DISTINCT pds.drive_id) as cnt").
+		Joins("JOIN placement_drive pd ON pds.drive_id = pd.id").
+		Where("pds.drive_status IN ('included', 'special_entry')").
+		Where(`(
+			EXISTS (SELECT 1 FROM placement_drive_activity_log al WHERE al.drive_id = pd.id AND al.activity_type = 'ROSTER_CONFIRMED')
+			OR EXISTS (SELECT 1 FROM placement_drive_stages st JOIN placement_stage_results psr ON psr.stage_id = st.id WHERE st.drive_id = pd.id)
+		)`).
+		Group("pds.user_id").
+		Scan(&invitesRows)
+	for _, row := range invitesRows {
+		invitesMap[row.UserID] = row.Cnt
+	}
+
+	appearedMap := make(map[uint64]int64)
+	var appearedRows []UserCountRow
+	r.db.Table("placement_stage_results psr").
+		Select("pds.user_id, COUNT(DISTINCT pds.drive_id) as cnt").
+		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
+		Joins("JOIN placement_drive_stages pds_stage ON psr.stage_id = pds_stage.id").
+		Joins(`JOIN (
+			SELECT drive_id, MIN(sequence_no) as min_seq
+			FROM placement_drive_stages
+			GROUP BY drive_id
+		) first_stages ON pds_stage.drive_id = first_stages.drive_id AND pds_stage.sequence_no = first_stages.min_seq`).
+		Where("psr.outcome NOT IN ('absent', '')").
+		Group("pds.user_id").
+		Scan(&appearedRows)
+	for _, row := range appearedRows {
+		appearedMap[row.UserID] = row.Cnt
+	}
+
+	finalMap := make(map[uint64]int64)
+	var finalRows []UserCountRow
+	r.db.Table("placement_stage_results psr").
+		Select("pds.user_id, COUNT(DISTINCT pds.drive_id) as cnt").
+		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
+		Joins("JOIN placement_drive_stages pds_stage ON psr.stage_id = pds_stage.id").
+		Joins(`JOIN (
+			SELECT drive_id, MAX(sequence_no) as max_seq
+			FROM placement_drive_stages
+			GROUP BY drive_id
+		) last_stages ON pds_stage.drive_id = last_stages.drive_id AND pds_stage.sequence_no = last_stages.max_seq`).
+		Group("pds.user_id").
+		Scan(&finalRows)
+	for _, row := range finalRows {
+		finalMap[row.UserID] = row.Cnt
+	}
+
+	finalMissesMap := make(map[uint64]int64)
+	var finalMissesRows []UserCountRow
+	r.db.Table("placement_stage_results psr").
+		Select("pds.user_id, COUNT(DISTINCT pds.drive_id) as cnt").
+		Joins("JOIN placement_drive_students pds ON psr.drive_student_id = pds.id").
+		Joins("JOIN placement_drive_stages pds_stage ON psr.stage_id = pds_stage.id").
+		Joins(`JOIN (
+			SELECT drive_id, MAX(sequence_no) as max_seq
+			FROM placement_drive_stages
+			GROUP BY drive_id
+		) last_stages ON pds_stage.drive_id = last_stages.drive_id AND pds_stage.sequence_no = last_stages.max_seq`).
+		Where("psr.outcome IN ('not_cleared', 'absent', 'withdrawn')").
+		Group("pds.user_id").
+		Scan(&finalMissesRows)
+	for _, row := range finalMissesRows {
+		finalMissesMap[row.UserID] = row.Cnt
+	}
+
+	type UserOfferRow struct {
+		UserID      uint64  `gorm:"column:user_id"`
+		OffersCount int64   `gorm:"column:offers_count"`
+		BestPackage float64 `gorm:"column:best_package"`
+	}
+	offersMap := make(map[uint64]UserOfferRow)
+	var offerRows []UserOfferRow
+	r.db.Table("placement_drive_offers pdo").
+		Select("pds.user_id, COUNT(pdo.id) as offers_count, MAX(COALESCE(pdo.package_lpa, pd.package_lpa, 0)) as best_package").
+		Joins("JOIN placement_drive_students pds ON pdo.drive_student_id = pds.id").
+		Joins("JOIN placement_drive pd ON pds.drive_id = pd.id").
+		Group("pds.user_id").
+		Scan(&offerRows)
+	for _, row := range offerRows {
+		offersMap[row.UserID] = row
+	}
+
+	// 5. Construct items and calculate signals
+	studentItems := make([]models.StudentIntelligenceItem, 0, len(rawStudents))
+	var signals models.StudentIntelligenceSignals
+
+	for _, s := range rawStudents {
+		invites := invitesMap[s.ID]
+		appeared := appearedMap[s.ID]
+		finalCount := finalMap[s.ID]
+		finalMisses := finalMissesMap[s.ID]
+		offerInfo := offersMap[s.ID]
+		offers := offerInfo.OffersCount
+		bestPackage := offerInfo.BestPackage
+
+		notHonoured := invites - appeared
+		if notHonoured < 0 {
+			notHonoured = 0
+		}
+
+		var outcome string
+		if offers > 0 {
+			outcome = "Placed"
+		} else if s.HigherStudies == "1" || strings.ToLower(s.HigherStudies) == "true" || strings.ToLower(s.HigherStudies) == "yes" {
+			outcome = "Higher Studies"
+		} else if s.Startup == "1" || s.Business == "1" || strings.ToLower(s.Startup) == "true" || strings.ToLower(s.Business) == "true" || strings.ToLower(s.Startup) == "yes" || strings.ToLower(s.Business) == "yes" {
+			outcome = "Entrepreneurship"
+		} else {
+			outcome = "Not Placed"
+		}
+
+		interventionScore := 0.0
+		if outcome == "Not Placed" {
+			interventionScore += 45
+		}
+		interventionScore += float64(finalMisses * 12)
+		interventionScore += float64(notHonoured * 10)
+		if invites >= 7 && appeared <= 3 {
+			interventionScore += 20
+		}
+		if s.CurrentArrearCount > 0 || s.HistoryArrearCount > 0 {
+			interventionScore += 25
+		}
+		if offers >= 2 {
+			interventionScore -= 20
+		}
+		if outcome == "Higher Studies" || outcome == "Entrepreneurship" {
+			interventionScore -= 60
+		}
+
+		cgpaVal := 0.0
+		if s.CGPA != nil {
+			cgpaVal = *s.CGPA
+		}
+
+		deptCode := strings.TrimSpace(s.DepartmentCode)
+		if deptCode == "" {
+			deptCode = getDeptCode(s.DepartmentName)
+		}
+
+		isHighCGPAUnplaced := (cgpaVal >= 8.5 && outcome == "Not Placed")
+		isRepeatedFinalMiss := (finalMisses >= 2)
+		isNIP := (s.NIP == "1" || strings.ToLower(s.NIP) == "true" || strings.ToLower(s.NIP) == "yes") ||
+			(s.IP == "0" || strings.ToLower(s.IP) == "false") ||
+			(s.HigherStudies == "1" || strings.ToLower(s.HigherStudies) == "true" || strings.ToLower(s.HigherStudies) == "yes") ||
+			(s.Startup == "1" || strings.ToLower(s.Startup) == "true" || strings.ToLower(s.Startup) == "yes") ||
+			(s.Business == "1" || strings.ToLower(s.Business) == "true" || strings.ToLower(s.Business) == "yes")
+		isIP := !isNIP && (s.IP == "1" || strings.ToLower(s.IP) == "true" || strings.ToLower(s.IP) == "yes")
+
+		ipStr := "0"
+		if isIP {
+			ipStr = "1"
+		}
+		nipStr := "0"
+		if isNIP {
+			nipStr = "1"
+		}
+
+		item := models.StudentIntelligenceItem{
+			ID:                  s.ID,
+			Name:                s.Name,
+			RollNo:              s.RollNo,
+			DepartmentID:        s.DepartmentID,
+			Department:          deptCode,
+			DepartmentName:      s.DepartmentName,
+			BatchID:             s.BatchID,
+			BatchName:           s.BatchName,
+			CGPA:                cgpaVal,
+			BestPackage:         bestPackage,
+			Invites:             invites,
+			Appeared:            appeared,
+			Final:               finalCount,
+			FinalMisses:         finalMisses,
+			Offers:              offers,
+			NotHonoured:         notHonoured,
+			Outcome:             outcome,
+			InterventionScore:   interventionScore,
+			IP:                  ipStr,
+			NIP:                 nipStr,
+			IsHighCGPAUnplaced:  isHighCGPAUnplaced,
+			IsRepeatedFinalMiss: isRepeatedFinalMiss,
+		}
+
+		studentItems = append(studentItems, item)
+
+		if outcome == "Placed" {
+			signals.Placed++
+		} else if outcome == "Not Placed" {
+			signals.NotPlaced++
+		}
+		if isRepeatedFinalMiss {
+			signals.RepeatedFinalMisses++
+		}
+		if offers >= 2 {
+			signals.MultipleOffers++
+		}
+		if isHighCGPAUnplaced {
+			signals.HighCGPAUnplaced++
+		}
+		if isIP {
+			signals.PlacementInterest++
+		}
+		if isNIP {
+			signals.NIP++
+		}
+	}
+
+	// Filter by left panel chosen card / student focus
+	cleanFocus := strings.ToLower(strings.TrimSpace(focusParam))
+	if cleanFocus != "" && cleanFocus != "all" && cleanFocus != "all_students" {
+		filtered := make([]models.StudentIntelligenceItem, 0, len(studentItems))
+		for _, item := range studentItems {
+			match := false
+			switch cleanFocus {
+			case "placed":
+				match = (item.Outcome == "Placed")
+			case "not_placed", "notplaced":
+				match = (item.Outcome == "Not Placed")
+			case "high_cgpa", "highcgpa", "high_cgpa_unplaced":
+				match = item.IsHighCGPAUnplaced
+			case "final_misses", "finalmisses", "repeated_final_misses":
+				match = item.IsRepeatedFinalMiss
+			case "placement_interest", "placementinterest", "ip":
+				match = (item.IP == "1")
+			case "nip":
+				match = (item.NIP == "1")
+			}
+			if match {
+				filtered = append(filtered, item)
+			}
+		}
+		studentItems = filtered
+	}
+
+	signals.StudentsInView = int64(len(studentItems))
+
+	// 6. Sorting
+	cleanSort := strings.ToLower(strings.TrimSpace(sortParam))
+	switch cleanSort {
+	case "appeared", "companies appeared":
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			if studentItems[i].Appeared != studentItems[j].Appeared {
+				return studentItems[i].Appeared > studentItems[j].Appeared
+			}
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	case "offers", "number of offers":
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			if studentItems[i].Offers != studentItems[j].Offers {
+				return studentItems[i].Offers > studentItems[j].Offers
+			}
+			if studentItems[i].BestPackage != studentItems[j].BestPackage {
+				return studentItems[i].BestPackage > studentItems[j].BestPackage
+			}
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	case "finalmisses", "final_misses", "final misses":
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			if studentItems[i].FinalMisses != studentItems[j].FinalMisses {
+				return studentItems[i].FinalMisses > studentItems[j].FinalMisses
+			}
+			if studentItems[i].InterventionScore != studentItems[j].InterventionScore {
+				return studentItems[i].InterventionScore > studentItems[j].InterventionScore
+			}
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	case "nothonoured", "not_honoured", "not honoured":
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			if studentItems[i].NotHonoured != studentItems[j].NotHonoured {
+				return studentItems[i].NotHonoured > studentItems[j].NotHonoured
+			}
+			if studentItems[i].InterventionScore != studentItems[j].InterventionScore {
+				return studentItems[i].InterventionScore > studentItems[j].InterventionScore
+			}
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	case "package", "bestpackage", "best_package", "best package":
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			if studentItems[i].BestPackage != studentItems[j].BestPackage {
+				return studentItems[i].BestPackage > studentItems[j].BestPackage
+			}
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	case "cgpa":
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			if studentItems[i].CGPA != studentItems[j].CGPA {
+				return studentItems[i].CGPA > studentItems[j].CGPA
+			}
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	case "name", "student name", "student_name":
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	case "intervention", "intervention priority", "intervention_priority":
+		fallthrough
+	default:
+		sort.SliceStable(studentItems, func(i, j int) bool {
+			if studentItems[i].InterventionScore != studentItems[j].InterventionScore {
+				return studentItems[i].InterventionScore > studentItems[j].InterventionScore
+			}
+			if studentItems[i].FinalMisses != studentItems[j].FinalMisses {
+				return studentItems[i].FinalMisses > studentItems[j].FinalMisses
+			}
+			if studentItems[i].NotHonoured != studentItems[j].NotHonoured {
+				return studentItems[i].NotHonoured > studentItems[j].NotHonoured
+			}
+			return strings.ToLower(studentItems[i].Name) < strings.ToLower(studentItems[j].Name)
+		})
+	}
+
+	selectedBatchName := targetBatch.Name
+	if isAllBatches {
+		selectedBatchName = "All Batches"
+	}
+
+	return &models.StudentIntelligenceResponse{
+		SelectedBatch: selectedBatchName,
+		Batches:       batchNames,
+		Departments:   deptFilterList,
+		Signals:       signals,
+		TotalCount:    len(studentItems),
+		Students:      studentItems,
+	}, nil
+}
+
+
 
 

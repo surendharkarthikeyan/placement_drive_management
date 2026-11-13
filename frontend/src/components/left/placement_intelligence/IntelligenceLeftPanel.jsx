@@ -5,7 +5,8 @@ import {
   getIntelligenceBatchSummaries,
   getIntelligenceOutcomeSummary,
   getDrives,
-  getIntelligenceCompanyStatistics
+  getIntelligenceCompanyStatistics,
+  getIntelligenceStudents
 } from '../../../services/api'
 import { companyStatsData, studentsData } from './intelligenceData'
 
@@ -31,10 +32,12 @@ export default function IntelligenceLeftPanel({
   selectedCompany = 'All',
   onSelectCompany = () => {},
   selectedStudentFocus = 'all',
-  onSelectStudentFocus = () => {}
+  onSelectStudentFocus = () => {},
+  studentSignals = null
 }) {
   const [internalSelectedBatch, setInternalSelectedBatch] = useState(null)
   const [internalSelectedOutcome, setInternalSelectedOutcome] = useState('notPlaced')
+  const [dbStudentSignals, setDbStudentSignals] = useState(null)
 
   const selectedBatch = externalSelectedBatch !== undefined ? externalSelectedBatch : internalSelectedBatch
   const onSelectBatch = (batchName) => {
@@ -387,6 +390,20 @@ export default function IntelligenceLeftPanel({
     }
   }, [currentView])
 
+  useEffect(() => {
+    if (currentView === 'students') {
+      getIntelligenceStudents({ batch: selectedBatch })
+        .then((res) => {
+          if (res?.signals) {
+            setDbStudentSignals(res.signals)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [currentView, selectedBatch])
+
+  const activeStudentSignals = studentSignals || dbStudentSignals
+
   const getCompanyCountByStatus = (status) => {
     if (dbCompanyStatusCounts) {
       if (status === 'Completed') return dbCompanyStatusCounts.completed || 0
@@ -402,18 +419,53 @@ export default function IntelligenceLeftPanel({
     return cg.title.toLowerCase().includes(q) || cg.subtitle.toLowerCase().includes(q)
   })
 
-  // 4. Student focus view data
+  // 4. Student focus view data - exactly the 6 requested cards
   const focusGroups = [
-    { id: 'not_placed', title: 'Not Placed', subtitle: 'Still without placement', count: studentsData.filter(s => s.outcome === 'Not Placed').length, badgeColor: 'bg-[#fef3c7] text-[#b45309]' },
-    { id: 'final_misses', title: 'Repeated Final Misses', subtitle: '2+ unsuccessful final rounds', count: studentsData.filter(s => s.finalMisses >= 2).length, badgeColor: 'bg-[#fee2e2] text-[#b91c1c]' },
-    { id: 'not_honoured', title: 'Invitations Not Honoured', subtitle: 'Assessment or interview skips', count: studentsData.filter(s => s.notHonoured > 0).length, badgeColor: 'bg-[#ede9fe] text-[#6d28d9]' },
-    { id: 'high_cgpa', title: 'High CGPA · Unplaced', subtitle: 'CGPA ≥ 8.5 with no offer', count: studentsData.filter(s => s.cgpa >= 8.5 && s.outcome === 'Not Placed').length, badgeColor: 'bg-[#dbeafe] text-[#1d4ed8]' },
-    { id: 'all_students', title: 'All Students', subtitle: 'Full student intelligence directory', count: studentsData.length, badgeColor: 'bg-[#f1f5f9] text-[#475569]' }
+    {
+      id: 'placed',
+      title: 'Placed',
+      subtitle: 'Received placement offer',
+      count: activeStudentSignals?.placed ?? 0,
+      badgeColor: 'bg-[#ecfdf5] text-[#059669]'
+    },
+    {
+      id: 'not_placed',
+      title: 'Not Placed',
+      subtitle: 'Still without placement',
+      count: activeStudentSignals?.not_placed ?? 0,
+      badgeColor: 'bg-[#fef3c7] text-[#b45309]'
+    },
+    {
+      id: 'high_cgpa',
+      title: 'High CGPA · Unplaced',
+      subtitle: 'CGPA ≥ 8.5 with no offer',
+      count: activeStudentSignals?.high_cgpa_unplaced ?? 0,
+      badgeColor: 'bg-[#dbeafe] text-[#1d4ed8]'
+    },
+    {
+      id: 'final_misses',
+      title: 'Repeated Final Misses',
+      subtitle: '2+ unsuccessful final rounds',
+      count: activeStudentSignals?.repeated_final_misses ?? 0,
+      badgeColor: 'bg-[#fee2e2] text-[#b91c1c]'
+    },
+    {
+      id: 'placement_interest',
+      title: 'Placement Interest',
+      subtitle: 'Interested in placements',
+      count: activeStudentSignals?.placement_interest ?? 0,
+      badgeColor: 'bg-[#ede9fe] text-[#6d28d9]'
+    },
+    {
+      id: 'nip',
+      title: 'NIP',
+      subtitle: 'Not interested in placement',
+      count: activeStudentSignals?.nip ?? 0,
+      badgeColor: 'bg-[#f1f5f9] text-[#475569]'
+    }
   ]
 
-  const filteredStudents = focusGroups.filter(fg => {
-    if (studentTab === 'attention' && !['not_placed', 'final_misses', 'not_honoured', 'high_cgpa'].includes(fg.id)) return false
-    if (studentTab === 'placed' && fg.id !== 'all_students') return false
+  const filteredStudents = focusGroups.filter((fg) => {
     if (!q) return true
     return fg.title.toLowerCase().includes(q) || fg.subtitle.toLowerCase().includes(q)
   })
@@ -732,20 +784,6 @@ export default function IntelligenceLeftPanel({
                   ]}
                   value={overallTab}
                   onChange={setOverallTab}
-                  buttonPy="py-[7px]"
-                  fontSize="text-[13px]"
-                />
-              )}
-
-              {currentView === 'students' && (
-                <GlassSegmentedControl
-                  options={[
-                    { id: 'all', label: 'All' },
-                    { id: 'attention', label: 'Attention' },
-                    { id: 'placed', label: 'Placed' }
-                  ]}
-                  value={studentTab}
-                  onChange={setStudentTab}
                   buttonPy="py-[7px]"
                   fontSize="text-[13px]"
                 />
@@ -1081,7 +1119,7 @@ export default function IntelligenceLeftPanel({
         {currentView === 'students' && (
           <div className="flex flex-col gap-2.5 animate-in fade-in duration-150">
             <div className="text-[11px] font-[850] uppercase tracking-[0.5px] text-[#64748b] mb-0.5 px-1">
-              Requires Attention
+              Student Categories
             </div>
 
             {filteredStudents.map((fg) => {
@@ -1090,7 +1128,13 @@ export default function IntelligenceLeftPanel({
                 <button
                   key={fg.id}
                   type="button"
-                  onClick={() => onSelectStudentFocus(fg.id)}
+                  onClick={() => {
+                    if (selectedStudentFocus === fg.id) {
+                      onSelectStudentFocus('all')
+                    } else {
+                      onSelectStudentFocus(fg.id)
+                    }
+                  }}
                   className={`group relative w-full p-[14px_16px] text-left rounded-[12px] transition-all duration-200 cursor-pointer flex flex-col justify-between ${
                     isActive
                       ? 'bg-gradient-to-br from-white via-[#f0f6ff] to-[#e6f0fd] border border-[#60a5fa] shadow-[0_4px_16px_rgba(37,99,235,0.10)] ring-1 ring-[#2563eb]/20 translate-x-[2px]'
@@ -1117,6 +1161,21 @@ export default function IntelligenceLeftPanel({
                 </button>
               )
             })}
+
+            {/* Dedicated Clear Filter Button when category filter is active */}
+            {selectedStudentFocus && selectedStudentFocus !== 'all' && selectedStudentFocus !== 'all_students' && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectStudentFocus('all')
+                  setSearchQuery('')
+                }}
+                className="w-full mt-1 py-2 px-3 rounded-[10px] bg-[#f8fafc] hover:bg-[#eff6ff] border border-[#e2e8f0] hover:border-[#bfdbfe] text-[#475569] hover:text-[#2563eb] text-[12px] font-[750] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-98"
+              >
+                <X size={12} strokeWidth={2.5} className="text-[#64748b] group-hover:text-[#2563eb]" />
+                <span>Clear Category Filter</span>
+              </button>
+            )}
           </div>
         )}
       </div>

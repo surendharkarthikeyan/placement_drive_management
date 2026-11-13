@@ -162,4 +162,21 @@ func (ctrl *PlacementIntelligenceController) GetCompanyStatistics(c *gin.Context
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
+// GetStudentIntelligence returns student opportunity, progression and outcomes with filters and sorting
+func (ctrl *PlacementIntelligenceController) GetStudentIntelligence(c *gin.Context) {
+	batch := c.Query("batch")
+	department := c.Query("department")
+	sort := c.Query("sort")
+	search := c.Query("search")
+	focus := c.Query("focus")
+
+	data, err := ctrl.repo.GetStudentIntelligence(batch, department, sort, search, focus)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch student intelligence: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
+}
+
+
 

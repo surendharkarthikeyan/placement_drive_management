@@ -317,4 +317,53 @@ type CompanyStatisticsResponse struct {
 	Companies     []CompanyStatisticsItem       `json:"companies"`
 }
 
+// StudentIntelligenceItem represents a single student row in the Student Placement Intelligence central workspace
+type StudentIntelligenceItem struct {
+	ID                  uint64  `json:"id"`
+	Name                string  `json:"name"`
+	RollNo              string  `json:"roll_no"`
+	DepartmentID        uint64  `json:"department_id"`
+	Department          string  `json:"department"`       // e.g. "CSE"
+	DepartmentName      string  `json:"department_name"`  // e.g. "Computer Science and Engineering"
+	BatchID             uint64  `json:"batch_id"`
+	BatchName           string  `json:"batch_name"`
+	CGPA                float64 `json:"cgpa"`
+	BestPackage         float64 `json:"best_package"`
+	Invites             int64   `json:"invites"`
+	Appeared            int64   `json:"appeared"`
+	Final               int64   `json:"final"`
+	FinalMisses         int64   `json:"final_misses"`
+	Offers              int64   `json:"offers"`
+	NotHonoured         int64   `json:"not_honoured"`
+	Outcome             string  `json:"outcome"` // "Placed", "Not Placed", "Higher Studies", "Entrepreneurship"
+	InterventionScore   float64 `json:"intervention_score"`
+	IP                  string  `json:"ip"`
+	NIP                 string  `json:"nip"`
+	IsHighCGPAUnplaced  bool    `json:"is_high_cgpa_unplaced"`
+	IsRepeatedFinalMiss bool    `json:"is_repeated_final_miss"`
+}
+
+// StudentIntelligenceSignals holds the top KPI indicators and left panel card counts
+type StudentIntelligenceSignals struct {
+	StudentsInView      int64 `json:"students_in_view"`
+	Placed              int64 `json:"placed"`
+	NotPlaced           int64 `json:"not_placed"`
+	RepeatedFinalMisses int64 `json:"repeated_final_misses"`
+	MultipleOffers      int64 `json:"multiple_offers"`
+	HighCGPAUnplaced    int64 `json:"high_cgpa_unplaced"`
+	PlacementInterest   int64 `json:"placement_interest"`
+	NIP                 int64 `json:"nip"`
+}
+
+// StudentIntelligenceResponse is the full response for the Student Placement Intelligence central workspace
+type StudentIntelligenceResponse struct {
+	SelectedBatch string                     `json:"selected_batch"`
+	Batches       []string                   `json:"batches"`
+	Departments   []DepartmentFilterItem     `json:"departments"`
+	Signals       StudentIntelligenceSignals `json:"signals"`
+	TotalCount    int                        `json:"total_count"`
+	Students      []StudentIntelligenceItem  `json:"students"`
+}
+
+
 

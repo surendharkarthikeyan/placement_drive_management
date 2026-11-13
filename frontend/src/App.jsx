@@ -30,7 +30,9 @@ export default function App() {
   const [selectedIntelligenceIndustry, setSelectedIntelligenceIndustry] = useState(null)
   const [selectedIndustryFilterPreset, setSelectedIndustryFilterPreset] = useState(null)
   const [selectedIntelligenceCompany, setSelectedIntelligenceCompany] = useState('All')
-  const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all_students')
+  const [selectedIntelligenceStudentFocus, setSelectedIntelligenceStudentFocus] = useState('all')
+  const [selectedIntelligenceStudent, setSelectedIntelligenceStudent] = useState(null)
+  const [studentSignals, setStudentSignals] = useState(null)
   const [selectedIndustryMetricCell, setSelectedIndustryMetricCell] = useState(null)
   const [selectedIndustryDomain, setSelectedIndustryDomain] = useState('all')
   const [selectedCompanyStatDetail, setSelectedCompanyStatDetail] = useState(null)
@@ -191,6 +193,7 @@ export default function App() {
               setSelectedIntelligenceIndustry(null)
               setSelectedIndustryFilterPreset(null)
               setSelectedCompanyStatDetail(null)
+              setSelectedIntelligenceStudent(null)
             }}
             selectedBatch={selectedIntelligenceBatch}
             onSelectBatch={setSelectedIntelligenceBatch}
@@ -202,6 +205,7 @@ export default function App() {
             onSelectCompany={setSelectedIntelligenceCompany}
             selectedStudentFocus={selectedIntelligenceStudentFocus}
             onSelectStudentFocus={setSelectedIntelligenceStudentFocus}
+            studentSignals={studentSignals}
           />
 
           {/* Center Workspace Panel */}
@@ -226,6 +230,11 @@ export default function App() {
             selectedCompanyStatDetail={selectedCompanyStatDetail}
             onSelectCompanyStatDetail={setSelectedCompanyStatDetail}
             onCompanyStatisticsDataLoaded={setCompanyStatisticsData}
+            selectedStudent={selectedIntelligenceStudent}
+            onSelectStudent={setSelectedIntelligenceStudent}
+            selectedStudentFocus={selectedIntelligenceStudentFocus}
+            onSelectStudentFocus={setSelectedIntelligenceStudentFocus}
+            onStudentSignalsLoaded={setStudentSignals}
           />
 
           {/* Right Panel */}
@@ -245,6 +254,8 @@ export default function App() {
             selectedCompanyStatDetail={selectedCompanyStatDetail}
             onClearCompanyStatDetail={() => setSelectedCompanyStatDetail(null)}
             companyStatisticsData={companyStatisticsData}
+            selectedStudent={selectedIntelligenceStudent}
+            onSelectStudent={setSelectedIntelligenceStudent}
           />
         </main>
       )}

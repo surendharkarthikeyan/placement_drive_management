@@ -32,6 +32,7 @@ import {
   getIntelligenceCompanyDrives
 } from '../../../services/api'
 import CompanyStatisticsWorkspace from './CompanyStatisticsWorkspace'
+import StudentIntelligenceWorkspace from './StudentIntelligenceWorkspace'
 
 /**
  * MultiSelectDropdown
@@ -212,7 +213,12 @@ export default function IntelligenceMiddlePanel({
   onSelectCompany = () => {},
   selectedCompanyStatDetail = null,
   onSelectCompanyStatDetail = () => {},
-  onCompanyStatisticsDataLoaded = () => {}
+  onCompanyStatisticsDataLoaded = () => {},
+  selectedStudent = null,
+  onSelectStudent = () => {},
+  selectedStudentFocus = 'all',
+  onSelectStudentFocus = () => {},
+  onStudentSignalsLoaded = () => {}
 }) {
   // Filters State
   const [selectedBatchFilter, setSelectedBatchFilter] = useState('All')
@@ -584,6 +590,19 @@ export default function IntelligenceMiddlePanel({
         selectedCompanyStatDetail={selectedCompanyStatDetail}
         onSelectCompanyStatDetail={onSelectCompanyStatDetail}
         onCompanyStatisticsDataLoaded={onCompanyStatisticsDataLoaded}
+      />
+    )
+  }
+
+  // Student Placement Intelligence View
+  if (currentView === 'students') {
+    return (
+      <StudentIntelligenceWorkspace
+        selectedStudent={selectedStudent}
+        onSelectStudent={onSelectStudent}
+        selectedStudentFocus={selectedStudentFocus}
+        onSelectStudentFocus={onSelectStudentFocus}
+        onStudentSignalsLoaded={onStudentSignalsLoaded}
       />
     )
   }

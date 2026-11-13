@@ -14,7 +14,8 @@ import {
   TrendingUp,
   Briefcase,
   ChevronDown,
-  Check
+  Check,
+  Users
 } from 'lucide-react'
 import {
   getIntelligenceOverallStats,
@@ -56,7 +57,9 @@ export default function IntelligenceRightPanel({
   selectedIndustryDomain = 'all',
   selectedCompanyStatDetail = null,
   onClearCompanyStatDetail = () => {},
-  companyStatisticsData = null
+  companyStatisticsData = null,
+  selectedStudent = null,
+  onSelectStudent = () => {}
 }) {
   const [activeMode, setActiveMode] = useState('overview') // Default view is Overview
   const [loading, setLoading] = useState(false)
@@ -317,6 +320,18 @@ export default function IntelligenceRightPanel({
       isMounted = false
     }
   }, [selectedStudentId])
+
+  // Synchronize external selectedStudent in 'students' view
+  useEffect(() => {
+    if (currentView === 'students') {
+      if (selectedStudent?.id) {
+        setSelectedStudentId(selectedStudent.id)
+      } else if (!selectedStudent) {
+        setSelectedStudentId(null)
+        setSelectedStudentDetail(null)
+      }
+    }
+  }, [selectedStudent, currentView])
 
   // Filter students based on search query (name, roll no, department, status)
   const filteredStudents = useMemo(() => {
@@ -1389,6 +1404,90 @@ export default function IntelligenceRightPanel({
               Click on any row in the <strong>Recruiter Performance Ranking</strong> table to inspect its individual recruitment drives, salary packages, and confirmed placed students.
             </span>
           </div>
+        </div>
+      </aside>
+    )
+  }
+
+  // =========================================================================
+  // VIEW 4: STUDENTS PLACEMENT INTELLIGENCE RIGHT PANEL
+  // =========================================================================
+  if (currentView === 'students') {
+    if (selectedStudentId) {
+      return (
+        <aside className="w-[475px] min-w-[475px] bg-[#fbfdff] border-l border-[#dbe5f1] h-full flex flex-col select-none overflow-hidden">
+          {/* Scrollable Body */}
+          <div className="flex-1 p-[18px_22px] overflow-y-auto space-y-4 custom-dropdown-scroll">
+            <div className="flex flex-col gap-5">
+              {/* Profile Header without Back navigation */}
+              <StudentProfileHeader
+                student={selectedStudentDetail}
+              />
+
+              {loadingStudentDetail && !selectedStudentDetail ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-2.5 text-[#64748b]">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#2563eb]" />
+                  <span className="text-[13px] font-semibold">Loading student record...</span>
+                </div>
+              ) : selectedStudentDetail ? (
+                <>
+                  {/* Subtle separator */}
+                  <div className="w-full h-px bg-[#f1f5f9]" />
+
+                  {/* 1. First 6 cards data: invitations, attended, current process, final misses, offers, not honoured */}
+                  <StudentStatCards
+                    stats={selectedStudentDetail.stats}
+                    variant="intelligence"
+                  />
+
+                  {/* 2. Offers received card */}
+                  <StudentOffersCard offers={selectedStudentDetail.offers} />
+
+                  {/* 3. Below that academic details card */}
+                  <StudentAcademicEligibilityCard student={selectedStudentDetail} />
+
+                  {/* 4. Then placement journey */}
+                  <StudentPlacementJourneyTimeline
+                    userId={selectedStudentId}
+                    title="Placement Journey"
+                    limit={5}
+                  />
+                </>
+              ) : (
+                <div className="p-4 bg-[#fef2f2] border border-[#fecaca] rounded-[12px] text-center text-[#991b1b] text-[13px]">
+                  Failed to load student details.
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      )
+    }
+
+    // Empty state when no students match the filters in the central panel
+    return (
+      <aside className="w-[475px] min-w-[475px] bg-[#fbfdff] border-l border-[#dbe5f1] h-full flex flex-col select-none overflow-hidden">
+        {/* Header */}
+        <div className="p-[18px_20px] border-b border-[#e2e8f0] bg-white shrink-0 shadow-2xs">
+          <h2 className="text-[17px] font-[850] text-[#0f172a] tracking-tight leading-tight m-0">
+            Student Placement Profile
+          </h2>
+          <p className="text-[12px] text-[#64748b] mt-1 font-medium leading-relaxed m-0">
+            No candidates matching current filter criteria.
+          </p>
+        </div>
+
+        {/* Empty state */}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[#64748b]">
+          <div className="w-14 h-14 rounded-2xl bg-[#f1f5f9] border border-[#e2e8f0] flex items-center justify-center text-[#94a3b8] mb-3.5 shadow-2xs">
+            <Users size={26} />
+          </div>
+          <h3 className="text-[15px] font-[850] text-[#1e293b] m-0 mb-1">
+            No Students Available
+          </h3>
+          <p className="text-[12.5px] text-[#64748b] max-w-[280px] leading-relaxed m-0">
+            There are no student records matching the selected batch, department, or category filter.
+          </p>
         </div>
       </aside>
     )
