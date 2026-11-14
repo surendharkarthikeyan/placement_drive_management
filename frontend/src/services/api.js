@@ -128,6 +128,13 @@ export const updateStageResults = async (driveId, stageId, updates, officerUserI
   return response.data
 }
 
+export const uploadStageResults = async (driveId, stageId, formData) => {
+  const response = await api.post(`/drives/${driveId}/stages/${stageId}/upload-results`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data
+}
+
 export const addSpecialEntryToStage = async (driveId, stageId, userIds, substageId = null, officerUserId = null) => {
   const response = await api.post(`/drives/${driveId}/stages/${stageId}/special-entry`, {
     user_ids: userIds,

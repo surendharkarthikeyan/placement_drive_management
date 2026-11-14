@@ -36,6 +36,7 @@ func SetupRoutes(r *gin.Engine) {
 			drives.POST("/:id/stages/:stage_id/substages", driveCtrl.CreateSubstage)
 			drives.GET("/:id/stages/:stage_id/results", driveCtrl.GetStageResults)
 			drives.PUT("/:id/stages/:stage_id/results", driveCtrl.UpdateStageResults)
+			drives.POST("/:id/stages/:stage_id/upload-results", driveCtrl.UploadStageResults)
 			drives.POST("/:id/stages/:stage_id/special-entry", driveCtrl.AddSpecialEntryToStage)
 			drives.POST("/:id/stages/:stage_id/complete", driveCtrl.CompleteStage)
 			drives.PATCH("/:id/stages/:stage_id/substages/:substage_id/status", driveCtrl.UpdateSubstageStatus)

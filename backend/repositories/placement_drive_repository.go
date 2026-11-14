@@ -151,11 +151,15 @@ func (r *DriveRepository) ComputeDriveStats(driveID uint64) models.PlacementDriv
 		r.db.Table("master_users u").
 			Joins("JOIN placement_student_basic_details s ON u.id = s.user_id").
 			Where("u.role_id = 1 AND u.batch_id IN ?", []uint64(drive.BatchIDs)).
+			Where("COALESCE(s.nip, '0') = '0'").
 			Count(&initiallyEligible)
 		stats.InitiallyEligible = initiallyEligible
 	} else {
 		var initiallyEligible int64
-		r.db.Model(&models.PlacementStudentBasicDetails{}).Count(&initiallyEligible)
+		r.db.Table("master_users u").
+			Joins("JOIN placement_student_basic_details s ON u.id = s.user_id").
+			Where("u.role_id = 1 AND COALESCE(s.nip, '0') = '0'").
+			Count(&initiallyEligible)
 		stats.InitiallyEligible = initiallyEligible
 	}
 
@@ -508,10 +512,11 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 		TwelfthMark        *float64 `gorm:"column:twelth_mark"`
 		CurrentArrearCount int      `gorm:"column:current_arrear_count"`
 		HistoryArrearCount int      `gorm:"column:history_arrear_count"`
+		NIP                string   `gorm:"column:nip"`
 	}
 
 	query := r.db.Table("master_users u").
-		Select("u.id as user_id, u.roll_no, u.name, u.email, u.department_id, d.name as dept_name, b.name as batch_name, u.batch_id, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count").
+		Select("u.id as user_id, u.roll_no, u.name, u.email, u.department_id, d.name as dept_name, b.name as batch_name, u.batch_id, s.cgpa, s.tenth_mark, s.twelth_mark, COALESCE(s.current_arrear_count, 0) as current_arrear_count, COALESCE(s.history_arrear_count, 0) as history_arrear_count, COALESCE(s.nip, '0') as nip").
 		Joins("LEFT JOIN placement_student_basic_details s ON u.id = s.user_id").
 		Joins("LEFT JOIN departments d ON u.department_id = d.id").
 		Joins("LEFT JOIN batches b ON u.batch_id = b.id").
@@ -596,6 +601,13 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 			}
 		}
 
+		// Check placement interest from placement_student_basic_details (nip: 0 = Placement Interested, 1 = Not Interested in Placement)
+		isNipStudent := s.NIP == "1" || strings.ToLower(s.NIP) == "true" || strings.ToLower(s.NIP) == "yes"
+		if isNipStudent {
+			isEligible = false
+			reasons = append(reasons, "Not interested in placement (NIP)")
+		}
+
 		var maxOffer *float64
 		if pkg, ok := offersMap[s.UserID]; ok {
 			maxOffer = &pkg
@@ -630,13 +642,16 @@ func (r *DriveRepository) GetDriveStudentsList(driveID uint64) ([]models.Student
 
 		status, hasStatus := driveStatusMap[s.UserID]
 		// If the drive record hasn't explicitly set a status for this student yet:
-		// Automatically include them if they meet eligibility criteria AND belong to the drive target batch!
+		// Automatically include them if they meet eligibility criteria AND belong to the drive target batch AND are not NIP!
 		if !hasStatus {
-			if isEligible && inTargetBatch {
+			if isEligible && inTargetBatch && !isNipStudent {
 				status = "included"
 			} else {
 				status = "" // Not in roster!
 			}
+		} else if status == "included" && isNipStudent {
+			// Do not include NIP students
+			status = "excluded"
 		}
 
 		isIncluded := (status == "included" || status == "special_entry")
@@ -714,6 +729,8 @@ func (r *DriveRepository) PopulateEligibleStudentsForDrive(driveID uint64) (int,
 				if existing.DriveStatus != "special_entry" && existing.DriveStatus != "excluded" {
 					if c.IsEligible && existing.DriveStatus != "included" {
 						_ = tx.Model(&existing).Update("drive_status", "included").Error
+					} else if !c.IsEligible && existing.DriveStatus == "included" {
+						_ = tx.Model(&existing).Update("drive_status", "excluded").Error
 					}
 				}
 			}

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xuri/excelize/v2"
 	"placement-management/config"
 	"placement-management/repositories"
 	"placement-management/models"
@@ -675,6 +677,482 @@ func (ctrl *DriveController) UpdateStageResults(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Results updated successfully",
+	})
+}
+
+// UploadStageResults processes a CSV or Excel file to bulk-update student outcomes
+func (ctrl *DriveController) UploadStageResults(c *gin.Context) {
+	if config.DB == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Database not connected"})
+		return
+	}
+
+	driveID := c.Param("id")
+	driveIDUint, err := strconv.ParseUint(driveID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid drive id"})
+		return
+	}
+
+	stageID := c.Param("stage_id")
+	stageIDUint, err := strconv.ParseUint(stageID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stage id"})
+		return
+	}
+
+	var substageID *uint64
+	if sSub := c.PostForm("substage_id"); sSub != "" {
+		if val, err := strconv.ParseUint(sSub, 10, 64); err == nil && val > 0 {
+			substageID = &val
+		}
+	}
+
+	var officerUserID *uint64
+	if sOfficer := c.PostForm("officer_user_id"); sOfficer != "" {
+		if val, err := strconv.ParseUint(sOfficer, 10, 64); err == nil && val > 0 {
+			officerUserID = &val
+		}
+	}
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid file (.csv or .xlsx)"})
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read file: " + err.Error()})
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	var rows [][]string
+
+	if ext == ".xlsx" || ext == ".xls" {
+		f, err := excelize.OpenReader(file)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse Excel file: " + err.Error()})
+			return
+		}
+		defer f.Close()
+
+		sheetList := f.GetSheetList()
+		if len(sheetList) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Excel file has no sheets"})
+			return
+		}
+		sheetRows, err := f.GetRows(sheetList[0])
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read Excel rows: " + err.Error()})
+			return
+		}
+		rows = sheetRows
+	} else if ext == ".csv" || ext == ".txt" {
+		csvReader := csv.NewReader(file)
+		csvReader.FieldsPerRecord = -1
+		csvReader.TrimLeadingSpace = true
+		allRows, err := csvReader.ReadAll()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse CSV file: " + err.Error()})
+			return
+		}
+		rows = allRows
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported file format. Please upload a .csv or .xlsx file."})
+		return
+	}
+
+	if len(rows) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Uploaded file is empty"})
+		return
+	}
+
+	results, err := ctrl.service.GetStageResults(driveIDUint, stageIDUint, substageID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch stage results: " + err.Error()})
+		return
+	}
+
+	if len(results) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No students are currently active in this stage to update"})
+		return
+	}
+
+	byRoll := make(map[string]models.StageStudentResultView)
+	byEmail := make(map[string]models.StageStudentResultView)
+	for _, r := range results {
+		if r.RollNo != "" {
+			byRoll[strings.ToLower(strings.TrimSpace(r.RollNo))] = r
+		}
+		if r.Email != "" {
+			byEmail[strings.ToLower(strings.TrimSpace(r.Email))] = r
+		}
+	}
+
+	rollCol := -1
+	emailCol := -1
+	outcomeCol := -1
+	startRowIndex := 0
+
+	headerRow := rows[0]
+	hasHeaders := false
+	for i, col := range headerRow {
+		clean := strings.ToLower(strings.TrimSpace(col))
+		clean = strings.TrimPrefix(clean, "\ufeff")
+		clean = strings.ReplaceAll(clean, " ", "")
+		clean = strings.ReplaceAll(clean, "_", "")
+		clean = strings.ReplaceAll(clean, "-", "")
+
+		if strings.Contains(clean, "roll") {
+			rollCol = i
+			hasHeaders = true
+		} else if strings.Contains(clean, "email") || strings.Contains(clean, "mail") {
+			emailCol = i
+			hasHeaders = true
+		} else if strings.Contains(clean, "outcome") || strings.Contains(clean, "status") || strings.Contains(clean, "result") {
+			outcomeCol = i
+			hasHeaders = true
+		}
+	}
+
+	if hasHeaders {
+		startRowIndex = 1
+	}
+
+	outcomeKeywords := []string{"cleared", "clear", "pass", "passed", "selected", "not cleared", "not_cleared", "notcleared", "fail", "failed", "rejected", "reject", "absent", "abs", "ab", "withdrawn", "withdraw", "pending"}
+	isOutcomeValue := func(val string) bool {
+		clean := strings.ToLower(strings.TrimSpace(val))
+		clean = strings.ReplaceAll(clean, "_", " ")
+		clean = strings.ReplaceAll(clean, "-", " ")
+		for _, kw := range outcomeKeywords {
+			if clean == kw {
+				return true
+			}
+		}
+		return false
+	}
+
+	// If outcome column wasn't explicitly found in header, check data rows to see if any column has outcome keywords
+	if outcomeCol == -1 {
+		colOutcomeMatches := make(map[int]int)
+		for rIdx := startRowIndex; rIdx < len(rows); rIdx++ {
+			r := rows[rIdx]
+			for cIdx, cell := range r {
+				if cIdx != rollCol && cIdx != emailCol && isOutcomeValue(cell) {
+					colOutcomeMatches[cIdx]++
+				}
+			}
+		}
+		bestCol := -1
+		bestMatches := 0
+		for cIdx, matches := range colOutcomeMatches {
+			if matches > bestMatches {
+				bestMatches = matches
+				bestCol = cIdx
+			}
+		}
+		if bestMatches > 0 && bestCol != -1 {
+			outcomeCol = bestCol
+		}
+	}
+
+	// Count total valid student data rows
+	totalDataRows := 0
+	for i := startRowIndex; i < len(rows); i++ {
+		row := rows[i]
+		if len(row) == 0 {
+			continue
+		}
+		var rVal, eVal string
+		if rollCol >= 0 && rollCol < len(row) {
+			rVal = strings.TrimSpace(row[rollCol])
+		}
+		if emailCol >= 0 && emailCol < len(row) {
+			eVal = strings.TrimSpace(row[emailCol])
+		}
+		if rVal != "" || eVal != "" {
+			totalDataRows++
+		}
+	}
+
+	// If no outcome column was found in the uploaded document
+	if outcomeCol == -1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success":         false,
+			"error":           "can't find outcome for the students in the uploaded document",
+			"message":         "Can't find outcome for the students in the uploaded document. Please include an 'Outcome' column with valid values (cleared, not cleared, absent, or withdrawn).",
+			"total_rows":      totalDataRows,
+			"updated_count":   0,
+			"unmatched_count": totalDataRows,
+			"details":         []string{"No 'Outcome' column or outcome values found in the uploaded document."},
+		})
+		return
+	}
+
+	type NotFoundStudentItem struct {
+		RowNumber int    `json:"row_number"`
+		RollNo    string `json:"roll_no"`
+		Email     string `json:"email"`
+		Outcome   string `json:"outcome"`
+		Reason    string `json:"reason"`
+	}
+
+	type OutcomeErrorItem struct {
+		RowNumber int    `json:"row_number"`
+		RollNo    string `json:"roll_no"`
+		Email     string `json:"email"`
+		Outcome   string `json:"outcome"`
+		Reason    string `json:"reason"`
+	}
+
+	var notFoundStudents []NotFoundStudentItem
+	var outcomeErrors []OutcomeErrorItem
+	var updates []repositories.StudentOutcomeUpdateItem
+	seenResults := make(map[uint64]bool)
+	failedCount := 0
+	var details []string
+
+	for i := startRowIndex; i < len(rows); i++ {
+		row := rows[i]
+		if len(row) == 0 {
+			continue
+		}
+
+		var rollVal, emailVal, outcomeVal string
+		if rollCol >= 0 && rollCol < len(row) {
+			rollVal = strings.TrimSpace(row[rollCol])
+			rollVal = strings.TrimPrefix(rollVal, "\ufeff")
+		}
+		if emailCol >= 0 && emailCol < len(row) {
+			emailVal = strings.TrimSpace(row[emailCol])
+		}
+		if outcomeCol >= 0 && outcomeCol < len(row) {
+			outcomeVal = strings.TrimSpace(row[outcomeCol])
+		}
+
+		if rollVal == "" && emailVal == "" {
+			continue
+		}
+
+		rowNumber := i + 1
+		identifier := rollVal
+		if identifier == "" {
+			identifier = emailVal
+		}
+
+		if outcomeVal == "" {
+			failedCount++
+			details = append(details, fmt.Sprintf("Row %d (%s): Outcome is blank / missing", rowNumber, identifier))
+			outcomeErrors = append(outcomeErrors, OutcomeErrorItem{
+				RowNumber: rowNumber,
+				RollNo:    rollVal,
+				Email:     emailVal,
+				Outcome:   outcomeVal,
+				Reason:    "Outcome is blank / missing",
+			})
+			continue
+		}
+
+		normOutcome := strings.ToLower(outcomeVal)
+		normOutcome = strings.ReplaceAll(normOutcome, "_", " ")
+		normOutcome = strings.ReplaceAll(normOutcome, "-", " ")
+		normOutcome = strings.TrimSpace(normOutcome)
+
+		var targetOutcome string
+		switch normOutcome {
+		case "cleared", "clear", "pass", "passed", "selected", "shortlist", "shortlisted":
+			targetOutcome = "cleared"
+		case "not cleared", "notcleared", "fail", "failed", "rejected", "reject":
+			targetOutcome = "not_cleared"
+		case "absent", "abs", "ab":
+			targetOutcome = "absent"
+		case "withdrawn", "withdraw", "opted out", "opt out":
+			targetOutcome = "withdrawn"
+		case "pending":
+			targetOutcome = "pending"
+		default:
+			failedCount++
+			details = append(details, fmt.Sprintf("Row %d (%s): Invalid outcome '%s' (must be cleared, not cleared, absent, or withdrawn)", rowNumber, identifier, outcomeVal))
+			outcomeErrors = append(outcomeErrors, OutcomeErrorItem{
+				RowNumber: rowNumber,
+				RollNo:    rollVal,
+				Email:     emailVal,
+				Outcome:   outcomeVal,
+				Reason:    fmt.Sprintf("Invalid outcome '%s' (must be cleared, not cleared, absent, or withdrawn)", outcomeVal),
+			})
+			continue
+		}
+
+		// Match candidate in this stage
+		var sRoll *models.StageStudentResultView
+		var sEmail *models.StageStudentResultView
+
+		if rollVal != "" {
+			if s, ok := byRoll[strings.ToLower(rollVal)]; ok {
+				sRoll = &s
+			}
+		}
+		if emailVal != "" {
+			if s, ok := byEmail[strings.ToLower(emailVal)]; ok {
+				sEmail = &s
+			}
+		}
+
+		var matched *models.StageStudentResultView
+
+		if rollVal != "" && emailVal != "" {
+			// BOTH Roll No and Email were provided in the document: STRICT CHECK!
+			if sRoll == nil && sEmail == nil {
+				failedCount++
+				reason := fmt.Sprintf("Can't find student: neither Roll No '%s' nor Email '%s' exist in this stage list - check manually", rollVal, emailVal)
+				details = append(details, fmt.Sprintf("Row %d: %s", rowNumber, reason))
+				notFoundStudents = append(notFoundStudents, NotFoundStudentItem{
+					RowNumber: rowNumber,
+					RollNo:    rollVal,
+					Email:     emailVal,
+					Outcome:   outcomeVal,
+					Reason:    fmt.Sprintf("Neither Roll No '%s' nor Email '%s' exist in stage list - check manually", rollVal, emailVal),
+				})
+				continue
+			} else if sRoll == nil && sEmail != nil {
+				// Roll No was invalid/not found, but Email matched a student
+				failedCount++
+				actualRoll := sEmail.RollNo
+				reason := fmt.Sprintf("Roll No '%s' not found (Student with email '%s' has Roll No '%s') - check manually", rollVal, emailVal, actualRoll)
+				details = append(details, fmt.Sprintf("Row %d: %s", rowNumber, reason))
+				notFoundStudents = append(notFoundStudents, NotFoundStudentItem{
+					RowNumber: rowNumber,
+					RollNo:    rollVal,
+					Email:     emailVal,
+					Outcome:   outcomeVal,
+					Reason:    fmt.Sprintf("Invalid Roll No '%s' (Actual Roll No for %s is '%s') - check manually", rollVal, emailVal, actualRoll),
+				})
+				continue
+			} else if sRoll != nil && sEmail == nil {
+				// Email was invalid/not found, but Roll No matched a student
+				failedCount++
+				actualEmail := sRoll.Email
+				reason := fmt.Sprintf("Email '%s' not found (Student with Roll No '%s' has Email '%s') - check manually", emailVal, rollVal, actualEmail)
+				details = append(details, fmt.Sprintf("Row %d: %s", rowNumber, reason))
+				notFoundStudents = append(notFoundStudents, NotFoundStudentItem{
+					RowNumber: rowNumber,
+					RollNo:    rollVal,
+					Email:     emailVal,
+					Outcome:   outcomeVal,
+					Reason:    fmt.Sprintf("Invalid Email '%s' (Actual Email for %s is '%s') - check manually", emailVal, rollVal, actualEmail),
+				})
+				continue
+			} else {
+				// Both sRoll and sEmail were found in database
+				if sRoll.ResultID == sEmail.ResultID {
+					// Perfect match!
+					matched = sRoll
+				} else {
+					// Mismatch: Roll No belongs to one student, Email belongs to another
+					failedCount++
+					reason := fmt.Sprintf("Mismatched credentials: Roll No '%s' belongs to %s, but Email '%s' belongs to %s - check manually", rollVal, sRoll.Name, emailVal, sEmail.Name)
+					details = append(details, fmt.Sprintf("Row %d: %s", rowNumber, reason))
+					notFoundStudents = append(notFoundStudents, NotFoundStudentItem{
+						RowNumber: rowNumber,
+						RollNo:    rollVal,
+						Email:     emailVal,
+						Outcome:   outcomeVal,
+						Reason:    fmt.Sprintf("Conflicting data (Roll No '%s' ≠ Email '%s') - check manually", rollVal, emailVal),
+					})
+					continue
+				}
+			}
+		} else if rollVal != "" {
+			// ONLY Roll No provided in document
+			if sRoll != nil {
+				matched = sRoll
+			} else {
+				failedCount++
+				details = append(details, fmt.Sprintf("Row %d: Can't find student with Roll No '%s' in this stage list", rowNumber, rollVal))
+				notFoundStudents = append(notFoundStudents, NotFoundStudentItem{
+					RowNumber: rowNumber,
+					RollNo:    rollVal,
+					Email:     "",
+					Outcome:   outcomeVal,
+					Reason:    fmt.Sprintf("Can't find student with Roll No '%s' in stage list - check manually", rollVal),
+				})
+				continue
+			}
+		} else if emailVal != "" {
+			// ONLY Email provided in document
+			if sEmail != nil {
+				matched = sEmail
+			} else {
+				failedCount++
+				details = append(details, fmt.Sprintf("Row %d: Can't find student with Email '%s' in this stage list", rowNumber, emailVal))
+				notFoundStudents = append(notFoundStudents, NotFoundStudentItem{
+					RowNumber: rowNumber,
+					RollNo:    "",
+					Email:     emailVal,
+					Outcome:   outcomeVal,
+					Reason:    fmt.Sprintf("Can't find student with Email '%s' in stage list - check manually", emailVal),
+				})
+				continue
+			}
+		}
+
+		if seenResults[matched.ResultID] {
+			failedCount++
+			details = append(details, fmt.Sprintf("Row %d: Duplicate record for student '%s' (already updated in a previous row)", rowNumber, identifier))
+			notFoundStudents = append(notFoundStudents, NotFoundStudentItem{
+				RowNumber: rowNumber,
+				RollNo:    rollVal,
+				Email:     emailVal,
+				Outcome:   outcomeVal,
+				Reason:    fmt.Sprintf("Can't find student data (Duplicate entry for '%s') - check manually", identifier),
+			})
+			continue
+		}
+
+		seenResults[matched.ResultID] = true
+		updates = append(updates, repositories.StudentOutcomeUpdateItem{
+			ResultID: matched.ResultID,
+			Outcome:  targetOutcome,
+		})
+	}
+
+	actualUnmatched := totalDataRows - len(updates)
+	if actualUnmatched < 0 {
+		actualUnmatched = 0
+	}
+
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success":            false,
+			"error":              "can't find outcome for the students in the uploaded document",
+			"message":            "Can't find outcome for the students in the uploaded document. Please check the outcomes specified in the document.",
+			"total_rows":         totalDataRows,
+			"updated_count":      0,
+			"unmatched_count":    totalDataRows,
+			"not_found_students": notFoundStudents,
+			"outcome_errors":     outcomeErrors,
+			"details":            details,
+		})
+		return
+	}
+
+	if err := ctrl.service.UpdateStageResults(officerUserID, updates); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":            true,
+		"message":            fmt.Sprintf("Successfully updated %d of %d student outcome(s)", len(updates), totalDataRows),
+		"total_rows":         totalDataRows,
+		"updated_count":      len(updates),
+		"unmatched_count":    actualUnmatched,
+		"not_found_students": notFoundStudents,
+		"outcome_errors":     outcomeErrors,
+		"details":            details,
 	})
 }
 

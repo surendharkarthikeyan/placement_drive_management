@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Plus,
   Edit3,
@@ -19,7 +19,11 @@ import {
   Users,
   FileText,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Download,
+  Upload,
+  X,
+  AlertTriangle
 } from 'lucide-react'
 import {
   getDriveStages,
@@ -28,6 +32,7 @@ import {
   createDriveSubstage,
   getStageResults,
   updateStageResults,
+  uploadStageResults,
   addSpecialEntryToStage,
   completeDriveStage,
   completeDriveSubstage,
@@ -114,6 +119,7 @@ export default function DriveStagesAndOutcomes({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [uploadResultModal, setUploadResultModal] = useState(null)
 
   // 1. Fetch Stages
   const fetchStages = async (preserveSelected = true, isSilent = false) => {
@@ -303,6 +309,103 @@ export default function DriveStagesAndOutcomes({
       )
     } catch (err) {
       console.error('Failed to update remarks:', err)
+    }
+  }
+
+  const fileInputRef = useRef(null)
+
+  // Download template for bulk outcome update (Roll No, Email, Outcome)
+  const handleDownloadTemplate = () => {
+    let csvContent = 'Roll No,Email,Outcome\n'
+    if (results && results.length > 0) {
+      results.forEach((r) => {
+        const roll = (r.roll_no || '').replace(/"/g, '""')
+        const email = (r.email || '').replace(/"/g, '""')
+        // Leave Outcome blank so user can fill in: cleared, not cleared, absent, or withdrawn
+        csvContent += `"${roll}","${email}",""\n`
+      })
+    } else {
+      csvContent += 'CS101,student1@example.com,cleared\n'
+      csvContent += 'CS102,student2@example.com,not cleared\n'
+      csvContent += 'CS103,student3@example.com,absent\n'
+      csvContent += 'CS104,student4@example.com,withdrawn\n'
+    }
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    const stageNameClean = (currentStage?.stage_name || 'stage').toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    link.setAttribute('download', `${stageNameClean}_outcomes_template.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  // Trigger file upload dialog
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+      fileInputRef.current.click()
+    }
+  }
+
+  // Handle file selected for bulk outcome update (.csv, .xlsx)
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      setIsSubmitting(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      if (selectedSubstageId) {
+        formData.append('substage_id', selectedSubstageId)
+      }
+      if (officerUserId) {
+        formData.append('officer_user_id', officerUserId)
+      }
+
+      const res = await uploadStageResults(driveId, selectedStageId, formData)
+      
+      setUploadResultModal({
+        isOpen: true,
+        success: (res.updated_count || 0) > 0,
+        message: res.message || 'Outcomes processed successfully',
+        totalRows: res.total_rows || 0,
+        updatedCount: res.updated_count || 0,
+        failedCount: res.unmatched_count !== undefined ? res.unmatched_count : Math.max(0, (res.total_rows || 0) - (res.updated_count || 0)),
+        notFoundStudents: res.not_found_students || [],
+        outcomeErrors: res.outcome_errors || [],
+        details: res.details || []
+      })
+
+      if (res.updated_count > 0) {
+        await fetchResults()
+        await fetchStages(true, true)
+        onDriveUpdated()
+      }
+    } catch (err) {
+      console.error('Failed to upload outcomes:', err)
+      const data = err?.response?.data || {}
+      
+      setUploadResultModal({
+        isOpen: true,
+        success: false,
+        message: data.message || data.error || "Can't find outcome for the students in the uploaded document.",
+        totalRows: data.total_rows || 0,
+        updatedCount: data.updated_count || 0,
+        failedCount: data.unmatched_count !== undefined ? data.unmatched_count : (data.total_rows || 0),
+        notFoundStudents: data.not_found_students || [],
+        outcomeErrors: data.outcome_errors || [],
+        details: data.details || [data.error || "Can't find outcome for the students in the uploaded document."]
+      })
+    } finally {
+      setIsSubmitting(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -1015,6 +1118,36 @@ export default function DriveStagesAndOutcomes({
                   <Sparkles size={15} className="text-[#d97706]" />
                   <span>Special Entry</span>
                 </button>
+
+                {/* Bulk Outcome Upload & Template Buttons */}
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  title="Download template (Roll No, Email, Outcome)"
+                  className="py-[7.5px] px-[13px] bg-[#f8fafc] hover:bg-[#f1f5f9] text-[#334155] border border-[#cbd5e1] rounded-[9px] text-[13px] font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Download size={14} className="text-[#64748b]" />
+                  <span>Download Template</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  disabled={isSubmitting}
+                  title="Upload students list for bulk updation of outcome setting"
+                  className="py-[7.5px] px-[14px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-[9px] text-[13px] font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+                >
+                  <Upload size={14} className="text-white" />
+                  <span>Upload Students List</span>
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv, .xlsx, .xls"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
               </div>
             )}
           </div>
@@ -1433,6 +1566,233 @@ export default function DriveStagesAndOutcomes({
               >
                 {isCompletingRecruitment && <Loader2 size={16} className="animate-spin" />}
                 <span>Confirm & Proceed to Final Selection</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Outcome Upload Result Modal */}
+      {uploadResultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0f172a]/45 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-[540px] bg-white rounded-[20px] shadow-[0_24px_64px_-12px_rgba(15,23,42,0.30)] border border-[#dbe5f1] overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className={`px-6 py-4.5 border-b flex items-center justify-between ${
+              uploadResultModal.updatedCount > 0 
+                ? 'bg-[#f0fdf4]/70 border-[#bbf7d0]' 
+                : 'bg-[#fef2f2]/70 border-[#fecaca]'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border ${
+                  uploadResultModal.updatedCount > 0 
+                    ? 'bg-[#dcfce7] text-[#16a34a] border-[#86efac]' 
+                    : 'bg-[#fee2e2] text-[#dc2626] border-[#fca5a5]'
+                }`}>
+                  {uploadResultModal.updatedCount > 0 ? (
+                    <CheckCircle2 size={22} strokeWidth={2.4} />
+                  ) : (
+                    <AlertCircle size={22} strokeWidth={2.4} />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-bold text-[#0f172a] m-0 leading-tight">
+                    {uploadResultModal.updatedCount > 0 ? 'Outcome Update Summary' : 'Outcome Upload Notice'}
+                  </h3>
+                  <span className="text-[12px] font-medium text-[#64748b]">
+                    {uploadResultModal.updatedCount > 0 ? 'Batch student outcome processing report' : 'Document verification notice'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUploadResultModal(null)}
+                className="text-[#94a3b8] hover:text-[#475569] p-1.5 rounded-lg hover:bg-black/5 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4.5">
+              {/* Status Message Banner */}
+              <div className={`p-3.5 rounded-[12px] border flex items-start gap-2.5 ${
+                uploadResultModal.updatedCount === 0
+                  ? 'bg-[#fef2f2] border-[#fecaca] text-[#991b1b]'
+                  : uploadResultModal.failedCount > 0
+                  ? 'bg-[#fffbeb] border-[#fde68a] text-[#92400e]'
+                  : 'bg-[#f0fdf4] border-[#bbf7d0] text-[#166534]'
+              }`}>
+                {uploadResultModal.updatedCount === 0 ? (
+                  <AlertCircle size={18} className="text-[#dc2626] shrink-0 mt-0.5" />
+                ) : uploadResultModal.failedCount > 0 ? (
+                  <AlertTriangle size={18} className="text-[#d97706] shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle2 size={18} className="text-[#16a34a] shrink-0 mt-0.5" />
+                )}
+                <div className="text-[13px] font-medium leading-relaxed">
+                  {uploadResultModal.message}
+                </div>
+              </div>
+
+              {/* 3 Numerical KPI Badges */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-[14px] p-3.5 text-center shadow-2xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748b] block mb-1">
+                    Document Total
+                  </span>
+                  <span className="text-[24px] font-[800] text-[#0f172a]">
+                    {uploadResultModal.totalRows}
+                  </span>
+                  <span className="text-[11px] text-[#94a3b8] block mt-0.5">student records</span>
+                </div>
+
+                <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-[14px] p-3.5 text-center shadow-2xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#16a34a] block mb-1">
+                    Updated
+                  </span>
+                  <span className="text-[24px] font-[800] text-[#16a34a]">
+                    {uploadResultModal.updatedCount}
+                  </span>
+                  <span className="text-[11px] text-[#22c55e] block mt-0.5">outcomes applied</span>
+                </div>
+
+                <div className={`border rounded-[14px] p-3.5 text-center shadow-2xs ${
+                  uploadResultModal.failedCount > 0 
+                    ? 'bg-[#fef2f2] border-[#fecaca]' 
+                    : 'bg-[#f8fafc] border-[#e2e8f0]'
+                }`}>
+                  <span className={`text-[11px] font-bold uppercase tracking-wider block mb-1 ${
+                    uploadResultModal.failedCount > 0 ? 'text-[#dc2626]' : 'text-[#64748b]'
+                  }`}>
+                    Not Updated
+                  </span>
+                  <span className={`text-[24px] font-[800] ${
+                    uploadResultModal.failedCount > 0 ? 'text-[#dc2626]' : 'text-[#64748b]'
+                  }`}>
+                    {uploadResultModal.failedCount}
+                  </span>
+                  <span className={`text-[11px] block mt-0.5 ${
+                    uploadResultModal.failedCount > 0 ? 'text-[#ef4444]' : 'text-[#94a3b8]'
+                  }`}>
+                    mistakes / skipped
+                  </span>
+                </div>
+              </div>
+
+              {/* Not Found In Stage List - Check Manually */}
+              {uploadResultModal.notFoundStudents && uploadResultModal.notFoundStudents.length > 0 && (
+                <div className="border border-[#fecaca] bg-[#fff5f5] rounded-[14px] p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-[#991b1b] font-bold text-[13.5px]">
+                    <AlertCircle size={18} className="text-[#dc2626] shrink-0" />
+                    <span>Can't find these people in this stage, check manually ({uploadResultModal.notFoundStudents.length}):</span>
+                  </div>
+
+                  <div className="bg-white rounded-[10px] border border-[#fecaca] overflow-hidden shadow-2xs">
+                    <div className="overflow-x-auto max-h-[170px]">
+                      <table className="w-full text-left border-collapse text-[12.5px]">
+                        <thead className="bg-[#fef2f2] text-[#991b1b] border-b border-[#fecaca] text-[11px] uppercase font-bold tracking-wider">
+                          <tr>
+                            <th className="py-2 px-3">Row</th>
+                            <th className="py-2 px-3">Roll No</th>
+                            <th className="py-2 px-3">Email</th>
+                            <th className="py-2 px-3">Outcome In Doc</th>
+                            <th className="py-2 px-3 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#fee2e2]">
+                          {uploadResultModal.notFoundStudents.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-[#fff5f5]">
+                              <td className="py-2 px-3 font-semibold text-[#64748b]">#{item.row_number}</td>
+                              <td className="py-2 px-3 font-bold text-[#1e293b]">{item.roll_no || '—'}</td>
+                              <td className="py-2 px-3 text-[#475569]">{item.email || '—'}</td>
+                              <td className="py-2 px-3">
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#f1f5f9] text-[#334155] border border-[#cbd5e1]">
+                                  {item.outcome || '—'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right text-[#dc2626] font-semibold text-[11.5px]">
+                                {item.reason || "Can't find this student data · Check manually"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-[#b91c1c] m-0 leading-normal">
+                    These candidate(s) are not enrolled in this stage roster. Please check their credentials manually or add them via <strong>Special Entry</strong>.
+                  </p>
+                </div>
+              )}
+
+              {/* Outcome Formatting Mistakes */}
+              {uploadResultModal.outcomeErrors && uploadResultModal.outcomeErrors.length > 0 && (
+                <div className="border border-[#fde68a] bg-[#fffbeb] rounded-[14px] p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-[#92400e] font-bold text-[13.5px]">
+                    <AlertTriangle size={18} className="text-[#d97706] shrink-0" />
+                    <span>Mistakes in outcome format ({uploadResultModal.outcomeErrors.length}):</span>
+                  </div>
+
+                  <div className="bg-white rounded-[10px] border border-[#fde68a] overflow-hidden shadow-2xs">
+                    <div className="overflow-x-auto max-h-[150px]">
+                      <table className="w-full text-left border-collapse text-[12.5px]">
+                        <thead className="bg-[#fef3c7] text-[#92400e] border-b border-[#fde68a] text-[11px] uppercase font-bold tracking-wider">
+                          <tr>
+                            <th className="py-2 px-3">Row</th>
+                            <th className="py-2 px-3">Student</th>
+                            <th className="py-2 px-3">Entered Outcome</th>
+                            <th className="py-2 px-3 text-right">Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#fef3c7]">
+                          {uploadResultModal.outcomeErrors.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-[#fffbeb]/50">
+                              <td className="py-2 px-3 font-semibold text-[#64748b]">#{item.row_number}</td>
+                              <td className="py-2 px-3 font-bold text-[#1e293b]">{item.roll_no || item.email || '—'}</td>
+                              <td className="py-2 px-3">
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#fee2e2] text-[#dc2626] border border-[#fca5a5]">
+                                  {item.outcome ? `"${item.outcome}"` : '(blank)'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right text-[#b45309] font-medium text-[11.5px]">
+                                {item.reason}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* General details / other warnings */}
+              {(!uploadResultModal.notFoundStudents?.length && !uploadResultModal.outcomeErrors?.length && uploadResultModal.details && uploadResultModal.details.length > 0) && (
+                <div className="border border-[#e2e8f0] rounded-[12px] overflow-hidden bg-[#f8fafc]">
+                  <div className="px-3.5 py-2 bg-[#f1f5f9] border-b border-[#e2e8f0] text-[12px] font-bold text-[#334155] flex items-center justify-between">
+                    <span>Details & Warnings</span>
+                    <span className="text-[#64748b] text-[11px] font-medium">{uploadResultModal.details.length} item(s)</span>
+                  </div>
+                  <div className="max-h-[160px] overflow-y-auto p-2.5 space-y-1.5 text-[12.5px] text-[#475569]">
+                    {uploadResultModal.details.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2 bg-white p-2 rounded-[8px] border border-[#e2e8f0] shadow-2xs">
+                        <span className="text-[#f59e0b] font-bold shrink-0">•</span>
+                        <span className="leading-snug">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3.5 bg-[#f8fafc] border-t border-[#e2e8f0] flex justify-end">
+              <button
+                type="button"
+                onClick={() => setUploadResultModal(null)}
+                className="px-5 py-2 bg-[#1e293b] hover:bg-[#0f172a] text-white rounded-[10px] text-[13px] font-bold transition cursor-pointer shadow-2xs"
+              >
+                Got it
               </button>
             </div>
           </div>
