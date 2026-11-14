@@ -8,7 +8,6 @@ import {
   getIntelligenceCompanyStatistics,
   getIntelligenceStudents
 } from '../../../services/api'
-import { companyStatsData, studentsData } from './intelligenceData'
 
 /**
  * IntelligenceLeftPanel
